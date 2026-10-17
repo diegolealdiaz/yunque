@@ -278,9 +278,9 @@ yunque/
     channels/             adaptadores: upload, batch, inbox, telegram
     explain/              plantillas y resumen en prosa
     ui/                   formatos y etiquetas de pantalla, puros y probados
-    eval/                 set de regresión: fixtures, métricas, puerta e informe
+    eval/                 set de regresión: fixtures, filas y métricas (compartidas con la pantalla), puerta e informe
     db/                   esquema drizzle, migraciones, repositorios (único módulo que importa el driver)
-    usecases/             processInvoice, approveDecision, correctAndReevaluate, savePolicy, replayPolicy
+    usecases/             processInvoice, approveDecision, correctAndReevaluate, savePolicy, replayPolicy, loadMetrics
   data/
     dataset/              manifiesto y archivos generados
     seed/                 empresa, vendors, política inicial

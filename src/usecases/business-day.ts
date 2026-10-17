@@ -77,3 +77,16 @@ export function currentBusinessDate(
 ): string {
   return options.demo ? DATASET_TODAY : businessDateOf(now, options.timeZone);
 }
+
+/**
+ * Día de negocio de un instante ya pasado: a qué periodo pertenece una decisión. En la demo el
+ * día de hoy es fijo; lo decidido antes conserva su fecha (el historial sembrado) y lo
+ * decidido después cae en el día del dataset, que es el día en que el agente lo decidió.
+ */
+export function businessDateAt(
+  options: { readonly demo: boolean; readonly timeZone: string },
+  instant: Date,
+): string {
+  const date = businessDateOf(instant, options.timeZone);
+  return options.demo && date > DATASET_TODAY ? DATASET_TODAY : date;
+}

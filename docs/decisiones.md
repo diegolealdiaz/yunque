@@ -121,6 +121,14 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 
 **Consecuencia.** Lo que la vista previa anuncia es lo que el replay hace: un pago nuevo puede dejar sin presupuesto a la siguiente y la vista previa ya lo muestra. El formulario y el YAML editan el mismo documento en el navegador; el servidor valida con el esquema estricto y nunca toma del editor las claves protegidas ni los controles.
 
+## D19. Métricas mide la decisión del agente con el código de la evaluación
+
+**Contexto.** La pantalla de Métricas y `npm run eval` tienen que dar los mismos números sobre la misma base; si cada una armara sus filas a su manera, divergirían en silencio. Además, una factura que una persona aprueba, corrige o reevalúa con otra política tiene varias decisiones, y solo una es lo que hizo el agente solo.
+
+**Decisión.** La fila de cada caso se arma en `src/eval/rows.ts` y la comparten la evaluación y la pantalla, con el mismo `computeMetrics`. Los números del set (autonomía, falsos "pagar", exactitud, costo y tiempo) se miden sobre las facturas del lote que tienen caso en el dataset, con la decisión del agente al recibirlas: la de actor agente sin decisión anterior. Una factura subida a mano no tiene veredicto esperado y no entra. Los números de operación (escaladas esperando, presupuesto por moneda, reglas que más dispararon) salen de la decisión vigente de todas las facturas, en el periodo del presupuesto. Cada número trae la lista de facturas que lo componen y la pantalla la abre con `?ver=`.
+
+**Consecuencia.** Cambiar la política no reescribe la autonomía pasada, y bajar la autonomía exige que el agente decida peor, no que una persona corrija. El tiempo de decisión se mide de la recepción a la decisión guardada, así que difiere en milisegundos del que mide `eval` alrededor del proceso; por eso P-91 no compara latencias.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |
