@@ -12,10 +12,7 @@ const eslintConfig = defineConfig([
       // Ningún `any` y ninguna aserción de tipo para esquivar al compilador.
       // `as const` sigue permitido.
       "@typescript-eslint/no-explicit-any": "error",
-      "@typescript-eslint/consistent-type-assertions": [
-        "error",
-        { assertionStyle: "never" },
-      ],
+      "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "never" }],
       "@typescript-eslint/no-unused-vars": [
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },

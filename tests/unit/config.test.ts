@@ -1,0 +1,160 @@
+import { describe, expect, it } from "vitest";
+
+import { ConfigError, loadConfig } from "@/src/config";
+
+/** Entorno completo y válido, equivalente a .env.example con secretos puestos. */
+const valid: Record<string, string> = {
+  NODE_ENV: "test",
+  OPENROUTER_API_KEY: "sk-or-test",
+  MODEL_PRIMARY: "anthropic/claude-haiku-5.5",
+  MODEL_FALLBACK: "anthropic/claude-sonnet-5.5",
+  MODEL_MAX_OUTPUT_TOKENS: "1500",
+  DATABASE_URL: "file:./data/yunque.db",
+  DATABASE_AUTH_TOKEN: "",
+  BLOB_READ_WRITE_TOKEN: "",
+  APPROVAL_SIGNING_SECRET: "a".repeat(64),
+  SESSION_SECRET: "b".repeat(64),
+  SYSTEM_HARD_CAP_USD_CENTS: "10000000",
+  DEMO_MODE: "true",
+  MAX_UPLOAD_BYTES: "5242880",
+  MAX_PAGES_RENDERED: "5",
+  MAX_INVOICES_PER_VISITOR_PER_DAY: "50",
+  MAX_INVOICES_PER_DAY: "500",
+  DISPLAY_TIMEZONE: "America/Bogota",
+  TELEGRAM_BOT_TOKEN: "",
+  TELEGRAM_WEBHOOK_SECRET: "",
+};
+
+function without(name: string): Record<string, string | undefined> {
+  const copy: Record<string, string | undefined> = { ...valid };
+  delete copy[name];
+  return copy;
+}
+
+function problemsOf(source: Record<string, string | undefined>): string[] {
+  try {
+    loadConfig(source);
+  } catch (error) {
+    if (error instanceof ConfigError) return [...error.problems];
+    throw error;
+  }
+  throw new Error("se esperaba ConfigError");
+}
+
+describe("loadConfig (P-02)", () => {
+  it("carga el entorno completo y expone valores tipados", () => {
+    const config = loadConfig(valid);
+    expect(config.env).toBe("test");
+    expect(config.model?.primary).toBe("anthropic/claude-haiku-5.5");
+    expect(config.model?.maxOutputTokens).toBe(1500);
+    expect(config.database).toEqual({ url: "file:./data/yunque.db", authToken: null });
+    expect(config.blob.token).toBeNull();
+    expect(config.systemHardCapUsdCents).toBe(10_000_000);
+    expect(config.demo).toEqual({
+      enabled: true,
+      maxUploadBytes: 5_242_880,
+      maxPagesRendered: 5,
+      maxInvoicesPerVisitorPerDay: 50,
+      maxInvoicesPerDay: 500,
+    });
+    expect(config.displayTimeZone).toBe("America/Bogota");
+    expect(config.telegram).toBeNull();
+    expect(Object.isFrozen(config)).toBe(true);
+  });
+
+  it.each([
+    "DATABASE_URL",
+    "APPROVAL_SIGNING_SECRET",
+    "SESSION_SECRET",
+    "SYSTEM_HARD_CAP_USD_CENTS",
+  ])("sin %s lanza un error que nombra la variable", (name) => {
+    const problems = problemsOf(without(name));
+    expect(problems.some((p) => p.includes(name))).toBe(true);
+  });
+
+  it("reporta todas las variables ausentes a la vez, no solo la primera", () => {
+    const source = without("DATABASE_URL");
+    delete source["SESSION_SECRET"];
+    const problems = problemsOf(source);
+    expect(problems.some((p) => p.includes("DATABASE_URL"))).toBe(true);
+    expect(problems.some((p) => p.includes("SESSION_SECRET"))).toBe(true);
+  });
+
+  it("acepta la ausencia de clave del modelo fuera de producción y apaga el Lector", () => {
+    const config = loadConfig(without("OPENROUTER_API_KEY"));
+    expect(config.model).toBeNull();
+  });
+
+  it("exige la clave del modelo en producción", () => {
+    const problems = problemsOf({ ...without("OPENROUTER_API_KEY"), NODE_ENV: "production" });
+    expect(problems.some((p) => p.includes("OPENROUTER_API_KEY"))).toBe(true);
+  });
+
+  it("rechaza secretos cortos", () => {
+    const problems = problemsOf({ ...valid, SESSION_SECRET: "corto" });
+    expect(problems.some((p) => p.includes("SESSION_SECRET"))).toBe(true);
+  });
+
+  it("rechaza que los dos secretos sean iguales", () => {
+    const problems = problemsOf({ ...valid, SESSION_SECRET: valid["APPROVAL_SIGNING_SECRET"] });
+    expect(problems.some((p) => p.includes("SESSION_SECRET"))).toBe(true);
+  });
+
+  it.each([
+    ["SYSTEM_HARD_CAP_USD_CENTS", "0"],
+    ["SYSTEM_HARD_CAP_USD_CENTS", "12.5"],
+    ["SYSTEM_HARD_CAP_USD_CENTS", "mucho"],
+    ["MAX_PAGES_RENDERED", "0"],
+    ["MAX_PAGES_RENDERED", "21"],
+    ["MAX_UPLOAD_BYTES", "999"],
+    ["MODEL_MAX_OUTPUT_TOKENS", "10"],
+    ["MAX_INVOICES_PER_DAY", "-1"],
+  ])("rechaza %s=%s por estar fuera de rango", (name, value) => {
+    const problems = problemsOf({ ...valid, [name]: value });
+    expect(problems.some((p) => p.includes(name))).toBe(true);
+  });
+
+  it("rechaza que el tope por visitante supere el tope global", () => {
+    const problems = problemsOf({ ...valid, MAX_INVOICES_PER_VISITOR_PER_DAY: "600" });
+    expect(problems.some((p) => p.includes("MAX_INVOICES_PER_VISITOR_PER_DAY"))).toBe(true);
+  });
+
+  it("rechaza una zona horaria inexistente", () => {
+    const problems = problemsOf({ ...valid, DISPLAY_TIMEZONE: "America/Ciudad_Inventada" });
+    expect(problems.some((p) => p.includes("DISPLAY_TIMEZONE"))).toBe(true);
+  });
+
+  it("rechaza un booleano que no sea true o false", () => {
+    const problems = problemsOf({ ...valid, DEMO_MODE: "si" });
+    expect(problems.some((p) => p.includes("DEMO_MODE"))).toBe(true);
+  });
+
+  it("acepta false y 0 como booleanos falsos", () => {
+    expect(loadConfig({ ...valid, DEMO_MODE: "false" }).demo.enabled).toBe(false);
+    expect(loadConfig({ ...valid, DEMO_MODE: "0" }).demo.enabled).toBe(false);
+  });
+
+  it("aplica valores por defecto cuando una variable opcional no viene", () => {
+    const source = without("MAX_PAGES_RENDERED");
+    delete source["DISPLAY_TIMEZONE"];
+    const config = loadConfig(source);
+    expect(config.demo.maxPagesRendered).toBe(5);
+    expect(config.displayTimeZone).toBe("America/Bogota");
+  });
+
+  it("exige token y secreto de Telegram juntos", () => {
+    const problems = problemsOf({ ...valid, TELEGRAM_BOT_TOKEN: "123:abc" });
+    expect(problems.some((p) => p.includes("TELEGRAM_WEBHOOK_SECRET"))).toBe(true);
+    const config = loadConfig({
+      ...valid,
+      TELEGRAM_BOT_TOKEN: "123:abc",
+      TELEGRAM_WEBHOOK_SECRET: "s",
+    });
+    expect(config.telegram).toEqual({ botToken: "123:abc", webhookSecret: "s" });
+  });
+
+  it("ignora espacios alrededor de los valores", () => {
+    const config = loadConfig({ ...valid, DATABASE_URL: "  file:./x.db  " });
+    expect(config.database.url).toBe("file:./x.db");
+  });
+});
