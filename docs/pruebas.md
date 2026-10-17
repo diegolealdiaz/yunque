@@ -145,7 +145,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 
 | Id | Verifica | Tipo |
 |---|---|---|
-| P-100 | Página de componentes: los nueve renderizan; contraste 4.5:1 en texto y 3:1 en chips, puntos y bordes de controles, calculado sobre los tokens de `globals.css`; foco visible al navegar con teclado; sin errores de consola | unitario (tokens y render en servidor) + e2e |
+| P-100 | Página de componentes: los nueve renderizan; contraste 4.5:1 en texto y 3:1 en chips, puntos y bordes de controles, calculado sobre los tokens de `globals.css` en el tema claro y en el oscuro; foco visible al navegar con teclado; sin errores de consola | unitario (tokens y render en servidor) + e2e |
 | P-101 | Pendientes muestra exactamente las escaladas del dataset ordenadas por vencimiento, las frenadas y las pagadas del día, sin el historial; el contador de la barra sale de la misma lectura; otra empresa no ve nada | pipeline + e2e |
 | P-102 | Detalle: seleccionar un campo resalta la cita en imagen y texto; las posiciones salen de PDFium al ingerir y caen dentro de la casilla del campo en todas las plantillas del dataset; un valor repetido se ubica dentro de su cita; las reglas falladas aparecen primero con valor y umbral; la imagen de la página se sirve solo a su empresa, nunca el PDF | pipeline + e2e |
 | P-103 | Aprobación: el botón está inactivo hasta marcar todo el checklist y elegir aprobador; aprobar crea una decisión `pagar` con la persona y la hora, con orden desde el vendor, y la factura desaparece de pendientes; un beneficiario fuera de la lista solo se rechaza; rechazar exige motivo y es final | pipeline + e2e |
@@ -184,6 +184,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-138 | Cliente de Telegram: envía HTML con el botón y sin vista previa; un rechazo de Telegram sale como error tipado sin el token del bot; una descarga que pasa del tope se corta, y una que Telegram anuncia grande ni se pide; una respuesta con otra forma no se usa | unidad, `@seguridad` |
 | P-139 | Acceso de cliente: sin acceso, las acciones de cliente se rechazan; tras 5 intentos fallidos en 15 minutos el código no se revisa, ni el correcto, hasta que pasa la ventana; el acceso dura lo configurado y no se extiende | pipeline, `@seguridad` |
 | P-140 | Rutas de los canales de cliente, invocadas como en Next con una base temporal: `/api/acceso` exige el mismo origen, limita intentos (429) y da acceso; `/api/telegram/enlace` solo con acceso; `/api/correo/entrante` exige la contraseña, ignora lo inválido y admite el correo a una dirección real; `/api/telegram` exige el secreto, responde «privado» a un chat desconocido y conecta con el enlace; `/api/lote/resumen` exige el mismo origen y no manda nada sin facturas de ejemplo | API, `@seguridad` |
+| P-141 | Tema: sin elección guardada sigue al sistema; la elección guardada manda; con el almacenamiento bloqueado queda el claro; el selector alterna entre los dos | unidad |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

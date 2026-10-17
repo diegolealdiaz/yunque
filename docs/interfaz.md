@@ -76,7 +76,7 @@ Barra lateral fija, cinco destinos, en este orden de uso:
 - **Reglas** es la política vigente: formulario, YAML plegado, versiones.
 - **Métricas** es para el gerente.
 - **Bitácora** es el registro de eventos de todo el sistema, filtrable.
-- El pie de la barra muestra el estado de los tres interruptores de control y la salud del sistema. Están ahí siempre porque son el argumento de seguridad del producto.
+- El pie de la barra muestra el estado de los tres interruptores de control y la salud del sistema. Están ahí siempre porque son el argumento de seguridad del producto. Debajo va el selector de tema claro u oscuro.
 - "Reiniciar demo" vivirá (paso 29) en el menú de la empresa, visible en modo demo, oculto en producción.
 - El contenido se centra con un ancho máximo común a todas las pantallas, para que en un monitor grande no quede pegado a la izquierda. Los formularios (Reglas, Salud) son más angostos y se alinean al mismo borde izquierdo.
 - Las tablas nunca se desplazan de lado en escritorio. Cada columna tiene prioridad: las secundarias (canal, actualizada, estado, referencia) se ocultan a medida que la pantalla se angosta, y el beneficiario recorta su texto. En el teléfono cada fila es una tarjeta: beneficiario arriba a la izquierda, monto arriba a la derecha y debajo el veredicto, el vencimiento y la referencia; toda la tarjeta abre la factura. En la Bitácora del teléfono no van los datos crudos.
@@ -208,14 +208,16 @@ Página mínima: base, política cargada, proveedor del modelo, antigüedad del 
 
 | Elemento | Decisión |
 |---|---|
-| Tema | Claro por defecto. Un producto que mueve dinero se lee con luz. Oscuro como opción, no como identidad. Mismo registro que la plataforma de pagos en la que se integra, con valores propios |
-| Tipografía | Inter para toda la interfaz, Geist Mono para identificadores, hashes y montos en tablas. Números tabulares en toda columna numérica |
-| Tamaños | 13 px en tablas y formularios, 14 px en prosa, 20 a 24 px en títulos. Sin tamaños decorativos |
-| Neutros | Papel levemente cálido de fondo (`#F8F7F3` y blanco) con tinta azul-negra (`#1A2233`). Grises derivados de la tinta, no grises puros. Bordes de un píxel; sombras cortas solo en capas flotantes |
-| Semántica | Verde para pagar, ámbar para escalar, rojo para frenar, gris para en proceso. Siempre con icono y texto, nunca solo color |
-| Acento de marca | Ninguno. El botón primario y los enlaces son tinta. Los únicos colores cromáticos de la interfaz son los tres del veredicto: la interfaz es neutra, el color lo pone la decisión. Hay dos excepciones, y las dos quedan fuera del contenido. Un marco de luz azul suave en el borde de la ventana, con el degradado del logo, que no intercepta clics ni se imprime. Y el logo, que se queda en su sitio: un yunque con la factura encima y las tres salidas (pagar, frenar, escalar), en el icono de la pestaña y junto al nombre en la barra lateral, a 24 px. Los archivos viven en `app/icon.png`, `app/apple-icon.png`, `public/marca.png` y `docs/marca/` |
+| Tema | Claro y oscuro, con los mismos tokens. Sin elección guardada manda la del sistema; el selector al pie de la barra lateral la cambia y la guarda en el navegador. El tema se fija en `<html data-theme>` antes de pintar, así la página no parpadea. El oscuro usa el azul noche del fondo del logo; el claro, papel y tinta |
+| Tipografía | Montserrat para toda la interfaz y JetBrains Mono para cifras: montos, referencias, conteos, horas e identificadores, alineados a la derecha en columnas de ancho fijo. Números tabulares en toda columna numérica |
+| Tamaños | 13 px en tablas y formularios, 14 px en prosa, 18 px en títulos de sección, 26 a 30 px en títulos de pantalla y 64 px en la cifra principal. Las etiquetas de tabla y de grupo van en versalitas de 11 px con espaciado abierto. Jerarquía por escala y peso, no por color |
+| Superficies | Tres niveles: barra lateral (`shell`), página (`paper`) y tarjeta (`surface`). El más oscuro enmarca, el más claro contiene. Las tarjetas llevan borde de un píxel, un brillo de 1 px arriba y una sombra corta en claro, más profunda en oscuro. La tarjeta se usa cuando agrupa algo de verdad; un dato suelto no necesita caja |
+| Neutros | Claro: papel `#F8F7F3` y blanco con tinta azul-negra `#1A2233`. Oscuro: página `#0F1A2B`, tarjeta `#172438`, barra `#0A1220` y texto `#EEF3FA`. Grises derivados de la tinta, no grises puros |
+| Semántica | Verde para pagar, ámbar para escalar, rojo para frenar, gris para en proceso. Siempre con icono y texto, nunca solo color. En oscuro van en su versión clara para mantener el contraste |
+| Acento de marca | Uno solo: el azul acero del yunque (`#1E5EEB` en claro, `#4C8DFF` en oscuro). Marca dónde estás en la barra lateral y la acción principal de la pantalla, y nada más. Su degradado, del logo, aparece una vez por pantalla: en la cifra principal (Pendientes) o en el botón primario. Dos halos suaves del mismo azul arriba del fondo dan profundidad sin tocar el contenido. El logo se queda en su sitio: un yunque con la factura encima y las tres salidas (pagar, frenar, escalar), en el icono de la pestaña y junto al nombre en la barra lateral. Los archivos viven en `app/icon.png`, `app/apple-icon.png`, `public/marca.png` y `docs/marca/` |
+| Botones | Un solo primario por pantalla, con el degradado de marca. Lo demás es secundario: borde y texto en tinta. Deshabilitado se sigue leyendo: borde y texto tenue, nunca invisible |
 | Iconos | Un solo set de línea, 16 px, sin ilustraciones |
-| Espaciado | Rejilla de 4 px. Tablas con filas de 36 px. Radios de 4 px en controles y 12 px en tarjetas |
+| Espaciado | Rejilla de 4 px. Tablas con filas de 44 px. Radios de 6 px en controles, 8 px en botones de navegación, 16 px en tarjetas y redondos en chips y píldoras |
 | Movimiento | Solo transiciones de estado (fila que cambia de veredicto, contador que baja). Sin animaciones de entrada |
 | Montos | Formato de la moneda con separadores locales y código ISO al final: `4.800.000 COP`, `1,250.00 USD`. Nunca símbolos ambiguos |
 | Fechas | Relativas en listas ("vence en 2 días"), absolutas en detalle y bitácora |
@@ -247,7 +249,7 @@ Componentes base: tabla, chip de veredicto, punto de confianza, tarjeta numéric
 | Pendientes, Detalle, Facturas, Reglas, Métricas, Salud, Bitácora mínima | Chat de consulta sobre decisiones |
 | Replay "ver qué cambiaría" | Configuración guiada de primera vez en tres pasos (empresa y saldos, política, proveedores) |
 | Teclado básico (J, K, Enter, Esc) | Paleta de comandos |
-| Tema claro | Tema oscuro |
+| Tema claro y oscuro | Temas por empresa |
 | Español | Inglés |
 | Una empresa | Selector de empresa activo |
 
