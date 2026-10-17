@@ -33,10 +33,11 @@ export const MIME_BY_TYPE: Record<SniffedType, string> = {
   json: "application/json",
 };
 
-/** Adjunto embebido en un correo o un chat simulado. */
+/** Adjunto embebido en un correo o un chat: la factura en PDF o una foto de ella. */
 const AttachmentSchema = z.strictObject({
   filename: z.string().min(1).max(255),
-  content_type: z.literal("application/pdf"),
+  /** Lo que dice el remitente. El tipo real se verifica por contenido al recibir. */
+  content_type: z.enum(["application/pdf", "image/png", "image/jpeg"]),
   data_base64: z.string().min(1).max(30_000_000),
 });
 

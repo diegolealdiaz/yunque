@@ -288,6 +288,21 @@ export const notifications = sqliteTable(
   ],
 );
 
+/**
+ * Direcciones de correo de entrada de la demo (D23): `token` es la parte después del + en la
+ * dirección del proveedor y apunta a la empresa de un visitante. Vence sola en `expires_at`.
+ */
+export const inboundAddresses = sqliteTable(
+  "inbound_addresses",
+  {
+    token: text("token").primaryKey(),
+    organizationId: id("organization_id").references(() => organizations.id),
+    createdAt: timestamp("created_at"),
+    expiresAt: timestamp("expires_at"),
+  },
+  (t) => [index("inbound_addresses_org_expires_idx").on(t.organizationId, t.expiresAt)],
+);
+
 /** Cada llamada al modelo, con costo y latencia. */
 export const llmCalls = sqliteTable(
   "llm_calls",

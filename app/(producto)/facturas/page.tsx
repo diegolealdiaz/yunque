@@ -14,7 +14,12 @@ import {
 } from "@/src/domain";
 import { dueRelative, instant } from "@/src/ui/format";
 import { CHANNEL_LABEL, STATUS_LABEL, VERDICT_LABEL } from "@/src/ui/labels";
-import { LIST_LIMIT, currentBusinessDate, loadInvoiceList } from "@/src/usecases";
+import {
+  LIST_LIMIT,
+  currentBusinessDate,
+  loadInboundAddress,
+  loadInvoiceList,
+} from "@/src/usecases";
 
 import { DataTable } from "../../_components/data-table";
 import { PageHeader } from "../../_components/page-header";
@@ -25,6 +30,7 @@ import { VerdictChip } from "../../_components/verdict-chip";
 import { appContext } from "../../_data/context";
 
 import { DeliveryRunner } from "./delivery-runner";
+import { EmailPanel } from "./email-panel";
 import { UploadPanel } from "./upload-panel";
 
 export const metadata = { title: "Facturas · Yunque" };
@@ -32,8 +38,9 @@ export const metadata = { title: "Facturas · Yunque" };
 /**
  * Facturas (docs/interfaz.md §5.3): el archivo completo, con filtros por veredicto, estado,
  * canal y texto, y los caminos de entrada de la pantalla: subir archivos y, en la demo,
- * procesar las facturas de ejemplo y revisar el correo de ejemplo. Los filtros viven en la
- * URL, así un enlace (como "Ver las 15" de Pendientes) abre la lista ya filtrada.
+ * procesar las facturas de ejemplo, revisar el correo de ejemplo y recibir correo real
+ * (D23). Los filtros viven en la URL, así un enlace (como "Ver las 15" de Pendientes) abre
+ * la lista ya filtrada.
  */
 
 const FiltersSchema = z.object({
@@ -98,7 +105,8 @@ export default async function FacturasPage({
     { demo: config.demo.enabled, timeZone: config.displayTimeZone },
     now,
   );
-  const [rows, batch, mailbox] = await Promise.all([
+  const inbound = config.demo.enabled ? config.inboundEmail : null;
+  const [rows, batch, mailbox, emailAddress] = await Promise.all([
     loadInvoiceList(
       db,
       organization.id,
@@ -112,6 +120,7 @@ export default async function FacturasPage({
     ),
     config.demo.enabled ? loadBatchCases() : Promise.resolve([]),
     config.demo.enabled ? loadMailbox() : Promise.resolve([]),
+    inbound ? loadInboundAddress(db, organization.id, inbound.address, now) : null,
   ]);
   const filtered = Boolean(filters.veredicto || filters.estado || filters.canal || filters.q);
 
@@ -130,6 +139,17 @@ export default async function FacturasPage({
             <UploadDialog>
               <UploadPanel maxBytes={config.demo.maxUploadBytes} />
             </UploadDialog>
+            {inbound ? (
+              <UploadDialog label="Recibir por correo">
+                <EmailPanel
+                  address={emailAddress?.address ?? null}
+                  expires={
+                    emailAddress ? instant(emailAddress.expiresAt, config.displayTimeZone) : null
+                  }
+                  maxPerDay={inbound.maxPerAddressPerDay}
+                />
+              </UploadDialog>
+            ) : null}
             {config.demo.enabled ? (
               <>
                 <DeliveryRunner
@@ -156,7 +176,7 @@ export default async function FacturasPage({
       {config.demo.enabled ? (
         <p className="-mt-2 text-[12px] text-ink-3">
           Demo: los botones de ejemplo simulan las facturas que llegan en una quincena por PDF,
-          foto, correo y chat.
+          foto, correo y chat.{inbound ? " Con «Recibir por correo» puedes enviar una real." : ""}
         </p>
       ) : null}
 

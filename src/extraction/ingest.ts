@@ -285,19 +285,21 @@ export function receiveDocument(input: IngestInput, limits: IngestLimits): Recei
     const payload = parseChannelPayload(input.bytes);
     sourceKind = payload.kind;
     ({ meta, text: channelText } = channelMeta(payload));
-    // Con adjunto, el documento es el PDF adjunto. Sin adjunto (un correo que solo trae
-    // texto), el documento es el mensaje mismo: no tiene páginas y se escala como ilegible.
+    // Con adjunto, el documento es el adjunto: PDF o foto, verificado por contenido. Sin
+    // adjunto (un correo que solo trae texto), el documento es el mensaje mismo: no tiene
+    // páginas y se escala como ilegible.
     if (payload.attachment) {
       documentBytes = new Uint8Array(Buffer.from(payload.attachment.data_base64, "base64"));
       assertSize(documentBytes, limits);
-      if (sniffType(documentBytes) !== "pdf") {
+      const attached = sniffType(documentBytes);
+      if (attached === null || attached === "json") {
         throw new IngestError(
           "unsupported_type",
-          "El adjunto no es un PDF",
-          "Adjunta la factura en PDF",
+          "El adjunto no es un PDF ni una imagen PNG o JPEG",
+          "Adjunta la factura en PDF o como foto",
         );
       }
-      documentType = "pdf";
+      documentType = attached;
     }
   }
 

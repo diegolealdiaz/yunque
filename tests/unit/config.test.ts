@@ -193,6 +193,48 @@ describe("loadConfig (P-02)", () => {
     expect(config.model?.apiKey).toBe("sk-or-test");
   });
 
+  it("el correo de entrada está apagado por defecto y exige sus tres valores al encenderlo (D23)", () => {
+    expect(loadConfig(valid).inboundEmail).toBeNull();
+    const on = { ...valid, INBOUND_EMAIL_ENABLED: "true" };
+    const problems = problemsOf(on);
+    expect(problems).toContain("INBOUND_EMAIL_ADDRESS es requerida con INBOUND_EMAIL_ENABLED=true");
+    expect(problems).toContain(
+      "INBOUND_EMAIL_WEBHOOK_SECRET es requerida con INBOUND_EMAIL_ENABLED=true",
+    );
+    expect(problems).toContain(
+      "INBOUND_EMAIL_ACCESS_CODE es requerida con INBOUND_EMAIL_ENABLED=true",
+    );
+    const complete = {
+      ...on,
+      INBOUND_EMAIL_ADDRESS: "abc123@inbound.postmarkapp.com",
+      INBOUND_EMAIL_WEBHOOK_SECRET: "w".repeat(40),
+      INBOUND_EMAIL_ACCESS_CODE: "codigo-jurado-2026",
+    };
+    const config = loadConfig(complete);
+    expect(config.inboundEmail).toMatchObject({
+      address: "abc123@inbound.postmarkapp.com",
+      addressTtlHours: 72,
+      maxPerAddressPerDay: 10,
+      maxPerDay: 60,
+    });
+    const text = JSON.stringify(config);
+    expect(text).not.toContain("w".repeat(40));
+    expect(text).not.toContain("codigo-jurado-2026");
+    // Código corto, dirección con +, fuera de la demo o tope por dirección mayor al global.
+    expect(problemsOf({ ...complete, INBOUND_EMAIL_ACCESS_CODE: "corto" })[0]).toContain(
+      "INBOUND_EMAIL_ACCESS_CODE",
+    );
+    expect(
+      problemsOf({ ...complete, INBOUND_EMAIL_ADDRESS: "abc+x@inbound.postmarkapp.com" })[0],
+    ).toContain("INBOUND_EMAIL_ADDRESS");
+    expect(problemsOf({ ...complete, DEMO_MODE: "false" })).toContain(
+      "INBOUND_EMAIL_ENABLED=true solo está permitido en la demo",
+    );
+    expect(problemsOf({ ...complete, MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY: "100" })).toContain(
+      "MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY no puede superar MAX_INBOUND_EMAILS_PER_DAY",
+    );
+  });
+
   it("ignora espacios alrededor de los valores", () => {
     const config = loadConfig({ ...valid, DATABASE_URL: "  file:./x.db  " });
     expect(config.database.url).toBe("file:./x.db");

@@ -111,6 +111,31 @@ const EnvSchema = z.object({
 
   TELEGRAM_BOT_TOKEN: env(text("TELEGRAM_BOT_TOKEN").optional()),
   TELEGRAM_WEBHOOK_SECRET: env(text("TELEGRAM_WEBHOOK_SECRET").optional()),
+
+  INBOUND_EMAIL_ENABLED: env(boolean("INBOUND_EMAIL_ENABLED").default(false)),
+  INBOUND_EMAIL_ADDRESS: env(
+    text("INBOUND_EMAIL_ADDRESS")
+      .pipe(z.email({ error: "INBOUND_EMAIL_ADDRESS debe ser una dirección de correo" }))
+      .refine((a) => !a.split("@")[0]?.includes("+"), {
+        error: "INBOUND_EMAIL_ADDRESS va sin la parte después del +: Yunque la agrega",
+      })
+      .optional(),
+  ),
+  INBOUND_EMAIL_WEBHOOK_SECRET: env(secret("INBOUND_EMAIL_WEBHOOK_SECRET").optional()),
+  INBOUND_EMAIL_ACCESS_CODE: env(
+    text("INBOUND_EMAIL_ACCESS_CODE")
+      .pipe(
+        z
+          .string()
+          .min(12, { error: "INBOUND_EMAIL_ACCESS_CODE debe tener al menos 12 caracteres" }),
+      )
+      .optional(),
+  ),
+  INBOUND_ADDRESS_TTL_HOURS: env(integer("INBOUND_ADDRESS_TTL_HOURS", 1, 720).default(72)),
+  MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY: env(
+    integer("MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY", 1, 1000).default(10),
+  ),
+  MAX_INBOUND_EMAILS_PER_DAY: env(integer("MAX_INBOUND_EMAILS_PER_DAY", 1, 10_000).default(60)),
 });
 
 type Env = z.infer<typeof EnvSchema>;
@@ -140,6 +165,23 @@ export type Config = {
   };
   readonly displayTimeZone: string;
   readonly telegram: { readonly botToken: string; readonly webhookSecret: string } | null;
+  /**
+   * Correo real de entrada (D23). null cuando está apagado: las rutas responden 404 y la
+   * pantalla no lo ofrece. Solo existe en la demo.
+   */
+  readonly inboundEmail: InboundEmailConfig | null;
+};
+
+export type InboundEmailConfig = {
+  /** Dirección de entrada del proveedor, sin la parte después del +. */
+  readonly address: string;
+  /** Contraseña de la autenticación básica con la que el proveedor llama al webhook. */
+  readonly webhookSecret: string;
+  /** Código que se entrega a los jurados para pedir una dirección. */
+  readonly accessCode: string;
+  readonly addressTtlHours: number;
+  readonly maxPerAddressPerDay: number;
+  readonly maxPerDay: number;
 };
 
 /** Validaciones que relacionan varias variables entre sí. */
@@ -164,6 +206,23 @@ function crossChecks(env: Env): string[] {
   const hasSecret = env.TELEGRAM_WEBHOOK_SECRET !== undefined;
   if (hasToken !== hasSecret) {
     problems.push("TELEGRAM_BOT_TOKEN y TELEGRAM_WEBHOOK_SECRET van juntas: ambas o ninguna");
+  }
+
+  if (env.INBOUND_EMAIL_ENABLED) {
+    for (const name of [
+      "INBOUND_EMAIL_ADDRESS",
+      "INBOUND_EMAIL_WEBHOOK_SECRET",
+      "INBOUND_EMAIL_ACCESS_CODE",
+    ] as const) {
+      if (env[name] === undefined)
+        problems.push(`${name} es requerida con INBOUND_EMAIL_ENABLED=true`);
+    }
+    if (!env.DEMO_MODE) problems.push("INBOUND_EMAIL_ENABLED=true solo está permitido en la demo");
+    if (env.MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY > env.MAX_INBOUND_EMAILS_PER_DAY) {
+      problems.push(
+        "MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY no puede superar MAX_INBOUND_EMAILS_PER_DAY",
+      );
+    }
   }
 
   if (env.APPROVAL_SIGNING_SECRET === env.SESSION_SECRET) {
@@ -203,6 +262,20 @@ function toConfig(env: Env): Config {
       env.TELEGRAM_BOT_TOKEN !== undefined && env.TELEGRAM_WEBHOOK_SECRET !== undefined
         ? { botToken: env.TELEGRAM_BOT_TOKEN, webhookSecret: env.TELEGRAM_WEBHOOK_SECRET }
         : null,
+    inboundEmail:
+      env.INBOUND_EMAIL_ENABLED &&
+      env.INBOUND_EMAIL_ADDRESS !== undefined &&
+      env.INBOUND_EMAIL_WEBHOOK_SECRET !== undefined &&
+      env.INBOUND_EMAIL_ACCESS_CODE !== undefined
+        ? {
+            address: env.INBOUND_EMAIL_ADDRESS,
+            webhookSecret: env.INBOUND_EMAIL_WEBHOOK_SECRET,
+            accessCode: env.INBOUND_EMAIL_ACCESS_CODE,
+            addressTtlHours: env.INBOUND_ADDRESS_TTL_HOURS,
+            maxPerAddressPerDay: env.MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY,
+            maxPerDay: env.MAX_INBOUND_EMAILS_PER_DAY,
+          }
+        : null,
   };
 
   // Redacción al serializar: un `console.error(config)` o un log de error nunca vuelca secretos.
@@ -215,6 +288,10 @@ function toConfig(env: Env): Config {
       blob: { token: config.blob.token && REDACTED },
       secrets: { approvalSigning: REDACTED, session: REDACTED },
       telegram: config.telegram === null ? null : { botToken: REDACTED, webhookSecret: REDACTED },
+      inboundEmail:
+        config.inboundEmail === null
+          ? null
+          : { ...config.inboundEmail, webhookSecret: REDACTED, accessCode: REDACTED },
     }),
   });
 

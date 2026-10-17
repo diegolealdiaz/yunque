@@ -1,3 +1,5 @@
+import type { Config } from "@/src/config";
+import type { Database } from "@/src/db/client";
 import { createUlidGenerator } from "@/src/domain";
 import { createOpenRouterClient } from "@/src/extraction";
 import { createModelReader, currentBusinessDate, type ProcessInvoiceDeps } from "@/src/usecases";
@@ -23,7 +25,14 @@ export async function processingContext(): Promise<
   AppContext & { readonly deps: ProcessInvoiceDeps }
 > {
   const context = await appContext();
-  const { config, db } = context;
+  return { ...context, deps: processingDeps(context.config, context.db) };
+}
+
+/**
+ * Las mismas dependencias sin la sesión del visitante: el webhook de correo no trae cookie,
+ * su empresa sale de la dirección a la que escribieron.
+ */
+export function processingDeps(config: Config, db: Database): ProcessInvoiceDeps {
   const storage = fileStorage();
   const now = () => new Date();
   const reader = config.model
@@ -40,22 +49,19 @@ export async function processingContext(): Promise<
       })
     : null;
   return {
-    ...context,
-    deps: {
-      db,
-      storage,
-      reader,
-      limits: {
-        maxUploadBytes: config.demo.maxUploadBytes,
-        maxPages: config.demo.maxPagesRendered,
-      },
-      newId,
-      now,
-      timeZone: config.displayTimeZone,
-      businessDate: currentBusinessDate(
-        { demo: config.demo.enabled, timeZone: config.displayTimeZone },
-        now(),
-      ),
+    db,
+    storage,
+    reader,
+    limits: {
+      maxUploadBytes: config.demo.maxUploadBytes,
+      maxPages: config.demo.maxPagesRendered,
     },
+    newId,
+    now,
+    timeZone: config.displayTimeZone,
+    businessDate: currentBusinessDate(
+      { demo: config.demo.enabled, timeZone: config.displayTimeZone },
+      now(),
+    ),
   };
 }

@@ -21,6 +21,14 @@ export type TimelineLine = {
 const num = (value: unknown): number | null => (typeof value === "number" ? value : null);
 const str = (value: unknown): string | null => (typeof value === "string" ? value : null);
 
+/** Por qué un correo real no se procesó (D23), en palabras de producto. */
+const EMAIL_REJECTED: Readonly<Record<string, string>> = {
+  expired: "la dirección de correo ya venció",
+  address_limit: "la dirección llegó a su máximo de correos de hoy",
+  daily_limit: "la demo llegó a su máximo de correos de hoy",
+  invoice_limit: "se llegó al máximo de facturas de hoy",
+};
+
 function line(item: TimelineItem): Omit<TimelineLine, "id" | "at" | "actor"> | null {
   const d = item.data;
   switch (item.type) {
@@ -78,6 +86,14 @@ function line(item: TimelineItem): Omit<TimelineLine, "id" | "at" | "actor"> | n
       return { label: "Corregida a mano", detail: null };
     case "notification.sent":
       return { label: "Notificada", detail: str(d["channel"]) };
+    case "email.rejected": {
+      const reason = str(d["reason"]);
+      return {
+        label: "Correo no procesado",
+        detail:
+          reason !== null && reason in EMAIL_REJECTED ? (EMAIL_REJECTED[reason] ?? null) : null,
+      };
+    }
     default:
       return null;
   }

@@ -173,6 +173,33 @@ describe("ingesta (P-52 a P-56)", () => {
     ).rejects.toMatchObject({ code: "unsupported_type" });
   });
 
+  it("un correo con una foto adjunta: el documento es la imagen, verificada por contenido", async () => {
+    const storage = new MemoryFileStorage();
+    const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({
+        kind: "email",
+        from: "jurado@ejemplo.co",
+        sent_at: "2026-10-17T15:00:00.000Z",
+        subject: "Foto de la factura",
+        body: "",
+        attachment: {
+          filename: "foto.png",
+          content_type: "image/png",
+          data_base64: Buffer.from(png).toString("base64"),
+        },
+      }),
+    );
+    const doc = await ingestDocument(
+      { bytes, originalName: "m.json", storagePrefix: prefix },
+      storage,
+      limits,
+    );
+    expect(doc.source_kind).toBe("email");
+    expect(doc.mime_type).toBe("image/png");
+    expect(doc.pages).toHaveLength(1);
+  });
+
   it("un correo sin adjunto se recibe: su documento es el mensaje, sin páginas", async () => {
     const storage = new MemoryFileStorage();
     const bytes = new TextEncoder().encode(

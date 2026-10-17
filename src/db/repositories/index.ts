@@ -9,6 +9,7 @@ export * from "./events";
 export * from "./extractions";
 export * from "./health";
 export * from "./history";
+export * from "./inbound-addresses";
 export * from "./invoices";
 export * from "./ledger";
 export * from "./llm-calls";
