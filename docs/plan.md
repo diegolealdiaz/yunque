@@ -7,7 +7,7 @@
 - Los pasos están en el orden en que se construyen. Ninguno empieza hasta que el anterior cumple su "hecho cuando".
 - Cada paso referencia las pruebas de `pruebas.md` que debe dejar en verde. Un paso sin sus pruebas en verde no está terminado.
 - Todo lo marcado **[núcleo]** es obligatorio para la entrega. Lo marcado **[recorte]** se elimina si falta tiempo, en el orden de la sección 11.
-- Un commit por paso como mínimo. El mensaje nombra el paso. Antes de cada commit: `npm run check` en verde.
+- Un commit por paso como mínimo. El mensaje nombra el paso. `npm run check` se corre cuando el usuario lo pide, no en cada paso: por tiempo, las pruebas se lanzan solo cuando la acción lo requiere.
 
 ## Fase 0. Preparación
 
