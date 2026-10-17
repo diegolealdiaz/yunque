@@ -10,8 +10,10 @@ import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
 import { calendarDate, instant, usdMicros } from "@/src/ui/format";
 import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
 import { timelineLines } from "@/src/ui/timeline";
+import { EXTRACTED_FIELD_NAMES } from "@/src/domain";
 import {
   approvalOffer,
+  editableValue,
   loadInvoiceDetail,
   type DetailField,
   type InvoiceDetail,
@@ -30,6 +32,7 @@ import { VerdictChip } from "../../../_components/verdict-chip";
 import { appContext } from "../../../_data/context";
 import { fileStorage } from "../../../_data/storage";
 
+import { ReevaluateButton } from "./correction-form";
 import { ResolutionPanel } from "./resolution-panel";
 
 export const metadata = { title: "Factura · Yunque" };
@@ -97,9 +100,12 @@ type Resolution = Parameters<typeof ResolutionPanel>[0];
 function DecisionPanel({
   detail,
   resolution,
+  approver,
 }: {
   readonly detail: InvoiceDetail;
   readonly resolution: Resolution | null;
+  /** Aprobador elegido (cookie verificada), o null. */
+  readonly approver: string | null;
 }) {
   const { decision, invoice, approval } = detail;
   if (!decision) {
@@ -168,9 +174,15 @@ function DecisionPanel({
         No se paga. Para reconsiderarla hay que corregir la causa y reprocesar.
       </p>
       {detail.newerPolicy ? (
-        <p className="text-ink-2">
-          Hay una versión de política más nueva: podrás reevaluarla con ella.
-        </p>
+        <>
+          <p className="text-ink-2">
+            Hay una versión de política más nueva: se puede reevaluar con ella.
+          </p>
+          <ReevaluateButton
+            invoiceId={invoice.id}
+            disabledReason={approver === null ? "Elige quién resuelve para poder reevaluar." : null}
+          />
+        </>
       ) : null}
     </div>
   );
@@ -196,6 +208,12 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         )
       : null;
   const policy = offer ? await getCurrentPolicy(db, organization.id) : null;
+  const approver = verifyApprover(
+    (await cookies()).get(APPROVER_COOKIE)?.value,
+    config.secrets.session,
+  );
+  const readFields =
+    detail.extraction?.extraction.kind === "invoice" ? detail.extraction.extraction.fields : null;
   const resolution: Resolution | null = offer
     ? {
         invoiceId: invoice.id,
@@ -205,10 +223,14 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         checklist: offer.checklist,
         blocked: offer.blocked,
         approvers: policy?.content.protected.approvers ?? [],
-        approver: verifyApprover(
-          (await cookies()).get(APPROVER_COOKIE)?.value,
-          config.secrets.session,
-        ),
+        approver,
+        editable: EXTRACTED_FIELD_NAMES.map((name) => ({
+          name,
+          label: FIELD_LABEL[name],
+          value: editableValue(readFields, name),
+          hint: MONEY_FIELDS.has(name) ? "1234.56" : DATE_FIELDS.has(name) ? "AAAA-MM-DD" : null,
+        })),
+        canReevaluate: detail.newerPolicy || offer.needsReevaluation,
       }
     : null;
   const currency =
@@ -293,6 +315,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                       <span className="text-ink-2">{FIELD_LABEL[field.name]}</span>
                       <span className="truncate font-mono text-ink">
                         {displayValue(field, currency)}
+                        {field.source === "humano" ? (
+                          <span className="ml-1.5 font-sans text-[11px] text-escalate">a mano</span>
+                        ) : null}
                       </span>
                       <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
                     </span>
@@ -342,7 +367,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </Column>
 
           <Column title="Tu decisión">
-            <DecisionPanel detail={detail} resolution={resolution} />
+            <DecisionPanel detail={detail} resolution={resolution} approver={approver} />
             <div>
               <SubTitle>Línea de tiempo</SubTitle>
               <div className="mt-2">

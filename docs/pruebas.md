@@ -156,6 +156,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-108 | Métricas: cada tarjeta enlaza a las facturas que la componen y el conteo coincide | e2e |
 | P-109 | Bitácora: filtra por factura y por tipo; cada evento enlaza a su factura | e2e |
 | P-110 | Escape: una factura cuyo nombre de beneficiario es `<img src=x onerror=alert(1)>` se muestra como texto literal en pendientes, detalle, explicación y notificación | e2e, `@seguridad` |
+| P-112 | Corrección: los campos corregidos quedan con origen humano y el motor reevalúa con la política vigente; un valor inválido, un obligatorio vacío o un aprobador fuera de la lista se rechazan; lo que pagaría escala con `human_correction` y quien corrigió no puede aprobarlo, otra persona sí (propiedad: una corrección nunca vuelve más permisivo el veredicto); reevaluar con una política nueva puede pagar, pero nunca ablanda: una instrucción que venía en el cuerpo del correo sigue frenando; una factura pagada no se reevalúa | pipeline + propiedad, `@seguridad` |
 | P-111 | Orden de pago PDF: se genera con los datos del vendor; abrirla no requiere el PDF original | API |
 
 ### Operación, producción y canales

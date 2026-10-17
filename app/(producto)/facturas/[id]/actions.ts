@@ -11,13 +11,23 @@ import {
   verifyApprover,
 } from "@/src/session";
 import {
+  ExtractedFieldNameSchema,
+  createUlidGenerator,
+  type Decision,
+  type ExtractedFieldName,
+} from "@/src/domain";
+import { decidingFinding } from "@/src/engine";
+import { FIELD_LABEL, RULE_SHORT_LABEL, VERDICT_LABEL } from "@/src/ui/labels";
+import {
   ApprovalError,
+  CorrectionError,
   approveEscalation,
+  correctAndReevaluate,
   currentBusinessDate,
+  reevaluateWithCurrentPolicy,
   rejectEscalation,
   type ResolutionDeps,
 } from "@/src/usecases";
-import { createUlidGenerator } from "@/src/domain";
 
 import { appContext } from "../../../_data/context";
 
@@ -75,9 +85,20 @@ function payloadOf(form: FormData): unknown {
 }
 
 function failure(error: unknown): ResolutionState {
-  if (error instanceof ApprovalError)
+  if (error instanceof ApprovalError) {
     return { ok: false, message: error.message, action: error.action };
+  }
+  if (error instanceof CorrectionError) {
+    const where = error.field ? ` (${FIELD_LABEL[error.field]})` : "";
+    return { ok: false, message: `${error.message}${where}`, action: error.action };
+  }
   throw error;
+}
+
+/** Cómo quedó la factura después de reevaluar, en una frase. */
+function outcome(decision: Decision): string {
+  const rule = decidingFinding(decision);
+  return `Ahora: ${VERDICT_LABEL[decision.verdict]}${rule ? ` · ${RULE_SHORT_LABEL[rule.code]}` : ""}.`;
 }
 
 /** Elige quién aprueba en esta demo, de la lista de aprobadores de la política vigente. */
@@ -140,4 +161,65 @@ export async function rejectAction(
   revalidatePath(`/facturas/${invoiceId}`);
   revalidatePath("/pendientes");
   return { ok: true, message: "Rechazada. No se pagará.", action: null };
+}
+
+export async function correctAction(
+  _previous: ResolutionState,
+  form: FormData,
+): Promise<ResolutionState> {
+  const { deps, organizationId, approver } = await resolutionDeps();
+  const invoiceId = field(form, "invoiceId");
+  // Solo los campos conocidos: cualquier otra clave del formulario se ignora.
+  const submitted: Partial<Record<ExtractedFieldName, string>> = {};
+  for (const [key, value] of form.entries()) {
+    if (!key.startsWith("campo:") || typeof value !== "string") continue;
+    const name = ExtractedFieldNameSchema.safeParse(key.slice("campo:".length));
+    if (name.success) submitted[name.data] = value;
+  }
+  const confirmed = form
+    .getAll("confirmar")
+    .map((v) => ExtractedFieldNameSchema.safeParse(v))
+    .flatMap((r) => (r.success ? [r.data] : []));
+  try {
+    const result = await correctAndReevaluate(deps, {
+      organizationId,
+      invoiceId,
+      actor: approver,
+      submitted,
+      confirmed,
+    });
+    revalidatePath(`/facturas/${invoiceId}`);
+    revalidatePath("/pendientes");
+    return {
+      ok: true,
+      message: `Corregida y reevaluada. ${outcome(result.decision)}`,
+      action: null,
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function reevaluateAction(
+  _previous: ResolutionState,
+  form: FormData,
+): Promise<ResolutionState> {
+  const { deps, organizationId, approver } = await resolutionDeps();
+  const invoiceId = field(form, "invoiceId");
+  try {
+    const result = await reevaluateWithCurrentPolicy(deps, {
+      organizationId,
+      invoiceId,
+      actor: approver,
+    });
+    revalidatePath(`/facturas/${invoiceId}`);
+    revalidatePath("/pendientes");
+    return {
+      ok: true,
+      message: `Reevaluada con la política vigente. ${outcome(result.decision)}`,
+      action: null,
+    };
+  } catch (error) {
+    return failure(error);
+  }
 }

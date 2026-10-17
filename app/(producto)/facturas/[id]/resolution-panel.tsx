@@ -6,25 +6,14 @@ import type { ChecklistItem } from "@/src/domain";
 
 import { ApprovalChecklist } from "../../../_components/approval-checklist";
 
-import { approveAction, chooseApprover, rejectAction, type ResolutionState } from "./actions";
+import { ActionOutcome } from "./action-outcome";
+import { approveAction, chooseApprover, rejectAction } from "./actions";
+import { CorrectionForm, ReevaluateButton, type EditableField } from "./correction-form";
 
 /**
  * Columna "Tu decisión" de una escalada: quién resuelve, el checklist para aprobar y el
  * rechazo con motivo. El servidor decide; aquí solo se muestra lo que respondió.
  */
-
-function Outcome({ state }: { readonly state: ResolutionState }) {
-  if (!state) return null;
-  return (
-    <div
-      role={state.ok ? "status" : "alert"}
-      className={`rounded-[var(--radius-control)] px-3 py-2 text-[13px] ${state.ok ? "bg-pay-tint text-pay" : "bg-hold-tint text-hold"}`}
-    >
-      <p className="font-medium">{state.message}</p>
-      {state.action ? <p className="mt-0.5 text-ink">{state.action}</p> : null}
-    </div>
-  );
-}
 
 export function ResolutionPanel({
   invoiceId,
@@ -35,6 +24,8 @@ export function ResolutionPanel({
   blocked,
   approvers,
   approver,
+  editable,
+  canReevaluate,
 }: {
   readonly invoiceId: string;
   /** Contenido firmado por el servidor, en JSON. */
@@ -47,6 +38,9 @@ export function ResolutionPanel({
   readonly approvers: readonly string[];
   /** Aprobador elegido (cookie verificada), o null. */
   readonly approver: string | null;
+  readonly editable: readonly EditableField[];
+  /** Hay una política más nueva o la espera venció: se ofrece reevaluar. */
+  readonly canReevaluate: boolean;
 }) {
   const [approved, approve, approving] = useActionState(approveAction, null);
   const [rejected, reject, rejecting] = useActionState(rejectAction, null);
@@ -95,7 +89,7 @@ export function ResolutionPanel({
           }
         />
       </div>
-      <Outcome state={approved} />
+      <ActionOutcome state={approved} />
 
       <details className="rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
         <summary className="cursor-pointer font-medium text-ink">Rechazar…</summary>
@@ -124,7 +118,19 @@ export function ResolutionPanel({
           <p className="text-[12px] text-ink-3">Un rechazo es final: la factura no se pagará.</p>
         </form>
       </details>
-      <Outcome state={rejected} />
+      <ActionOutcome state={rejected} />
+
+      <CorrectionForm
+        invoiceId={invoiceId}
+        fields={editable}
+        disabledReason={approver === null ? "Elige quién resuelve para poder corregir." : null}
+      />
+      {canReevaluate ? (
+        <ReevaluateButton
+          invoiceId={invoiceId}
+          disabledReason={approver === null ? "Elige quién resuelve para poder reevaluar." : null}
+        />
+      ) : null}
     </div>
   );
 }
