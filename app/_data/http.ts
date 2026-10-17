@@ -19,6 +19,7 @@ const STATUS: Readonly<Record<UseCaseErrorCode, number>> = {
   limit_reached: 429,
   policy_changed: 409,
   not_authorized: 403,
+  decision_changed: 409,
 };
 
 export type ApiError = {

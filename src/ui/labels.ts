@@ -141,4 +141,5 @@ export const EVENT_LABEL: Readonly<Record<EventType, string>> = {
   "llm.called": "Lectura del documento",
   "llm.failed": "Lectura del documento fallida",
   "email.rejected": "Correo no procesado",
+  "explanation.rated": "Opinión sobre la explicación",
 };

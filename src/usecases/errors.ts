@@ -30,7 +30,9 @@ export type UseCaseErrorCode =
   /** La política vigente ya no es la que se editó: otra persona guardó antes. */
   | "policy_changed"
   /** Quien firma no está en la lista de aprobadores de la política vigente. */
-  | "not_authorized";
+  | "not_authorized"
+  /** La factura tiene una decisión más nueva que la que se estaba mirando. */
+  | "decision_changed";
 
 export type Severity = "error" | "warning";
 

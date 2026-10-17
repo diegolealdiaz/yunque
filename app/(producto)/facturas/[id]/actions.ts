@@ -14,9 +14,11 @@ import { FIELD_LABEL, RULE_SHORT_LABEL, VERDICT_LABEL } from "@/src/ui/labels";
 import {
   ApprovalError,
   CorrectionError,
+  UseCaseError,
   approveEscalation,
   correctAndReevaluate,
   currentBusinessDate,
+  rateExplanation,
   decidingFinding,
   reevaluateWithCurrentPolicy,
   rejectEscalation,
@@ -93,6 +95,9 @@ function failure(error: unknown): ResolutionState {
   if (error instanceof CorrectionError) {
     const where = error.field ? ` (${FIELD_LABEL[error.field]})` : "";
     return { ok: false, message: `${error.message}${where}`, action: error.action };
+  }
+  if (error instanceof UseCaseError) {
+    return { ok: false, message: error.message, action: error.action };
   }
   throw error;
 }
@@ -201,6 +206,35 @@ export async function reevaluateAction(
       message: `Reevaluada con la política vigente. ${outcome(result.decision)}`,
       action: null,
     };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/**
+ * "¿Fue clara la explicación?": cualquiera que mire la decisión puede opinar, firme o no. Con
+ * aprobador elegido opina con su nombre; sin él, como visitante de la demo.
+ */
+export async function rateExplanationAction(
+  _previous: ResolutionState,
+  form: FormData,
+): Promise<ResolutionState> {
+  const { organizationId, approver } = await resolutionDeps();
+  const { db } = await appContext();
+  const invoiceId = field(form, "invoiceId");
+  const comment = field(form, "comment").trim();
+  try {
+    await rateExplanation(db, {
+      organizationId,
+      invoiceId,
+      decisionId: field(form, "decisionId"),
+      rating: { clear: field(form, "clear") === "si", ...(comment ? { comment } : {}) },
+      actor: { kind: "humano", name: approver ?? "Visitante de la demo" },
+      newId,
+      now: new Date(),
+    });
+    revalidatePath(`/facturas/${invoiceId}`);
+    return { ok: true, message: "Gracias. Tu opinión quedó en la bitácora.", action: null };
   } catch (error) {
     return failure(error);
   }

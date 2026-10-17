@@ -30,6 +30,7 @@ export const EventTypeSchema = z.enum([
   "llm.called",
   "llm.failed",
   "email.rejected",
+  "explanation.rated",
 ]);
 export type EventType = z.infer<typeof EventTypeSchema>;
 

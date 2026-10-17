@@ -20,8 +20,10 @@ import {
   approvalOffer,
   editableValue,
   isNotFound,
+  loadExplanationRating,
   loadInvoiceDetail,
   type DetailField,
+  type ExplanationRating,
   type InvoiceDetail,
   type RuleTrace,
 } from "@/src/usecases";
@@ -39,6 +41,7 @@ import { appContext } from "../../../_data/context";
 import { fileStorage } from "../../../_data/storage";
 
 import { ReevaluateButton } from "./correction-form";
+import { ExplanationFeedback } from "./explanation-feedback";
 import { ResolutionPanel } from "./resolution-panel";
 
 export const metadata = { title: "Factura · Yunque" };
@@ -146,7 +149,16 @@ const WHY_TONE = {
  * por qué, en frases simples, y qué puede hacer. Sale de los mismos hallazgos registrados;
  * el registro técnico sigue más abajo para auditoría.
  */
-function WhyCard({ detail, fx }: { readonly detail: InvoiceDetail; readonly fx: FxTable }) {
+function WhyCard({
+  detail,
+  fx,
+  rating,
+}: {
+  readonly detail: InvoiceDetail;
+  readonly fx: FxTable;
+  /** La opinión vigente sobre esta explicación, o null. */
+  readonly rating: ExplanationRating | null;
+}) {
   const { decision, invoice } = detail;
   if (!decision) return null;
   const findings = detail.rules.flatMap((rule) => (rule.finding ? [rule.finding] : []));
@@ -204,6 +216,7 @@ function WhyCard({ detail, fx }: { readonly detail: InvoiceDetail; readonly fx: 
           {calendarDate(fx.asOf)}).
         </p>
       ) : null}
+      <ExplanationFeedback invoiceId={invoice.id} decisionId={decision.id} current={rating} />
     </section>
   );
 }
@@ -342,6 +355,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     },
   );
   const { invoice, decision } = detail;
+  const rating = decision
+    ? await loadExplanationRating(db, organization.id, invoice.id, decision.id)
+    : null;
   const offer =
     invoice.status === "esperando_aprobacion"
       ? await approvalOffer(
@@ -430,7 +446,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
-      <WhyCard detail={detail} fx={organization.fx} />
+      <WhyCard detail={detail} fx={organization.fx} rating={rating} />
 
       <EvidenceProvider>
         {/*

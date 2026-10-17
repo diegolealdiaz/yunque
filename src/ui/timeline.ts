@@ -86,6 +86,11 @@ function line(item: TimelineItem): Omit<TimelineLine, "id" | "at" | "actor"> | n
       return { label: "Corregida a mano", detail: null };
     case "notification.sent":
       return { label: "Notificada", detail: str(d["channel"]) };
+    case "explanation.rated":
+      return {
+        label: d["clear"] === true ? "Explicación clara" : "Explicación poco clara",
+        detail: str(d["comment"]),
+      };
     case "email.rejected": {
       const reason = str(d["reason"]);
       return {

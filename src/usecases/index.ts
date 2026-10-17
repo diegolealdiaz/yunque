@@ -8,6 +8,7 @@ export * from "./correct-invoice";
 export * from "./demo-access";
 export type { DecideDeps } from "./decide";
 export * from "./errors";
+export * from "./explanation-rating";
 export * from "./health";
 export * from "./inbound-email";
 export * from "./inbox";
