@@ -11,6 +11,7 @@ import {
   correctAndReevaluate,
   processInvoice,
   reevaluateWithCurrentPolicy,
+  savePolicy,
   type DecideDeps,
 } from "@/src/usecases";
 
@@ -98,6 +99,39 @@ describe("corregir campos de una escalada", () => {
     const correctedEvent = events.find((e) => e.type === "invoice.corrected");
     expect(correctedEvent?.actor).toEqual({ kind: "humano", name: CORRECTOR });
     expect(correctedEvent?.data["fields"]).toEqual(["total"]);
+  });
+
+  it("cuatro ojos: quien corrigió tampoco aprueba después de una reevaluación ni de un replay", async () => {
+    p = await openPipeline();
+    const id = await process("adv_dos_totales");
+    const f = await datasetCase("adv_dos_totales");
+    await correctAndReevaluate(deps(), {
+      organizationId: p.organizationId,
+      invoiceId: id,
+      actor: CORRECTOR,
+      submitted: { total: (f.case.document.total / 100).toFixed(2) },
+      confirmed: ["total"],
+    });
+    // La reevaluación la decide de nuevo el agente: el actor de la última decisión ya no es
+    // quien corrigió, pero la corrección sigue en la bitácora.
+    const again = await reevaluateWithCurrentPolicy(deps(), {
+      organizationId: p.organizationId,
+      invoiceId: id,
+      actor: CORRECTOR,
+    });
+    expect(again.decision.actor).toEqual({ kind: "agente" });
+    expect(await approveAs(id, CORRECTOR).catch(codeOf)).toBe("self_approval");
+
+    const current = await repos.getCurrentPolicy(p.t.db, p.organizationId);
+    if (!current) throw new Error("sin política");
+    await savePolicy(deps(), {
+      organizationId: p.organizationId,
+      candidate: current.content,
+      signedBy: CORRECTOR,
+      note: null,
+    });
+    expect(await approveAs(id, CORRECTOR).catch(codeOf)).toBe("self_approval");
+    expect((await approveAs(id, SECOND)).decision.verdict).toBe("pagar");
   });
 
   it("valores inválidos, campos obligatorios vacíos, sin cambios o fuera de la lista: no se corrige", async () => {

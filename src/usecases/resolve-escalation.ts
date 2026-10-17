@@ -14,6 +14,7 @@ import {
   getVendor,
   insertApproval,
   insertDecision,
+  listEvents,
   listPriorInvoices,
   reserveBudget,
   transitionInvoice,
@@ -293,6 +294,24 @@ export type ApprovalResult = {
   readonly approval: Approval;
 };
 
+/**
+ * Quiénes corrigieron campos de la factura, leído de la bitácora (append-only). Ninguno puede
+ * aprobarla (cuatro ojos, D17). No basta con el actor de la última decisión: una reevaluación
+ * posterior, por el botón o por el replay de una política, la decide de nuevo el agente.
+ */
+async function correctorsOf(
+  db: Database,
+  organizationId: Ulid,
+  invoiceId: Ulid,
+): Promise<Set<string>> {
+  const events = await listEvents(db, organizationId, {
+    invoiceId,
+    type: "invoice.corrected",
+    limit: 500,
+  });
+  return new Set(events.flatMap((e) => (e.actor.kind === "humano" ? [e.actor.name] : [])));
+}
+
 export async function approveEscalation(
   deps: ResolutionDeps,
   input: ResolutionInput & { readonly checkedCodes: readonly string[] },
@@ -317,10 +336,10 @@ export async function approveEscalation(
       "Marca cada punto después de verificarlo",
     );
   }
-  if (decision.actor.kind === "humano" && decision.actor.name === approver) {
+  if ((await correctorsOf(deps.db, invoice.organization_id, invoice.id)).has(approver)) {
     throw new ApprovalError(
       "self_approval",
-      "No puedes aprobar una decisión que tú mismo produjiste al corregir campos",
+      "No puedes aprobar una factura en la que tú corregiste campos",
       "Pide a otra persona de la lista de aprobadores que la revise",
     );
   }
