@@ -328,7 +328,7 @@ export const inboundReceipts = sqliteTable(
 );
 
 /**
- * Acceso de jurado de la demo (D23, D24): quien escribe el código de acceso lo obtiene para
+ * Acceso de cliente de la demo (D23, D24): quien escribe el código de acceso lo obtiene para
  * su empresa hasta `expires_at`. Abre la dirección de correo real y la conexión de Telegram.
  */
 export const accessGrants = sqliteTable("access_grants", {

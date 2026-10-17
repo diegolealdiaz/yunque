@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 /**
- * P-140: las rutas de los canales de jurado (D23, D24), invocadas como las invoca Next, con
+ * P-140: las rutas de los canales de cliente (D23, D24), invocadas como las invoca Next, con
  * una base temporal. Solo se simulan las piezas de Next que no existen fuera de una petición
  * (cookies, `after`, `connection`) y la red hacia Telegram.
  *
@@ -14,6 +14,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
  * - `/api/correo/entrante`: autenticación básica, cuerpo inválido, token desconocido, correo
  *   admitido que termina en factura.
  * - `/api/telegram`: secreto, cuerpo inválido, chat desconocido, conexión con el enlace.
+ * - `/api/lote/resumen`: mismo origen, y nada que mandar sin facturas de ejemplo.
  */
 
 const state = vi.hoisted(() => ({
@@ -45,7 +46,7 @@ vi.mock("next/headers", () => ({
 }));
 
 const SESSION_SECRET = "s".repeat(64);
-const ACCESS_CODE = "codigo-jurado-de-prueba";
+const ACCESS_CODE = "codigo-cliente-de-prueba";
 const MAIL_SECRET = "correo-webhook-de-prueba-0123456789";
 const TG_SECRET = "telegram_webhook_de_prueba_0123456789";
 const ORIGIN = "http://localhost:3000";
@@ -56,6 +57,7 @@ let routes: {
   enlace: typeof import("@/app/api/telegram/enlace/route");
   correo: typeof import("@/app/api/correo/entrante/route");
   telegram: typeof import("@/app/api/telegram/route");
+  resumen: typeof import("@/app/api/lote/resumen/route");
 };
 let session: typeof import("@/src/session");
 
@@ -96,6 +98,7 @@ beforeAll(async () => {
     enlace: await import("@/app/api/telegram/enlace/route"),
     correo: await import("@/app/api/correo/entrante/route"),
     telegram: await import("@/app/api/telegram/route"),
+    resumen: await import("@/app/api/lote/resumen/route"),
   };
 }, 60_000);
 
@@ -133,7 +136,7 @@ function post(
 
 const basic = (pass: string) => `Basic ${Buffer.from(`yunque:${pass}`).toString("base64")}`;
 
-describe("acceso de jurado (P-140)", () => {
+describe("acceso de cliente (P-140)", () => {
   it("exige el mismo origen, limita los intentos y da acceso con el código correcto", async () => {
     newVisitor();
     const foreign = await routes.acceso.POST(
@@ -181,7 +184,7 @@ describe("webhook del correo (P-140)", () => {
     const email = (hash: string) => ({
       MessageID: `m-${hash}`,
       MailboxHash: hash,
-      From: "jurado@ejemplo.co",
+      From: "cliente@ejemplo.co",
       Subject: "Hola",
       TextBody: "Sin factura",
       Attachments: [],
@@ -234,5 +237,13 @@ describe("webhook de Telegram (P-140)", () => {
     await call(update(3, `/start ${token}`), TG_SECRET);
     await settle();
     expect(String(state.telegram[0]?.body["text"])).toContain("quedó conectado");
+
+    // Sin facturas de ejemplo procesadas hoy no hay resumen que mandar.
+    const resumen = await routes.resumen.POST(post("/api/lote/resumen", {}));
+    expect(await resumen.json()).toEqual({ sent: false });
+    const foreign = await routes.resumen.POST(
+      post("/api/lote/resumen", {}, { origin: "https://otro.sitio" }),
+    );
+    expect(foreign.status).toBe(403);
   });
 });

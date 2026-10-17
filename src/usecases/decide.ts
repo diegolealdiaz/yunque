@@ -518,7 +518,6 @@ function buildRecord(
     notifications: notificationsFor({
       decision,
       invoice,
-      channel: invoice.channel,
       telegramLinked: args.telegramLinked,
       newId: deps.newId,
       nowIso: at,
@@ -616,7 +615,6 @@ export async function escalateOnFailure(
     notifications: notificationsFor({
       decision,
       invoice,
-      channel: invoice.channel,
       telegramLinked,
       newId: deps.newId,
       nowIso: at,

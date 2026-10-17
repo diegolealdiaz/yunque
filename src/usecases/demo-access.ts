@@ -12,8 +12,8 @@ import { sameSecret } from "@/src/session";
 import { UseCaseError } from "./errors";
 
 /**
- * Acceso de jurado de la demo (D23, D24). El correo real y Telegram ponen a trabajar al
- * modelo con documentos de afuera, así que solo se abren con un código que los jurados
+ * Acceso de cliente de la demo (D23, D24). El correo real y Telegram ponen a trabajar al
+ * modelo con documentos de afuera, así que solo se abren con un código que los clientes
  * reciben por fuera del repo. El acceso dura `ttlHours` y vale para los dos canales.
  *
  * Los intentos fallidos se limitan por empresa: pasados `MAX_ACCESS_ATTEMPTS` en
@@ -89,7 +89,7 @@ export async function requireAccess(
 ): Promise<AccessGrant> {
   const grant = await activeAccess(db, organizationId, now);
   if (!grant) {
-    throw new UseCaseError("not_authorized", "El acceso de jurado venció o no existe", {
+    throw new UseCaseError("not_authorized", "El acceso de cliente venció o no existe", {
       action: "Escribe otra vez el código de acceso",
       severity: "warning",
     });

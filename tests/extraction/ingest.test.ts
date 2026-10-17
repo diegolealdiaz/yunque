@@ -179,7 +179,7 @@ describe("ingesta (P-52 a P-56)", () => {
     const bytes = new TextEncoder().encode(
       JSON.stringify({
         kind: "email",
-        from: "jurado@ejemplo.co",
+        from: "cliente@ejemplo.co",
         sent_at: "2026-10-17T15:00:00.000Z",
         subject: "Foto de la factura",
         body: "",

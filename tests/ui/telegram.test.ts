@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { Finding } from "@/src/domain";
-import { TELEGRAM_TEXT, decisionNotice, escapeTelegramHtml } from "@/src/ui/telegram";
+import {
+  TELEGRAM_TEXT,
+  decisionNotice,
+  escapeTelegramHtml,
+  sampleSummaryNotice,
+} from "@/src/ui/telegram";
 
 /**
  * P-130: los mensajes del bot escapan el HTML de todo lo que viene de afuera, y el aviso
@@ -52,5 +57,19 @@ describe("mensajes del bot (P-130)", () => {
     });
     expect(html).toContain("Aprobada por Ana Torres");
     expect(html).not.toContain("Por qué");
+  });
+
+  it("el resumen de las facturas de ejemplo cuenta en singular y plural", () => {
+    expect(sampleSummaryNotice({ total: 33, pagar: 15, escalar: 8, frenar: 10 })).toBe(
+      [
+        "📋 <b>Facturas de ejemplo de hoy: 33</b>",
+        "✅ 15 pagadas dentro de tus reglas",
+        "⚠️ 8 esperan tu decisión",
+        "⛔ 10 frenadas",
+      ].join("\n"),
+    );
+    expect(sampleSummaryNotice({ total: 1, pagar: 0, escalar: 1, frenar: 0 })).toContain(
+      "1 espera tu decisión",
+    );
   });
 });

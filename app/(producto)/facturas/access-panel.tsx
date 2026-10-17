@@ -6,13 +6,13 @@ import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { errorMessage } from "./api-responses";
 
 /**
- * Probar con tu factura (D23, D24): los canales reales de la demo para los jurados. Sin
+ * Probar con tu factura (D23, D24): los canales reales de la demo para los clientes. Sin
  * acceso, pide el código que recibieron; con él, muestra la dirección de correo personal y
  * el botón para conectar Telegram. Las facturas que lleguen aparecen en la lista como
  * cualquier otra, por su canal.
  */
 
-export type JudgeAccess = {
+export type ClientAccess = {
   /** Vencimiento del acceso, ya formateado; null si no hay acceso vigente. */
   readonly expires: string | null;
   /** Correo real encendido: dirección vigente, o null si todavía no se creó. */
@@ -39,7 +39,7 @@ function Section({ title, children }: { readonly title: string; readonly childre
   );
 }
 
-export function JudgePanel({ access }: { readonly access: JudgeAccess }) {
+export function AccessPanel({ access }: { readonly access: ClientAccess }) {
   const router = useRouter();
   const codeId = useId();
   const [code, setCode] = useState("");
@@ -115,7 +115,7 @@ export function JudgePanel({ access }: { readonly access: JudgeAccess }) {
         <p className="text-ink-2">
           Envía una factura real desde tu correo
           {access.telegram ? " o por Telegram" : ""} y mira cómo la decide el agente. Esta opción es
-          para los jurados: escribe el código de acceso que recibiste.
+          para los clientes: escribe el código de acceso que recibiste.
         </p>
         <label htmlFor={codeId} className="block text-[12px] text-ink-3">
           Código de acceso

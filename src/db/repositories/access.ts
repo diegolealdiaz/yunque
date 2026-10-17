@@ -8,7 +8,7 @@ import { parseRow } from "../rows";
 import { accessAttempts, accessGrants } from "../schema";
 
 /**
- * Acceso de jurado de la demo (D23, D24): una fila por empresa con su vencimiento. Volver a
+ * Acceso de cliente de la demo (D23, D24): una fila por empresa con su vencimiento. Volver a
  * escribir el código después de vencido renueva la misma fila. Los intentos fallidos del
  * código se cuentan por empresa para limitarlos.
  */

@@ -39,7 +39,7 @@ import {
  *               desconocido: se ignora            vencida o tope: rechazado
  *
  * Capas de protección:
- * 1. Solo quien tiene el acceso de jurado (`demo-access.ts`) obtiene una dirección.
+ * 1. Solo quien tiene el acceso de cliente (`demo-access.ts`) obtiene una dirección.
  * 2. La dirección no se adivina (60 bits de azar) y vence con el acceso.
  * 3. Topes por dirección y de toda la demo, contados y reservados en la misma transacción
  *    que escribe el recibo: una ráfaga de correos no pasa del tope.
@@ -111,7 +111,7 @@ export async function loadInboundAddress(
 }
 
 /**
- * La dirección de la empresa mientras dure su acceso de jurado: la vigente si ya tiene una,
+ * La dirección de la empresa mientras dure su acceso de cliente: la vigente si ya tiene una,
  * o una nueva que vence con el acceso. Leer y crear van en una transacción: dos pestañas a
  * la vez no dejan dos direcciones vigentes.
  */
@@ -120,7 +120,7 @@ export async function ensureInboundAddress(
   input: {
     readonly organizationId: Ulid;
     readonly base: string;
-    /** Vencimiento del acceso de jurado: la dirección no dura más que él. */
+    /** Vencimiento del acceso de cliente: la dirección no dura más que él. */
     readonly until: string;
     readonly now: Date;
     readonly newToken: () => string;

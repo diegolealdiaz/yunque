@@ -10,6 +10,8 @@ import {
   getLatestExtraction,
   getOrganization,
   insertTelegramLink,
+  listInvoices,
+  listLatestDecisions,
   insertTelegramUpdate,
   listTelegramChats,
   saveTelegramChat,
@@ -20,12 +22,18 @@ import {
   TELEGRAM_LINK_TTL_MS,
   TelegramLinkTokenSchema,
   UlidSchema,
+  deliveredByPerson,
   telegramReceiptKey,
   type Ulid,
 } from "@/src/domain";
 import { MIME_BY_TYPE, sniffType, type ChannelPayload } from "@/src/extraction";
 import type { TelegramClient, TelegramMessage, TelegramUpdate } from "@/src/telegram";
-import { TELEGRAM_TEXT, decisionNotice } from "@/src/ui/telegram";
+import {
+  TELEGRAM_TEXT,
+  decisionNotice,
+  sampleSummaryNotice,
+  type SampleSummary,
+} from "@/src/ui/telegram";
 
 import { UseCaseError } from "./errors";
 import { MAX_REJECTED_PER_DAY } from "./inbound-email";
@@ -38,7 +46,7 @@ import { processInvoice, type ProcessInvoiceDeps } from "./process-invoice";
  * por el bot. Mismo modelo de protección que el correo real (D23):
  *
  * 1. Un chat solo se conecta con un enlace de un solo uso, que se genera con el acceso de
- *    jurado vigente y vence en una hora.
+ *    cliente vigente y vence en una hora.
  * 2. El bot solo atiende chats conectados; a los demás les dice que es privado y no gasta.
  * 3. Cada factura enviada al bot ocupa cupo del chat por día, contado y reservado en la
  *    misma transacción que registra la entrega (`update_id`): una ráfaga no pasa del tope,
@@ -92,7 +100,7 @@ export async function loadTelegramStatus(
 
 /**
  * Enlace de conexión de un solo uso: `t.me/<bot>?start=<token>`. Vence en una hora o con el
- * acceso de jurado, lo que pase primero.
+ * acceso de cliente, lo que pase primero.
  */
 export async function createTelegramLink(
   db: Database,
@@ -378,4 +386,58 @@ export function telegramSender(deps: {
     for (const chat of chats) await deps.client.sendMessage(chat.chatId, html, button);
     return { simulated: false };
   };
+}
+
+/**
+ * Cómo quedaron las facturas de ejemplo de hoy (lote y bandeja simulada): las que no
+ * entregó una persona ni vienen del historial sembrado, por su veredicto vigente.
+ */
+export async function summarizeSamples(
+  db: Database,
+  organizationId: Ulid,
+  since: string,
+): Promise<SampleSummary> {
+  const invoices = (await listInvoices(db, organizationId, { limit: 500 })).filter(
+    (invoice) =>
+      invoice.received_at >= since &&
+      !invoice.receipt_key.startsWith("seed:") &&
+      !deliveredByPerson(invoice.receipt_key),
+  );
+  const decisions = await listLatestDecisions(
+    db,
+    organizationId,
+    invoices.map((invoice) => invoice.id),
+  );
+  const summary = { total: 0, pagar: 0, escalar: 0, frenar: 0 };
+  for (const decision of decisions.values()) {
+    summary.total += 1;
+    summary[decision.verdict] += 1;
+  }
+  return summary;
+}
+
+/**
+ * Manda a los chats conectados el resumen de las facturas de ejemplo, con un botón a
+ * Pendientes si hay URL pública. Lo pide la pantalla al terminar el lote; no pasa por la
+ * cola de avisos porque es un resumen que se puede volver a pedir, no un aviso por decisión.
+ */
+export async function sendSampleSummary(
+  deps: {
+    readonly db: Database;
+    readonly client: TelegramClient;
+    readonly publicAppUrl: string | null;
+  },
+  input: { readonly organizationId: Ulid; readonly since: string },
+): Promise<{ readonly sent: boolean; readonly summary: SampleSummary }> {
+  const [chats, summary] = await Promise.all([
+    listTelegramChats(deps.db, input.organizationId),
+    summarizeSamples(deps.db, input.organizationId, input.since),
+  ]);
+  if (chats.length === 0 || summary.total === 0) return { sent: false, summary };
+  const html = sampleSummaryNotice(summary);
+  const button = deps.publicAppUrl
+    ? { text: "Ver pendientes", url: `${deps.publicAppUrl}/pendientes` }
+    : undefined;
+  for (const chat of chats) await deps.client.sendMessage(chat.chatId, html, button);
+  return { sent: true, summary };
 }

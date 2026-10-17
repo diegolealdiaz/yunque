@@ -12,15 +12,16 @@ import {
   type InvoicePatch,
   type StoredExtraction,
 } from "@/src/db/repositories";
-import type {
-  AuditEvent,
-  Channel,
-  Currency,
-  Decision,
-  Invoice,
-  Notification,
-  UlidGenerator,
-  Verdict,
+import {
+  deliveredByBot,
+  deliveredByPerson,
+  type AuditEvent,
+  type Currency,
+  type Decision,
+  type Invoice,
+  type Notification,
+  type UlidGenerator,
+  type Verdict,
 } from "@/src/domain";
 
 /**
@@ -99,16 +100,17 @@ export function approvalExpiry(verdict: Verdict, now: Date): string | null {
 }
 
 /**
- * Avisos de una decisión: siempre en pantalla, y también por Telegram (D24) cuando la
- * factura llegó por ahí, o cuando la empresa tiene un chat conectado y la decisión le
- * importa a una persona: una escalada, una frenada o una aprobación. Un pago que el agente
- * hizo solo dentro de las reglas no interrumpe a nadie. La llave por decisión y canal hace
- * que encolar dos veces deje un solo aviso.
+ * Avisos de una decisión (D24): siempre en pantalla, y también por Telegram cuando
+ * - la factura llegó por el bot: el veredicto se responde en el chat, sea cual sea; o
+ * - la empresa tiene un chat conectado, la factura la entregó una persona (subida, correo
+ *   real o bot) y la decisión le importa: una escalada, una frenada o una aprobación.
+ * Un pago que el agente hizo solo no interrumpe a nadie, y las facturas de ejemplo de la
+ * demo no se avisan una por una: al terminar el lote va un resumen (`sendSampleSummary`).
+ * La llave por decisión y canal hace que encolar dos veces deje un solo aviso.
  */
 export function notificationsFor(input: {
   readonly decision: Decision;
   readonly invoice: Invoice;
-  readonly channel: Channel;
   /** La empresa tiene al menos un chat de Telegram conectado. */
   readonly telegramLinked: boolean;
   readonly newId: UlidGenerator;
@@ -116,7 +118,9 @@ export function notificationsFor(input: {
 }): Notification[] {
   const { decision, invoice } = input;
   const matters = decision.verdict !== "pagar" || decision.actor.kind === "humano";
-  const telegram = input.channel === "telegram" || (input.telegramLinked && matters);
+  const telegram =
+    deliveredByBot(invoice.receipt_key) ||
+    (input.telegramLinked && deliveredByPerson(invoice.receipt_key) && matters);
   const channels = telegram ? (["pantalla", "telegram"] as const) : (["pantalla"] as const);
   return channels.map((channel) => ({
     id: input.newId(),

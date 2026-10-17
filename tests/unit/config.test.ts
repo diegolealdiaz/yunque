@@ -162,14 +162,14 @@ describe("loadConfig (P-02)", () => {
     expect(problemsOf(bot)).toContain(
       "DEMO_ACCESS_CODE es requerida con el correo real o Telegram encendidos",
     );
-    const config = loadConfig({ ...bot, DEMO_ACCESS_CODE: "codigo-jurado-2026" });
+    const config = loadConfig({ ...bot, DEMO_ACCESS_CODE: "codigo-cliente-2026" });
     expect(config.telegram).toEqual({
       botToken: "123:abc",
       webhookSecret: "t".repeat(40),
       botUsername: "YunqueBot",
       maxPerChatPerDay: 10,
     });
-    expect(config.access).toEqual({ code: "codigo-jurado-2026", ttlHours: 72 });
+    expect(config.access).toEqual({ code: "codigo-cliente-2026", ttlHours: 72 });
     // Telegram solo acepta secretos de 32 a 256 caracteres seguros, y el bot va sin @.
     expect(problemsOf({ ...bot, TELEGRAM_WEBHOOK_SECRET: "corto" })[0]).toContain(
       "TELEGRAM_WEBHOOK_SECRET",
@@ -238,7 +238,7 @@ describe("loadConfig (P-02)", () => {
       ...on,
       INBOUND_EMAIL_ADDRESS: "abc123@inbound.postmarkapp.com",
       INBOUND_EMAIL_WEBHOOK_SECRET: "w".repeat(40),
-      DEMO_ACCESS_CODE: "codigo-jurado-2026",
+      DEMO_ACCESS_CODE: "codigo-cliente-2026",
     };
     const config = loadConfig(complete);
     expect(config.inboundEmail).toMatchObject({
@@ -248,7 +248,7 @@ describe("loadConfig (P-02)", () => {
     });
     const text = JSON.stringify(config);
     expect(text).not.toContain("w".repeat(40));
-    expect(text).not.toContain("codigo-jurado-2026");
+    expect(text).not.toContain("codigo-cliente-2026");
     // Código corto, dirección con +, fuera de la demo o tope por dirección mayor al global.
     expect(problemsOf({ ...complete, DEMO_ACCESS_CODE: "corto" })[0]).toContain("DEMO_ACCESS_CODE");
     expect(

@@ -9,6 +9,8 @@ import {
   grantDemoAccess,
   handleTelegramUpdate,
   loadTelegramStatus,
+  processInvoice,
+  sendSampleSummary,
   telegramSender,
   type TelegramUpdateDeps,
 } from "@/src/usecases";
@@ -20,14 +22,14 @@ import { datasetCase, openPipeline, type Pipeline } from "./helpers";
 
 /**
  * P-129 y P-135 a P-137: Telegram (D24). Solo un enlace de un solo uso, generado con el
- * acceso de jurado, conecta un chat; el bot no atiende chats desconocidos ni grupos; la
+ * acceso de cliente, conecta un chat; el bot no atiende chats desconocidos ni grupos; la
  * misma actualización dos veces procesa una vez; el cupo del chat aguanta una ráfaga; la
  * decisión de una factura enviada al bot llega por la cola de avisos a los chats conectados.
  */
 
 const NOW = new Date("2026-10-17T12:00:00.000Z");
 const SINCE = "2026-10-17T05:00:00.000Z";
-const CODE = "codigo-de-jurado-2026";
+const CODE = "codigo-de-cliente-2026";
 
 type Sent = { readonly chatId: string; readonly html: string; readonly button?: string };
 
@@ -80,7 +82,7 @@ function message(
       message_id: updateId,
       date: Math.floor(NOW.getTime() / 1000),
       chat: { id: chatId, type: "private" },
-      from: { first_name: "Jurado" },
+      from: { first_name: "Cliente" },
       ...extra,
     },
   };
@@ -127,7 +129,7 @@ describe("conectar un chat (P-135)", () => {
     expect(group.kind).toBe("ignored");
   });
 
-  it("el enlace se genera con el acceso de jurado, conecta una vez y vence", async () => {
+  it("el enlace se genera con el acceso de cliente, conecta una vez y vence", async () => {
     const grant = await grantDemoAccess(p.t.db, {
       organizationId: p.organizationId,
       code: CODE,
@@ -230,30 +232,34 @@ describe("facturas por el bot (P-129, P-136)", () => {
     expect(bot.sent[0]?.button).toBe(`https://yunque.app/facturas/${invoice?.id ?? ""}`);
   });
 
-  it("con un chat conectado se avisa lo que importa a una persona, no los pagos del agente", async () => {
+  it("se avisa lo que una persona entregó y le importa; no los pagos del agente ni los ejemplos", async () => {
     const [invoice] = await repos.listInvoices(p.t.db, p.organizationId, { limit: 1 });
     if (!invoice) throw new Error("sin facturas");
     const decision = await repos.getLatestDecision(p.t.db, p.organizationId, invoice.id);
     if (!decision) throw new Error("sin decisión");
-    const channels = (over: Partial<typeof decision>, telegramLinked: boolean) =>
+    const channels = (receiptKey: string, over: Partial<typeof decision>, telegramLinked = true) =>
       notificationsFor({
         decision: { ...decision, ...over },
-        invoice,
-        channel: "upload",
+        invoice: { ...invoice, receipt_key: receiptKey },
         telegramLinked,
         newId: p.t.newId,
         nowIso: NOW.toISOString(),
       }).map((n) => n.channel);
-    expect(channels({ verdict: "pagar", actor: { kind: "agente" } }, true)).toEqual(["pantalla"]);
-    expect(channels({ verdict: "escalar", actor: { kind: "agente" } }, true)).toEqual([
-      "pantalla",
-      "telegram",
-    ]);
-    expect(channels({ verdict: "frenar", actor: { kind: "agente" } }, false)).toEqual(["pantalla"]);
-    expect(channels({ verdict: "pagar", actor: { kind: "humano", name: "Ana" } }, true)).toEqual([
-      "pantalla",
-      "telegram",
-    ]);
+    const agent = { kind: "agente" } as const;
+    const both = ["pantalla", "telegram"];
+    // Lo que entregó una persona: subida, correo real, bot.
+    expect(channels("upload:a", { verdict: "escalar", actor: agent })).toEqual(both);
+    expect(channels("inbox:pm-b", { verdict: "frenar", actor: agent })).toEqual(both);
+    expect(channels("upload:c", { verdict: "pagar", actor: agent })).toEqual(["pantalla"]);
+    expect(
+      channels("upload:d", { verdict: "pagar", actor: { kind: "humano", name: "Ana" } }),
+    ).toEqual(both);
+    // Las facturas de ejemplo no se avisan una por una, aunque lleguen como correo o chat.
+    expect(channels("batch:caso", { verdict: "escalar", actor: agent })).toEqual(["pantalla"]);
+    expect(channels("inbox:h-ejemplo", { verdict: "frenar", actor: agent })).toEqual(["pantalla"]);
+    // Sin chat conectado no hay aviso, salvo la respuesta a lo que llegó por el bot.
+    expect(channels("upload:e", { verdict: "escalar", actor: agent }, false)).toEqual(["pantalla"]);
+    expect(channels("telegram:9", { verdict: "pagar", actor: agent }, false)).toEqual(both);
   });
 
   it("el cupo del chat aguanta una ráfaga y un archivo que no es factura no se procesa", async () => {
@@ -277,6 +283,33 @@ describe("facturas por el bot (P-129, P-136)", () => {
       message(4002, { document: { ...document, file_size: 50 * 1024 * 1024 } }),
     );
     expect(outcome.kind).toBe("too_large");
+  });
+
+  it("las facturas de ejemplo llegan en un solo resumen, no una por una", async () => {
+    await linkChat(5001);
+    for (const id of ["camila_email", "andes_oct"]) {
+      const fixture = await datasetCase(id);
+      p.client.next = fixture.modelOutput;
+      await processInvoice(p.deps, {
+        ...p.input(fixture.bytes, `batch:${id}`, fixture.fileName),
+        channel: "batch",
+      });
+    }
+    const bot = fakeClient();
+    const result = await sendSampleSummary(
+      { db: p.t.db, client: bot, publicAppUrl: "https://yunque.app" },
+      { organizationId: p.organizationId, since: SINCE },
+    );
+    expect(result.sent).toBe(true);
+    expect(result.summary.total).toBe(2);
+    expect(result.summary.total).toBe(
+      result.summary.pagar + result.summary.escalar + result.summary.frenar,
+    );
+    // Un mensaje por chat conectado, con el botón a Pendientes.
+    const chats = new Set(bot.sent.map((m) => m.chatId));
+    expect(bot.sent).toHaveLength(chats.size);
+    expect(bot.sent[0]?.html).toContain("Facturas de ejemplo de hoy");
+    expect(bot.sent[0]?.button).toBe("https://yunque.app/pendientes");
   });
 
   it("sin chats conectados, el aviso por Telegram queda simulado", async () => {

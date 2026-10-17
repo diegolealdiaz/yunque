@@ -34,7 +34,9 @@ function deps(senders: DeliveryDeps["senders"]): DeliveryDeps {
 async function process(id: string, channel: "batch" | "telegram") {
   const f = await datasetCase(id);
   p.client.next = f.modelOutput;
-  return processInvoice(p.deps, { ...p.input(f.bytes, `batch:${id}`, f.fileName), channel });
+  // Una entrega por el bot lleva la llave de Telegram; la del lote, la del caso (D24).
+  const key = channel === "telegram" ? "telegram:4242" : `batch:${id}`;
+  return processInvoice(p.deps, { ...p.input(f.bytes, key, f.fileName), channel });
 }
 
 async function notificationsOf(invoiceId: string): Promise<Notification[]> {

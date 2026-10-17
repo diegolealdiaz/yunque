@@ -32,7 +32,7 @@ import { VerdictChip } from "../../_components/verdict-chip";
 import { appContext } from "../../_data/context";
 
 import { DeliveryRunner } from "./delivery-runner";
-import { JudgePanel, type JudgeAccess } from "./judge-panel";
+import { AccessPanel, type ClientAccess } from "./access-panel";
 import { UploadPanel } from "./upload-panel";
 
 export const metadata = { title: "Facturas · Yunque" };
@@ -109,7 +109,7 @@ export default async function FacturasPage({
   );
   const inbound = config.demo.enabled ? config.inboundEmail : null;
   const telegram = config.demo.enabled ? config.telegram : null;
-  const judges = config.demo.enabled && config.access !== null;
+  const accessEnabled = config.demo.enabled && config.access !== null;
   const [rows, batch, mailbox, grant, emailAddress, telegramStatus] = await Promise.all([
     loadInvoiceList(
       db,
@@ -124,11 +124,11 @@ export default async function FacturasPage({
     ),
     config.demo.enabled ? loadBatchCases() : Promise.resolve([]),
     config.demo.enabled ? loadMailbox() : Promise.resolve([]),
-    judges ? activeAccess(db, organization.id, now) : null,
+    accessEnabled ? activeAccess(db, organization.id, now) : null,
     inbound ? loadInboundAddress(db, organization.id, inbound.address, now) : null,
     telegram ? loadTelegramStatus(db, organization.id) : null,
   ]);
-  const judgeAccess: JudgeAccess = {
+  const clientAccess: ClientAccess = {
     expires: grant ? instant(grant.expiresAt, config.displayTimeZone) : null,
     email: inbound
       ? { address: emailAddress?.address ?? null, maxPerDay: inbound.maxPerAddressPerDay }
@@ -155,9 +155,9 @@ export default async function FacturasPage({
             <ActionDialog label="Subir factura">
               <UploadPanel maxBytes={config.demo.maxUploadBytes} />
             </ActionDialog>
-            {judges && (inbound || telegram) ? (
+            {accessEnabled && (inbound || telegram) ? (
               <ActionDialog label="Probar con tu factura">
-                <JudgePanel access={judgeAccess} />
+                <AccessPanel access={clientAccess} />
               </ActionDialog>
             ) : null}
             {config.demo.enabled ? (
@@ -187,7 +187,7 @@ export default async function FacturasPage({
         <p className="-mt-2 text-[12px] text-ink-3">
           Demo: los botones de ejemplo simulan las facturas que llegan en una quincena por PDF,
           foto, correo y chat.
-          {judges && (inbound || telegram)
+          {accessEnabled && (inbound || telegram)
             ? " Con «Probar con tu factura» puedes enviar una real."
             : ""}
         </p>

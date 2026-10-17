@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { UlidSchema } from "./ids";
+import { INBOUND_DELIVERY_PREFIX } from "./inbound";
+import type { ReceiptKey } from "./invoice";
 
 /**
  * Notificación: un aviso pendiente de entregar, en una tabla que funciona como cola
@@ -33,3 +35,21 @@ export const NotificationSchema = z.strictObject({
   updated_at: z.iso.datetime(),
 });
 export type Notification = Readonly<z.infer<typeof NotificationSchema>>;
+
+/**
+ * La factura la entregó una persona (D24): la subió en pantalla, la mandó por correo real o
+ * por el bot de Telegram. Las facturas de ejemplo de la demo (lote, bandeja simulada,
+ * historial) no, aunque su canal sea correo o Telegram: no se avisan una por una.
+ */
+export function deliveredByPerson(receiptKey: ReceiptKey): boolean {
+  return (
+    receiptKey.startsWith("upload:") ||
+    receiptKey.startsWith("telegram:") ||
+    receiptKey.startsWith(`inbox:${INBOUND_DELIVERY_PREFIX}`)
+  );
+}
+
+/** La factura llegó por el bot de Telegram: su veredicto se responde en el chat. */
+export function deliveredByBot(receiptKey: ReceiptKey): boolean {
+  return receiptKey.startsWith("telegram:");
+}

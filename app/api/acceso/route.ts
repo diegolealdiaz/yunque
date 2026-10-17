@@ -9,7 +9,7 @@ import { appContext } from "../../_data/context";
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
 
 /**
- * Acceso de jurado (D23, D24): con el código correcto, la empresa del visitante obtiene
+ * Acceso de cliente (D23, D24): con el código correcto, la empresa del visitante obtiene
  * acceso al correo real y a Telegram por un tiempo, y su dirección de correo si el correo
  * está encendido. Sin código, renueva la dirección mientras el acceso siga vigente. Los
  * intentos fallidos se limitan por empresa (429 al pasarse). La
@@ -25,7 +25,7 @@ const notFound = () =>
     {
       error: {
         code: "not_found",
-        message: "El acceso de jurado está apagado",
+        message: "El acceso de cliente está apagado",
         action: "Sube la factura desde Facturas",
       },
     },

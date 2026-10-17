@@ -8,9 +8,13 @@ import { errorMessage } from "./api-responses";
 /**
  * Entrega en vivo de una lista cerrada del dataset, una por petición y en orden, refrescando
  * la tabla después de cada una para que las filas cambien de estado a la vista. La usan
- * "Procesar facturas de ejemplo" (el lote) y "Revisar correo de ejemplo" (los correos). Repetirla no duplica nada:
- * cada entrega tiene su llave.
+ * "Procesar facturas de ejemplo" (el lote) y "Revisar correo de ejemplo" (los correos).
+ * Repetirla no duplica nada: cada entrega tiene su llave. Al terminar pide el resumen para
+ * Telegram (D24): un solo mensaje en vez de un aviso por factura de ejemplo.
  */
+/** Resumen de las facturas de ejemplo para los chats de Telegram conectados. */
+const SUMMARY_ENDPOINT = "/api/lote/resumen";
+
 export function DeliveryRunner({
   endpoint,
   field,
@@ -34,11 +38,13 @@ export function DeliveryRunner({
   const [running, setRunning] = useState(false);
   const [done, setDone] = useState(0);
   const [failures, setFailures] = useState<readonly string[]>([]);
+  const [summarySent, setSummarySent] = useState(false);
 
   async function run() {
     setRunning(true);
     setDone(0);
     setFailures([]);
+    setSummarySent(false);
     for (const [index, id] of ids.entries()) {
       try {
         const response = await fetch(endpoint, {
@@ -59,6 +65,16 @@ export function DeliveryRunner({
       router.refresh();
     }
     setRunning(false);
+    // El resumen es un extra: si falla, la entrega ya terminó y la tabla lo muestra todo.
+    try {
+      const response = await fetch(SUMMARY_ENDPOINT, { method: "POST" });
+      const json: unknown = await response.json().catch(() => null);
+      setSummarySent(
+        typeof json === "object" && json !== null && "sent" in json && json.sent === true,
+      );
+    } catch {
+      setSummarySent(false);
+    }
   }
 
   return (
@@ -76,7 +92,7 @@ export function DeliveryRunner({
       {/* Siempre presente, así el lector de pantalla anuncia cada avance, no solo el final. */}
       <span role="status" className="text-[13px] text-ink-2">
         {running || done > 0
-          ? `${String(done)} de ${String(ids.length)} ${noun}${running ? "…" : ""}${failures.length > 0 ? ` · ${String(failures.length)} con error` : ""}`
+          ? `${String(done)} de ${String(ids.length)} ${noun}${running ? "…" : ""}${failures.length > 0 ? ` · ${String(failures.length)} con error` : ""}${summarySent ? " · resumen enviado a Telegram" : ""}`
           : ""}
       </span>
       {failures.length > 0 ? (

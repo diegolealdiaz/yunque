@@ -73,6 +73,24 @@ export function decisionNotice(notice: DecisionNotice): string {
   return clip(lines.filter((line) => line !== null && line !== "").join("\n"));
 }
 
+export type SampleSummary = {
+  readonly total: number;
+  readonly pagar: number;
+  readonly escalar: number;
+  readonly frenar: number;
+};
+
+/** Un solo mensaje al terminar las facturas de ejemplo, en vez de un aviso por cada una. */
+export function sampleSummaryNotice(summary: SampleSummary): string {
+  const plural = (n: number, one: string, many: string) => `${String(n)} ${n === 1 ? one : many}`;
+  return [
+    `📋 <b>Facturas de ejemplo de hoy: ${String(summary.total)}</b>`,
+    `✅ ${plural(summary.pagar, "pagada", "pagadas")} dentro de tus reglas`,
+    `⚠️ ${plural(summary.escalar, "espera", "esperan")} tu decisión`,
+    `⛔ ${plural(summary.frenar, "frenada", "frenadas")}`,
+  ].join("\n");
+}
+
 /** Respuestas fijas del bot. Las que llevan valores de afuera los escapan. */
 export const TELEGRAM_TEXT = {
   private:

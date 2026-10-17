@@ -11,12 +11,12 @@ import {
 import { openPipeline, type Pipeline } from "./helpers";
 
 /**
- * P-139: el acceso de jurado (D23, D24). El código correcto da acceso por un tiempo fijo que
+ * P-139: el acceso de cliente (D23, D24). El código correcto da acceso por un tiempo fijo que
  * no se extiende; los intentos fallidos se limitan por empresa, y durante el bloqueo ni el
  * código correcto pasa.
  */
 
-const CODE = "codigo-de-jurado-2026";
+const CODE = "codigo-de-cliente-2026";
 const NOW = new Date("2026-10-17T12:00:00.000Z");
 
 let p: Pipeline;
@@ -39,8 +39,8 @@ const attempt = (code: string, now = NOW) =>
     newId: p.t.newId,
   });
 
-describe("acceso de jurado (P-139)", () => {
-  it("sin acceso, las acciones de jurado se rechazan", async () => {
+describe("acceso de cliente (P-139)", () => {
+  it("sin acceso, las acciones de cliente se rechazan", async () => {
     expect(await activeAccess(p.t.db, p.organizationId, NOW)).toBeNull();
     await expect(requireAccess(p.t.db, p.organizationId, NOW)).rejects.toMatchObject({
       code: "not_authorized",

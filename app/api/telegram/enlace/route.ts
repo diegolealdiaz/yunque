@@ -6,7 +6,7 @@ import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../../_data/htt
 
 /**
  * Enlace para conectar un chat de Telegram a la empresa del visitante (D24). Solo con el
- * acceso de jurado vigente; el enlace es de un solo uso y vence en una hora.
+ * acceso de cliente vigente; el enlace es de un solo uso y vence en una hora.
  */
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return forbiddenOrigin();

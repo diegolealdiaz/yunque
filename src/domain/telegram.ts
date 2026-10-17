@@ -6,7 +6,7 @@ import { receiptKeyFor, type ReceiptKey } from "./invoice";
  * Telegram (D24): las piezas que comparten el webhook, la base y la pantalla.
  *
  * - Un chat se conecta a una empresa con un enlace de un solo uso
- *   (`t.me/<bot>?start=<token>`) que solo se genera con el acceso de jurado vigente.
+ *   (`t.me/<bot>?start=<token>`) que solo se genera con el acceso de cliente vigente.
  * - El token del enlace va en el comando `/start`: Telegram admite hasta 64 caracteres
  *   `A-Za-z0-9_-`; aquí son 16 en base32 minúscula, 80 bits de azar.
  * - Cada actualización de Telegram trae un `update_id` único por bot: es la identidad de la

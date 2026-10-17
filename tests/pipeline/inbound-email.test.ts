@@ -27,7 +27,7 @@ import { datasetCase, openPipeline, type Pipeline } from "./helpers";
  */
 
 const BASE = "abc123@inbound.postmarkapp.com";
-const CODE = "codigo-de-jurado-2026";
+const CODE = "codigo-de-cliente-2026";
 const LIMITS = { maxPerAddressPerDay: 2, maxPerDay: 3 };
 const SINCE = "2026-10-17T05:00:00.000Z";
 const NOW = new Date("2026-10-17T12:00:00.000Z");
@@ -66,7 +66,7 @@ function email(
   return {
     MessageID: messageId,
     MailboxHash: token,
-    From: "jurado@ejemplo.co",
+    From: "cliente@ejemplo.co",
     Subject: "Factura de prueba",
     TextBody: "Adjunto la factura.",
     Date: "Sat, 17 Oct 2026 10:00:00 -0500",
@@ -164,7 +164,7 @@ describe("admisión de un correo (P-132, P-133)", () => {
     const events = (await rejectionEvents()).filter((e) => e.data["reason"] === "expired");
     expect(events).toHaveLength(1);
     expect(events[0]?.data).toEqual({ reason: "expired", message_id: first.MessageID });
-    expect(JSON.stringify(events)).not.toContain("jurado@ejemplo.co");
+    expect(JSON.stringify(events)).not.toContain("cliente@ejemplo.co");
 
     // Quien insiste con una dirección vencida deja de escribir en la base.
     for (let i = 0; i < MAX_REJECTED_PER_DAY; i++) await admit(email(token));

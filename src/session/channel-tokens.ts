@@ -1,7 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
- * Llaves de los canales de jurado: correo de entrada (D23) y Telegram (D24). Puro: no
+ * Llaves de los canales de cliente: correo de entrada (D23) y Telegram (D24). Puro: no
  * depende de Next ni de la base.
  *
  * - El token de una dirección es la parte después del + y nadie lo adivina: 60 bits de azar

@@ -198,7 +198,7 @@ export type Config = {
    */
   readonly telegram: TelegramConfig | null;
   /**
-   * Código de acceso de los jurados (D23, D24): abre el correo real y la conexión de
+   * Código de acceso de los clientes (D23, D24): abre el correo real y la conexión de
    * Telegram durante `ttlHours`. null cuando ninguno de los dos está encendido.
    */
   readonly access: { readonly code: string; readonly ttlHours: number } | null;
@@ -271,11 +271,11 @@ function crossChecks(env: Env): string[] {
   }
 
   // El correo real y Telegram se abren con el código de acceso, y solo existen en la demo.
-  const judgeChannels = env.INBOUND_EMAIL_ENABLED || telegramVars === 3;
-  if (judgeChannels && env.DEMO_ACCESS_CODE === undefined) {
+  const accessChannels = env.INBOUND_EMAIL_ENABLED || telegramVars === 3;
+  if (accessChannels && env.DEMO_ACCESS_CODE === undefined) {
     problems.push("DEMO_ACCESS_CODE es requerida con el correo real o Telegram encendidos");
   }
-  if (judgeChannels && !env.DEMO_MODE) {
+  if (accessChannels && !env.DEMO_MODE) {
     problems.push("El correo real y Telegram solo están permitidos en la demo (DEMO_MODE=true)");
   }
 

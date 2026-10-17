@@ -498,7 +498,6 @@ export async function approveEscalation(
       for (const notification of notificationsFor({
         decision: approved,
         invoice,
-        channel: invoice.channel,
         telegramLinked,
         newId: deps.newId,
         nowIso: at,
