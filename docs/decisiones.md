@@ -137,13 +137,13 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 
 **Consecuencia.** Sin la clave del modelo, la salud está en rojo aunque la demo funcione, porque toda factura se escala como ilegible: es exactamente lo que hay que ver.
 
-## D21. Los avisos se entregan al responder, y Telegram es simulado en esta versión
+## D21. Los avisos se entregan al responder; Telegram es simulado mientras no haya bot
 
 **Contexto.** La decisión encola sus avisos en su misma transacción (outbox). Falta quién los entregue. Un proceso aparte que corra todo el tiempo no existe en funciones sin estado, y el canal de Telegram es el primer recorte del plan.
 
-**Decisión.** Cada ruta o acción que crea decisiones entrega los avisos pendientes de la empresa después de responder (`after`), así quien decide no espera al canal. Cada aviso se reclama con comparación y cambio antes de entregarlo; si el canal falla, se reintenta con espera creciente y al quinto intento queda fallido, con su evento y visible en la salud. El aviso en pantalla se entrega al dejar constancia, porque la decisión ya aparece en Pendientes y en el detalle. El aviso por Telegram se entrega a un canal simulado y el evento lo marca `simulated: true`. Los correos de la bandeja simulada llevan un Message-ID estable y su llave de recepción sale de él; un caso de correo del lote usa esa misma llave, así el correo se recibe una vez por cualquiera de los dos caminos. Un correo sin adjunto se recibe: su documento es el mensaje, no tiene páginas y se escala como ilegible sin llamar al modelo.
+**Decisión.** Cada ruta o acción que crea decisiones entrega los avisos pendientes de la empresa después de responder (`after`), así quien decide no espera al canal. Cada aviso se reclama con comparación y cambio antes de entregarlo; si el canal falla, se reintenta con espera creciente y al quinto intento queda fallido, con su evento y visible en la salud. El aviso en pantalla se entrega al dejar constancia, porque la decisión ya aparece en Pendientes y en el detalle. Sin bot configurado, o sin chats conectados, el aviso por Telegram se entrega a un canal simulado y el evento lo marca `simulated: true`; con el bot, llega a los chats conectados (D24). Los correos de la bandeja simulada llevan un Message-ID estable y su llave de recepción sale de él; un caso de correo del lote usa esa misma llave, así el correo se recibe una vez por cualquiera de los dos caminos. Un correo sin adjunto se recibe: su documento es el mensaje, no tiene páginas y se escala como ilegible sin llamar al modelo.
 
-**Consecuencia.** Un reintento que vence ocurre en la próxima entrega de esa empresa, no a la hora exacta; en el despliegue, un cron cubre ese hueco. Cuando llegue el canal de Telegram real, solo cambia su función de envío.
+**Consecuencia.** Un reintento que vence ocurre en la próxima entrega de esa empresa, no a la hora exacta; en el despliegue, un cron cubre ese hueco. El canal real de Telegram (D24) solo cambió su función de envío.
 
 ## D22. Tasas de cambio fijas y a la vista en esta versión; diarias y registradas en producción
 
@@ -155,14 +155,14 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 
 **Consecuencia.** Hoy una tasa desactualizada se ve en pantalla, pero no se corrige sola; mientras tanto, la fecha "fijas al" deja claro con qué tasa se decidió.
 
-## D23. Correo real en la demo, solo con código de acceso y con topes antes de gastar
+## D23. Correo real en la demo, solo con acceso de jurado y con topes antes de gastar
 
 **Contexto.** Probar la demo con una factura propia, enviada desde el propio correo, convence más que cualquier dataset. Pero una dirección pública que pone a trabajar al modelo es una puerta abierta al gasto y al abuso, y la demo no tiene inicio de sesión.
 
 **Decisión.** Un proveedor de correo entrante (Postmark) recibe los correos y llama al webhook `/api/correo/entrante` con cada uno. Nada se procesa sin pasar seis capas, en este orden:
 
-1. **Código de acceso.** La dirección solo aparece para quien escribe el código en "Recibir por correo". El código vive en una variable de entorno y se entrega a los jurados por fuera del repo; cambiarlo anula el anterior.
-2. **Dirección imposible de adivinar y con vencimiento.** Cada visitante recibe su dirección `local+token@dominio`, con un token de 60 bits de azar que apunta a su propia empresa. Vence sola a las 72 horas (configurable). Un correo a un token desconocido se ignora sin tocar nada; uno a una dirección vencida queda en la bitácora de esa empresa y no se procesa.
+1. **Acceso de jurado.** La dirección solo aparece para quien escribe el código en "Probar con tu factura". Tras 5 intentos fallidos en 15 minutos, la empresa queda bloqueada hasta que pase la ventana, ni siquiera el código correcto pasa. El código (`DEMO_ACCESS_CODE`) vive en una variable de entorno, se entrega a los jurados por fuera del repo y abre también Telegram (D24); cambiarlo anula el anterior. El acceso dura 72 horas (configurable) y escribir el código otra vez no lo extiende.
+2. **Dirección imposible de adivinar y con vencimiento.** Cada visitante recibe su dirección `local+token@dominio`, con un token de 60 bits de azar que apunta a su propia empresa. Vence con el acceso. Un correo a un token desconocido se ignora sin tocar nada; uno a una dirección vencida queda en la bitácora de esa empresa y no se procesa.
 3. **Topes antes de llamar al modelo.** Máximo de correos por dirección al día (10) y de toda la demo al día (60), además de los topes de facturas que ya tenía la demo. Cada correo a una dirección conocida deja un recibo (`inbound_receipts`), y contar el cupo y escribir el recibo ocurren en la misma transacción de escritura: una ráfaga de correos simultáneos no pasa del tope. Un correo sobre el tope queda en la bitácora como "Correo no procesado", con el motivo, y no gasta. La bitácora lo dice una vez por motivo y día, y pasados 20 rechazos en el día ya no se escribe nada: quien conoce una dirección vencida no puede llenar la base.
 4. **Techo de gasto del modelo.** La clave de OpenRouter lleva un límite de gasto (10 USD sugerido). Si todo lo demás fallara, el proveedor deja de responder y no se cobra más. Protege también la subida y los botones de ejemplo. Se configura en el panel del proveedor, no en el código.
 5. **Interruptor.** `INBOUND_EMAIL_ENABLED=false` lo apaga de inmediato: las dos rutas responden 404 y el botón desaparece.
@@ -173,6 +173,29 @@ Detalles que sostienen las capas: el webhook exige autenticación básica con un
 **Por qué este proveedor y no un orquestador de flujos.** Un proveedor que entrega el correo directo al webhook no necesita intermediario. Un orquestador de flujos sería otro servicio que pagar o mantener, y solo reenviaría lo mismo. El plan gratuito del proveedor alcanza para la demo y da una dirección de entrada sin dominio propio. Con un dominio propio, el enrutamiento de correo de Cloudflare con un Worker es la alternativa equivalente.
 
 **Consecuencia.** Los topes aguantan correos simultáneos porque la base serializa las transacciones de escritura: si dos instancias cuentan a la vez, la segunda reintenta con la cuenta nueva. El techo de gasto del proveedor sigue siendo la última capa por si algo de esto fallara. Vercel limita el cuerpo de una petición a 4,5 MB, así que un adjunto de más de unos 3 MB no llega. Las empresas de los visitantes todavía no se borran solas: queda para el cron del despliegue (paso 29). En producción, con inicio de sesión, cada empresa tendría su dirección fija y una lista de remitentes autorizados.
+
+## D24. Telegram como notificador y como canal de entrada, con el mismo acceso de jurado
+
+**Contexto.** Lo que se sale de las reglas espera a una persona, y esa persona no está mirando la pantalla de Pendientes. El valor está en avisarle en el momento, por un canal que ya usa. Enviar una factura desde el teléfono es, además, la forma más directa de probar el agente. Un bot público, en cambio, es otra puerta al gasto y al abuso.
+
+**Decisión.** Un bot de Telegram con dos funciones:
+
+1. **Notificador.** Cuando la empresa tiene un chat conectado, cada decisión que le importa a una persona (una escalada, una frenada o una aprobación) encola un aviso por Telegram en la misma transacción que la decisión. Un pago que el agente hizo solo dentro de las reglas no interrumpe a nadie. El aviso dice qué pasó, de quién, cuánto y por qué, con las mismas razones en lenguaje simple de la pantalla, y un botón al detalle si hay URL pública. Lo entrega la cola de avisos con reintentos (D21).
+2. **Entrada.** El chat conectado envía una factura en PDF o foto; pasa por `processInvoice` con la llave `telegram:<update_id>`, y su veredicto llega como cualquier aviso.
+
+Protecciones, las mismas capas que el correo (D23):
+
+- **Conexión con el acceso de jurado.** Con el acceso vigente, "Conectar Telegram" genera un enlace `t.me/<bot>?start=<token>`: un solo uso, 80 bits de azar, vence en una hora o con el acceso.
+- **El bot solo atiende chats conectados.** A los demás les responde que es privado, sin gastar nada. No atiende grupos ni canales. `/salir` desconecta el chat.
+- **Webhook autenticado.** Telegram manda el secreto configurado en `X-Telegram-Bot-Api-Secret-Token`, comparado en tiempo constante. La ruta responde enseguida y atiende después.
+- **Cupo por chat** (10 facturas al día), contado y reservado en la misma transacción que registra el `update_id`: una ráfaga no pasa del tope y un reintento de Telegram no procesa dos veces. Pasados 20 rechazos del chat en el día, ya no se escribe nada. Siguen valiendo los topes de facturas de la demo y el techo de gasto del modelo.
+- **El bot solo escribe a chats conectados,** y todo valor de afuera va escapado en el HTML del mensaje.
+
+**Lo que queda fuera a propósito: aprobar desde el chat.** Un botón "Aprobar" en Telegram se saltaría el checklist y la firma, y sin inicio de sesión no hay forma segura de saber quién lo aprieta. El botón abre el detalle, donde están el checklist, la firma y los cuatro ojos. En producción, con identidad verificada, aprobar desde el chat podría permitirse hasta cierto monto.
+
+**Por qué Telegram y no WhatsApp.** Telegram es gratis, el bot se crea en minutos y admite botones sin trámite. WhatsApp cobra por conversación y exige aprobación del proveedor y plantillas aprobadas. Es el canal natural de una empresa en la región, y entraría como otro adaptador sobre la misma cola de avisos.
+
+**Consecuencia.** Con varios chats conectados, un reintento del aviso puede repetirlo en los que ya lo recibieron: se prefiere un aviso repetido a uno perdido. Un rechazo no genera aviso, porque no crea una decisión nueva.
 
 ## Alternativas consideradas y descartadas
 

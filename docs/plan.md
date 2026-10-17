@@ -186,9 +186,9 @@
 - **Prueba:** P-127, P-128.
 
 ### Paso 32. Telegram [recorte]
-- **Construye:** webhook con secreto, deduplicación por `update_id`, descarga del archivo, mismo caso de uso, respuesta con HTML escapado.
-- **Hecho cuando:** una factura duplicada enviada por Telegram responde "frenada" con la regla; el mismo update dos veces procesa una vez.
-- **Prueba:** P-129, P-130.
+- **Construye:** bot como notificador y canal de entrada (D24): enlace de conexión de un solo uso con el acceso de jurado, webhook con secreto, deduplicación y cupo por `update_id`, descarga acotada del archivo, mismo caso de uso, avisos con HTML escapado por la cola. Al desplegar: crear el bot con @BotFather y registrar el webhook con su `secret_token`.
+- **Hecho cuando:** una factura enviada por Telegram recibe su veredicto por la cola de avisos; una escalada de otro canal avisa al chat conectado; el mismo update dos veces procesa una vez.
+- **Prueba:** P-129, P-130, P-135 a P-138.
 
 ## Fase 8. Cierre
 

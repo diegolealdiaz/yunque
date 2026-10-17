@@ -27,7 +27,7 @@
 | Seguridad | escape, inyección, archivos, cookie, topes | mezcla de niveles anteriores, marcados `@seguridad` | CI |
 | Manual | lista previa al pitch | persona | antes del pitch |
 
-Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` con `EVAL_SOURCE=ideal`. Planeados: `test:api`, `test:e2e` y `test:seguridad`; `tests/api` y `tests/e2e` siguen vacías.
+Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` con `EVAL_SOURCE=ideal`. Planeados: `test:api`, `test:e2e` y `test:seguridad`. `tests/api` tiene las rutas de los canales de jurado (P-140); `tests/e2e` sigue vacía.
 
 ## 3. Catálogo de pruebas
 
@@ -129,7 +129,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-84 | Orden de pago: solo existe si el veredicto es `pagar`; está marcada "preparada, no ejecutada" y sus datos salen del vendor registrado; con `dry_run` la decisión se registra sin orden y sin comprometer presupuesto ni saldo, y queda como pago simulado en el historial: no cuenta como pago previo en modo real | pipeline |
 | P-85 | Nivel `recomendar`: ninguna factura recibe `pagar`; todas las que lo harían quedan `escalar` con `autonomy_recomendar`. Con los pagos apagados, igual con `payments_disabled` | pipeline |
 | P-86 | Eventos: toda transición escribe un evento con quién, cuándo y qué, con un mismo id de traza por factura; la bitácora reconstruye el estado final de cada factura; cada decisión encola un aviso | base |
-| P-87 | Notificaciones: cada decisión encola un aviso en pantalla (y por Telegram si llegó por ahí); una fallida se reintenta con espera creciente (1, 2, 4, 8 minutos) y no antes; dos entregas a la vez no mandan el mismo aviso dos veces; tras cinco intentos queda fallida, con su evento, y visible en salud | pipeline |
+| P-87 | Notificaciones: cada decisión encola un aviso en pantalla (y por Telegram si llegó por ahí o si la empresa tiene un chat conectado y la decisión importa a una persona); una fallida se reintenta con espera creciente (1, 2, 4, 8 minutos) y no antes; dos entregas a la vez no mandan el mismo aviso dos veces; tras cinco intentos queda fallida, con su evento, y visible en salud | pipeline |
 | P-88 | Bandeja simulada: cada correo se procesa una vez aunque se lea dos veces o llegue también por "Procesar facturas de ejemplo" (la llave sale del Message-ID); un correo sin adjunto ni cuerpo de factura produce `extraction_unreadable` sin llamar al modelo | pipeline |
 
 ### Regresión y métricas
@@ -172,12 +172,18 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-126 | Reiniciar demo: solo afecta la empresa del visitante; la otra conserva su estado | API |
 | P-127 | `/api/decide`: sin token o con token de otra empresa responde 401; con token válido responde el mismo veredicto que la pantalla para la misma factura | API |
 | P-128 | `/api/decide`: petición mal formada responde 400 con detalle de zod; nunca 500 | API |
-| P-129 | Telegram: el webhook rechaza peticiones sin el secreto; el mismo `update_id` dos veces procesa una vez | API, `@seguridad` |
-| P-130 | Telegram: la respuesta escapa HTML del contenido del documento; un archivo que no es factura responde "no pude leerla" sin excepción | API, `@seguridad` |
+| P-129 | Telegram: el webhook rechaza peticiones sin el secreto; el mismo `update_id` dos veces procesa una vez; la factura entra por el canal Telegram y su decisión se avisa por la cola a los chats conectados, con botón al detalle si hay URL pública | pipeline, `@seguridad` |
+| P-130 | Telegram: el aviso escapa el HTML del beneficiario, de las razones y del nombre de la empresa; dice qué pasó, de quién, cuánto y por qué; una aprobación dice quién aprobó | unidad, `@seguridad` |
 | P-131 | Correo real (D23): un código de acceso equivocado no crea dirección; el correcto da una dirección con token de 60 bits que vence a las horas configuradas, y pedirla otra vez, incluso a la vez, devuelve la misma; el webhook solo vale con la contraseña exacta, sin importar mayúsculas en el esquema; la configuración exige dirección, secreto y código al encenderlo, y no serializa el secreto ni el código | pipeline + unidad, `@seguridad` |
 | P-132 | Correo real: un token desconocido o mal formado se ignora sin escribir nada; un token real en mayúsculas se reconoce | pipeline, `@seguridad` |
 | P-133 | Correo real: una dirección vencida no procesa y deja "Correo no procesado" en la bitácora una sola vez, sin remitente ni asunto; el reintento del proveedor recibe la misma respuesta; pasado el máximo de rechazos del día no se escribe nada | pipeline, `@seguridad` |
 | P-134 | Correo real: una ráfaga de correos no pasa del tope por dirección ni del tope de la demo; el primer adjunto que por contenido es PDF o imagen entra por el canal Correo, aunque otro adjunto se llame .pdf; un reintento del proveedor no duplica la factura; superado el tope de facturas, el correo admitido queda en la bitácora sin procesarse; sin adjunto válido entra como mensaje sin factura; una fecha ilegible toma la hora de llegada | pipeline |
+| P-135 | Telegram (D24): un chat desconocido recibe "bot privado" y no escribe nada; un grupo se ignora; el enlace de conexión se genera con el acceso de jurado, conecta una sola vez y vence; `/salir` desconecta | pipeline, `@seguridad` |
+| P-136 | Telegram: el cupo del chat aguanta una ráfaga; un archivo que no es PDF ni imagen no se procesa; uno más grande que el tope se rechaza sin descargarlo; sin chats conectados el aviso queda simulado | pipeline |
+| P-137 | Telegram: con un chat conectado se avisan las escaladas, las frenadas y las aprobaciones, no los pagos que el agente hizo solo | pipeline |
+| P-138 | Cliente de Telegram: envía HTML con el botón y sin vista previa; un rechazo de Telegram sale como error tipado sin el token del bot; una descarga que pasa del tope se corta, y una que Telegram anuncia grande ni se pide; una respuesta con otra forma no se usa | unidad, `@seguridad` |
+| P-139 | Acceso de jurado: sin acceso, las acciones de jurado se rechazan; tras 5 intentos fallidos en 15 minutos el código no se revisa, ni el correcto, hasta que pasa la ventana; el acceso dura lo configurado y no se extiende | pipeline, `@seguridad` |
+| P-140 | Rutas de los canales de jurado, invocadas como en Next con una base temporal: `/api/acceso` exige el mismo origen, limita intentos (429) y da acceso; `/api/telegram/enlace` solo con acceso; `/api/correo/entrante` exige la contraseña, ignora lo inválido y admite el correo a una dirección real; `/api/telegram` exige el secreto, responde «privado» a un chat desconocido y conecta con el enlace | API, `@seguridad` |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

@@ -28,7 +28,8 @@
 | R20 | Entregable: agente funcionando sobre su set de facturas | Lote, canales, pantalla | Cubierto |
 | R21 | Entregables del hackathon: repo público con README de flujos y arquitectura, video, demo en vivo | README por el marco de cuatro pasos, Vercel, video (pasos 33 y 34 del plan) | Cubierto |
 | R22 | Pagos en varias monedas contra límites en USD | Tasas de cambio (`src/domain/fx.ts`), Reglas, detalle | Cubierto con tasas fijas por empresa, a la vista en Reglas y en el detalle (D22). Planeado para producción: tasas diarias de un proveedor oficial, guardadas en cada decisión |
-| R23 | Probar el agente con una factura propia sin abrir la demo al abuso | Correo real de entrada (`/api/correo/entrante`, `src/usecases/inbound-email.ts`), "Recibir por correo" en Facturas | Cubierto en la demo con código de acceso, dirección que vence, topes antes de gastar e interruptor (D23). Planeado para producción: dirección fija por empresa y remitentes autorizados |
+| R23 | Probar el agente con una factura propia sin abrir la demo al abuso | Correo real de entrada (`/api/correo/entrante`, `src/usecases/inbound-email.ts`), "Probar con tu factura" en Facturas | Cubierto en la demo con código de acceso, dirección que vence, topes antes de gastar e interruptor (D23). Planeado para producción: dirección fija por empresa y remitentes autorizados |
+| R24 | Avisar a la persona cuando una factura necesita su decisión | Bot de Telegram como notificador y canal de entrada (`/api/telegram`, `src/usecases/telegram.ts`) | Cubierto en la demo para chats conectados con el acceso de jurado (D24). Aprobar desde el chat queda para producción, con identidad verificada |
 
 ## 2. Ajustes que salen de la matriz
 

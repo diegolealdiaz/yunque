@@ -15,7 +15,7 @@
 | Documentos | Lectura y renderizado de PDF con PDFium en WebAssembly en el servidor (texto con capa, PNG cuando no la hay). El navegador nunca abre el PDF original: ve una imagen. Generación de PDF por plantilla JSON para el dataset y para la orden de pago | Sin binarios nativos, corre en funciones sin estado. Quita del navegador la superficie de ataque del PDF (scripts, enlaces, adjuntos) |
 | Idioma | Español en interfaz y registro | El jurado lee en español |
 | Reglas | Formulario con vista YAML al lado | "Pantalla simple" para finanzas, y muestra que las reglas son datos versionables |
-| Canales de entrada | Subida en pantalla, lote del periodo, bandeja de correo simulada, correo real de la demo (D23), Telegram (planeado) | En ese orden de construcción. Telegram se recorta primero si falta tiempo |
+| Canales de entrada | Subida en pantalla, lote del periodo, bandeja de correo simulada, correo real de la demo (D23), Telegram (D24) | En ese orden de construcción. Telegram se recorta primero si falta tiempo |
 | Aprobación humana | Solo en pantalla, con checklist y firma del contenido exacto | Cero dependencias externas en el momento crítico del pitch |
 | Identificadores | ULID para facturas, decisiones y eventos, más referencia legible `DEC-2026-10-0007` | Únicos, ordenables por tiempo, sin coordinación entre funciones |
 | Dinero | Enteros de unidad mínima (centavos) con moneda obligatoria | Sin flotantes en el camino del dinero |
@@ -166,7 +166,7 @@ canal (subida | lote | bandeja | Telegram)
    │              etiquetada "preparada, no ejecutada". Transiciones con compare-and-swap
    │
    ▼
-9. Notificación   respuesta al canal de origen (pantalla, o mensaje en Telegram: simulado en esta versión, D21)
+9. Notificación   pantalla, y Telegram a los chats conectados (D24; simulado sin bot, D21)
 ```
 
 ### Invariantes de seguridad (se prueban con tests)
@@ -196,7 +196,7 @@ Yunque no es un sistema multiagente donde varios modelos conversan entre sí. Es
 | Resolutor | Código | Empareja el beneficiario contra la lista permitida: exacto, alias, similitud |
 | Juez | Código, función pura | Evalúa la política y emite pagar, frenar o escalar con hallazgos |
 | Explicador | Plantilla; modelo opcional | Redacta la explicación a partir de los hallazgos. No puede alterar el veredicto |
-| Notificador | Código, tabla outbox | Persiste y entrega a pantalla y Telegram (simulado en esta versión, D21) con reintentos e idempotencia |
+| Notificador | Código, tabla outbox | Persiste y entrega a pantalla y a los chats de Telegram conectados (D24; simulado sin bot, D21) con reintentos e idempotencia |
 | Analista | Código, fase posterior | Propone cambios de política desde el historial. Una persona decide |
 
 ### Cuando el Lector no entiende la factura
@@ -227,8 +227,8 @@ Antes de escalar por confianza baja, el pipeline hace una sola segunda pasada co
 | Subida en pantalla | Arrastrar PDF, imagen o pegar texto. Procesa al instante y abre el detalle | Pipeline completo |
 | Lote del periodo | Botón "Procesar facturas de ejemplo". El cliente envía una factura por petición y muestra progreso. Evita límites de tiempo de funciones serverless | Pipeline completo |
 | Bandeja de correo simulada | Correos ficticios precargados (remitente, asunto, cuerpo, adjunto). Botón "Revisar correo de ejemplo" | Pipeline, con el cuerpo del correo como contexto extra |
-| Correo real (demo, D23) | Botón "Recibir por correo": con el código de acceso, cada visitante recibe su dirección personal, que vence sola. El proveedor de correo entrante llama a `/api/correo/entrante`; se procesa el primer adjunto PDF o imagen, con topes por dirección y de la demo antes de llamar al modelo | Pipeline, con el cuerpo del correo como contexto extra |
-| Telegram (planeado, paso 32) | Webhook en `/api/telegram`. Enviar foto o PDF, el bot responde con el veredicto y el enlace al detalle. Cada `update_id` se guarda y se ignora si se repite | Pipeline completo, bot en modo webhook |
+| Correo real (demo, D23) | Botón "Probar con tu factura": con el acceso de jurado, cada visitante recibe su dirección personal, que vence con el acceso. El proveedor de correo entrante llama a `/api/correo/entrante`; se procesa el primer adjunto PDF o imagen, con topes por dirección y de la demo antes de llamar al modelo | Pipeline, con el cuerpo del correo como contexto extra |
+| Telegram (demo, D24) | Con el acceso de jurado, "Conectar Telegram" da un enlace de un solo uso al bot. El chat conectado recibe avisos de escaladas, frenadas y aprobaciones, y puede enviar facturas en PDF o foto. Webhook en `/api/telegram`; cada `update_id` se guarda y se ignora si se repite | Pipeline completo y cola de avisos |
 | API de decisión (planeada, paso 31) | `POST /api/decide` recibe un archivo o campos ya extraídos y devuelve el veredicto con hallazgos. Documentado en el README como "para tu propio agente" | Pipeline completo |
 
 Todos los canales terminan en la misma función `processInvoice(deps, input)`. Un canal nuevo es un adaptador de 50 líneas.
@@ -238,7 +238,7 @@ Todos los canales terminan en la misma función `processInvoice(deps, input)`. U
 Resumen funcional. El diseño de cada pantalla, la navegación y el sistema visual están en [interfaz.md](interfaz.md).
 
 1. **Reglas**: formulario (límites, umbral, presupuesto y periodo, vendors con cuenta registrada, tolerancias, acción por regla, días antes del vencimiento) con vista YAML al lado e historial de versiones. Las claves protegidas se muestran pero no se editan. Interruptores visibles: `payments_enabled` y `dry_run`.
-2. **Facturas**: lista con canal, beneficiario, monto, moneda, veredicto y estado. Filtros por veredicto. Botones "Subir factura" y, en la demo, "Procesar facturas de ejemplo", "Revisar correo de ejemplo" y "Recibir por correo" (D23).
+2. **Facturas**: lista con canal, beneficiario, monto, moneda, veredicto y estado. Filtros por veredicto. Botones "Subir factura" y, en la demo, "Procesar facturas de ejemplo", "Revisar correo de ejemplo" y "Probar con tu factura" (D23, D24).
 3. **Detalle de decisión**: con un control de "¿la explicación fue clara?" (sí o no, con comentario opcional) que alimenta la mejora de las plantillas y, después, las sugerencias (pendiente). Documento original con las citas resaltadas, campos extraídos con confianza y evidencia, traza regla por regla con valor y umbral, explicación, fecha programada y orden de pago etiquetada "preparada, no ejecutada" si aplica, costo de la llamada al modelo, y decisión anterior si es reevaluación. Nada del documento se renderiza como HTML, markdown, imagen ni enlace.
 4. **Pendientes de aprobación**: cola para la persona de finanzas. Los hallazgos de severidad `warn` se muestran y se reconocen uno a uno en el checklist. Aprobar exige marcar un checklist específico ("verifiqué que la cuenta coincide con la registrada", "revisé la evidencia del monto") antes de habilitar el botón. También permite corregir campos a mano y reevaluar, o rechazar con motivo. La primera resolución gana.
 5. **Métricas**: autonomía (decisiones correctas sin persona, con tasa de escalado como contra-métrica), falsos "pagar" (objetivo cero), exactitud por campo, pagado por moneda, presupuesto y saldo consumidos, reglas que más disparan, costo por factura, notificaciones pendientes y fallidas.
@@ -273,7 +273,9 @@ yunque/
     api/procesar/         procesa una factura subida (una por petición, con su llave de entrega)
     api/lote/             procesa un caso del lote del periodo, elegido de la lista cerrada del dataset
     api/bandeja/          lee un correo de la bandeja simulada (solo en la demo)
-    api/correo/           correo real de la demo (D23): dirección personal y webhook de entrada
+    api/acceso/           acceso de jurado (D23, D24): código, y dirección de correo personal
+    api/correo/           webhook del correo real de la demo (D23)
+    api/telegram/         webhook del bot y enlace de conexión de un chat (D24)
     api/health/           salud con frescura
   src/
     config.ts             variables de entorno validadas con zod; la app no arranca si falta algo
@@ -283,7 +285,8 @@ yunque/
     resolve/              resolutor de beneficiario y comparación de cuenta
     explain/              plantillas y resumen en prosa
     documents/            orden de pago en PDF, armada con los datos de la decisión
-    session/              firmas HMAC: visitante, aprobador y contenido a aprobar
+    session/              firmas HMAC: visitante, aprobador y contenido a aprobar; tokens de los canales de jurado
+    telegram/             cliente de la API de bots (único módulo que llama a Telegram) y esquema del webhook
     dataset/              manifiesto, plantillas, generador, bandeja simulada y semilla de la demo
     ui/                   formatos y etiquetas de pantalla, puros y probados
     eval/                 set de regresión: fixtures, filas y métricas (compartidas con la pantalla), puerta e informe
@@ -299,14 +302,16 @@ yunque/
     pipeline/             casos de uso completos con extractor simulado, sin red
     regression/           set completo y set adversarial contra decisión esperada
     fixtures/             salidas grabadas del modelo (se llenan al calibrar con la clave)
+    telegram/             cliente de la API de bots con un fetch simulado
     unit/                 configuración
     usecases/             día de negocio
     smoke/                que la app compile y arranque
-    api/, e2e/            contratos de /api/* y los seis flujos del pitch (pendientes, vacías)
+    api/                  rutas de los canales de jurado, invocadas como en Next
+    e2e/                  los seis flujos del pitch (pendiente, vacía)
   docs/
 ```
 
-Dirección de las dependencias: `app` habla con `usecases`; `usecases` orquesta `engine`, `extraction`, `resolve`, `explain`, `documents` y `db`; `domain` no depende de nadie. Solo `app/_data` toca `src/db` directo, para abrir la conexión y sembrar la empresa del visitante. `src/ui` puede leer los tipos de salida de los casos de uso, porque los presenta. Los adaptadores de la API para otros agentes y de Telegram (pasos 31 y 32) entrarán en `app/api/decide/` y `app/api/telegram/`, y también terminarán en `processInvoice`.
+Dirección de las dependencias: `app` habla con `usecases`; `usecases` orquesta `engine`, `extraction`, `resolve`, `explain`, `documents` y `db`; `domain` no depende de nadie. Solo `app/_data` toca `src/db` directo, para abrir la conexión y sembrar la empresa del visitante. `src/ui` puede leer los tipos de salida de los casos de uso, porque los presenta. El adaptador de la API para otros agentes (paso 31) entrará en `app/api/decide/` y también terminará en `processInvoice`, como ya lo hacen el correo real y Telegram.
 
 ## 9. Infraestructura y lo que dejamos fuera
 
@@ -319,7 +324,7 @@ Postmark ───┘        │   (correo entrante de la demo, D23)
                      │       ledger, notifications (outbox), audit_events
                      ├─► Vercel Blob: binarios de facturas subidas (hoy disco local; paso 29)
                      ├─► OpenRouter: extracción (Haiku 5.5) y respaldo (Sonnet 5.5)
-                     └─► Telegram Bot API: respuestas al canal
+                     └─► Telegram Bot API: avisos y respuestas a los chats conectados
 GitHub ──► GitHub Actions (typecheck, lint, test) ──► Vercel (preview por rama, producción desde master)
 ```
 
@@ -337,7 +342,7 @@ La URL de entrega está abierta y tiene un modelo pagado detrás de un formulari
 | Archivos acotados | Tamaño máximo por archivo, tipos permitidos (PDF, PNG, JPG) verificados por contenido y no por extensión, una página renderizada como máximo por encima de un límite de páginas |
 | Caché por hash siempre activa | Las 33 facturas del dataset ya están decididas; procesarlas de nuevo no llama al modelo. Es también el plan B si el proveedor cae durante el pitch |
 | Sin datos reales | Todo el contenido es ficticio y se puede borrar en cualquier momento |
-| Correo real solo para jurados | Código de acceso para obtener una dirección, dirección imposible de adivinar que vence sola, topes de correos por dirección y de la demo, interruptor `INBOUND_EMAIL_ENABLED`, y nunca se responde un correo (D23) |
+| Correo real y Telegram solo para jurados | Código de acceso para obtener una dirección o conectar un chat, dirección imposible de adivinar que vence sola, topes de correos por dirección y de la demo, interruptor `INBOUND_EMAIL_ENABLED`, un bot que solo atiende chats conectados, y nunca se responde un correo (D23, D24) |
 
 ### Lo que dejamos fuera a propósito
 

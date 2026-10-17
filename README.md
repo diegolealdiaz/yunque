@@ -39,20 +39,33 @@ Si el navegador recarga en bucle con `npm run dev`, usa `npm run build && npm ru
 
 Pendiente (paso 29 del [plan](docs/plan.md)): Vercel para la app, Turso para la base y Vercel Blob para los archivos (hoy se guardan en `data/files`). Producción exige `OPENROUTER_API_KEY` y `DEMO_MODE=true`: todavía no hay inicio de sesión. Las migraciones se aplican a Turso con `DATABASE_URL` y `DATABASE_AUTH_TOKEN` puestos y `npm run db:migrate`. Ponle a la clave de OpenRouter un límite de gasto.
 
-## Correo real en la demo (opcional)
+## Correo y Telegram para los jurados (opcional)
 
-Los jurados pueden enviar una factura propia por correo y ver cómo la decide el agente. En Facturas, "Recibir por correo" pide un código de acceso y entrega una dirección personal que vence sola. Las protecciones y el porqué están en la decisión D23 de [Decisiones](docs/decisiones.md).
+Los jurados pueden probar el agente con una factura propia: por correo, o enviándola a un bot de Telegram que además les avisa cuando una factura necesita su decisión. En Facturas, "Probar con tu factura" pide un código de acceso y abre los dos canales por 72 horas. Las protecciones y el porqué están en las decisiones D23 y D24 de [Decisiones](docs/decisiones.md).
 
-Para encenderlo en un despliegue:
+**Código de acceso.** Elige uno de al menos 12 caracteres, guárdalo en `DEMO_ACCESS_CODE` y entrégaselo a los jurados por fuera del repo.
+
+**Correo** (Postmark):
 
 1. Crea una cuenta en Postmark y un servidor. En su pestaña de entrada copia la dirección (`...@inbound.postmarkapp.com`) en `INBOUND_EMAIL_ADDRESS`.
 2. Genera el secreto del webhook con `openssl rand -hex 32` y guárdalo en `INBOUND_EMAIL_WEBHOOK_SECRET`.
 3. En Postmark, configura el webhook de entrada con `https://yunque:<secreto>@<tu-dominio>/api/correo/entrante`.
-4. Elige un código de acceso de al menos 12 caracteres, guárdalo en `INBOUND_EMAIL_ACCESS_CODE` y entrégaselo a los jurados por fuera del repo.
-5. Pon `INBOUND_EMAIL_ENABLED=true`.
-6. En OpenRouter, ponle a la clave un límite de gasto (por ejemplo, 10 USD). Es el techo final: protege también la subida y los botones de ejemplo.
+4. Pon `INBOUND_EMAIL_ENABLED=true`.
 
-Para apagarlo, `INBOUND_EMAIL_ENABLED=false`: las rutas responden 404 y el botón desaparece.
+**Telegram:**
+
+1. Crea el bot con @BotFather. Guarda su token en `TELEGRAM_BOT_TOKEN` y su nombre, sin @, en `TELEGRAM_BOT_USERNAME`.
+2. Genera el secreto del webhook con `openssl rand -hex 32` y guárdalo en `TELEGRAM_WEBHOOK_SECRET`.
+3. Pon la URL pública de la app en `PUBLIC_APP_URL`, para el botón "Abrir en Yunque" de los avisos.
+4. Registra el webhook, con el secreto, después de desplegar:
+   ```
+   curl "https://api.telegram.org/bot<token>/setWebhook" \
+     -d url=https://<tu-dominio>/api/telegram -d secret_token=<secreto>
+   ```
+
+**Techo de gasto.** En OpenRouter, ponle a la clave un límite (por ejemplo, 10 USD). Es la última capa: protege también la subida y los botones de ejemplo.
+
+Para apagarlos: `INBOUND_EMAIL_ENABLED=false` apaga el correo; quitar las tres variables de Telegram apaga el bot. Las rutas responden 404 y la pantalla deja de ofrecerlos.
 
 ## Documentación
 

@@ -46,7 +46,7 @@
 
 | Funcionalidad | Qué aporta | Esfuerzo |
 |---|---|---|
-| **Telegram como canal** | Mandas una foto de la factura y recibes el veredicto. Vistoso; nadie en la región lo tiene | Medio |
+| **Telegram como canal y notificador** | Mandas una foto de la factura y recibes el veredicto; el teléfono avisa cuando algo necesita tu decisión. Hecho para la demo (D24) | Medio |
 | **API de decisión** `POST /api/decide` | "Tu propio agente le pregunta a Yunque si puede pagar". Responde al "por qué importa" del reto | Bajo |
 | **Calendario de pagos** | Las órdenes aprobadas agrupadas por fecha programada y ruta: cuánto sale cada día y en qué moneda | Medio |
 | **Sugerencias de política** | "Esta regla escaló 12 facturas y las 12 se aprobaron; sugerencia: subir el umbral". La persona acepta o descarta. Nada se autoaplica | Medio |
