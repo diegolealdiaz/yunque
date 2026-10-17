@@ -82,6 +82,21 @@ export function usdMicros(micros: number): string {
   return `${value} USD`;
 }
 
+const DECIMAL = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 });
+
+/**
+ * Duración corta para tarjetas y tablas, en la unidad más grande que la deja legible:
+ * 850 → "850 ms", 1240 → "1,2 s", 720000 → "12 min", 18000000 → "5 h", 3 días → "3 d".
+ */
+export function duration(ms: number): string {
+  const value = Math.max(0, ms);
+  if (value < 1000) return `${String(Math.round(value))} ms`;
+  if (value < 60_000) return `${DECIMAL.format(value / 1000)} s`;
+  if (value < 3_600_000) return `${String(Math.floor(value / 60_000))} min`;
+  if (value < 86_400_000) return `${String(Math.floor(value / 3_600_000))} h`;
+  return `${String(Math.floor(value / 86_400_000))} d`;
+}
+
 /** Hash o identificador largo recortado para pantalla: "3f9a1c…". */
 export function shortHash(hash: string, length = 6): string {
   return hash.length <= length ? hash : `${hash.slice(0, length)}…`;

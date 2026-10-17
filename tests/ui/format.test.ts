@@ -4,6 +4,7 @@ import {
   calendarDate,
   clock,
   dueRelative,
+  duration,
   instant,
   percent,
   shortHash,
@@ -33,5 +34,14 @@ describe("formatos de pantalla", () => {
     expect(percent(1)).toBe("100 %");
     expect(usdMicros(2100)).toBe("0,0021 USD");
     expect(shortHash("3f9a1c2b9e")).toBe("3f9a1c…");
+  });
+
+  it("duraciones en la unidad más grande que se lee", () => {
+    expect(duration(850)).toBe("850 ms");
+    expect(duration(1240)).toBe("1,2 s");
+    expect(duration(12 * 60_000 + 5000)).toBe("12 min");
+    expect(duration(5 * 3_600_000 + 1)).toBe("5 h");
+    expect(duration(3 * 86_400_000)).toBe("3 d");
+    expect(duration(-5)).toBe("0 ms");
   });
 });
