@@ -24,7 +24,7 @@
 | R16 | Éxito: explicabilidad, cualquiera entiende el registro sin abrir el código | Explicación por plantilla en español con cita del documento | Cubierto |
 | R17 | El flujo termina en la decisión; no se mueve dinero ni se conecta a plataforma de pagos | Orden de pago como borrador en formato de Blinka | Cubierto. La etiqueta "preparada, no ejecutada" ya está en el pipeline y la pantalla de detalle de `arquitectura.md` |
 | R18 | No entra: abrir cuentas, verificar identidad, fraude, cumplimiento, diseño de la app de Blinka | Fuera de alcance por diseño | Cubierto |
-| R19 | Por qué importa: empresas que arman sus propios agentes y quieren que paguen; lo que falta es confianza | Motor determinista, explicabilidad | Cubierto tras el ajuste A6: `POST /api/decide` sobre el mismo pipeline, incorporado en `arquitectura.md` (canales, estructura, paso 31 del plan) |
+| R19 | Por qué importa: empresas que arman sus propios agentes y quieren que paguen; lo que falta es confianza | Motor determinista, explicabilidad | Planeado (ajuste A6): `POST /api/decide` sobre el mismo pipeline, paso 31 del plan. Todavía no existe |
 | R20 | Entregable: agente funcionando sobre su set de facturas | Lote, canales, pantalla | Cubierto |
 | R21 | Entregables del hackathon: repo público con README de flujos y arquitectura, video, demo en vivo | README por el marco de cuatro pasos, Vercel, video (pasos 33 y 34 del plan) | Cubierto |
 

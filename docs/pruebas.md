@@ -60,8 +60,8 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-22 | Orden de severidad: con hallazgos mezclados, cualquier `frenar` gana; si no, `escalar`; `pagar` solo sin hallazgos | propiedad |
 | P-23 | Invariante 1: `pagar` implica cero hallazgos con `on_fail` | propiedad |
 | P-24 | Invariante 2: cualquier bandera proveniente de la extracción solo puede endurecer; `evaluate` con banderas extra nunca devuelve un veredicto más permisivo que sin ellas | propiedad |
-| P-25 | Invariante 3: no existe camino en código de `escalar` a `pagar` sin una aprobación con persona; se prueba que `approveDecision` es la única función que lo hace y exige identidad | pipeline |
-| P-26 | Invariante 4: `frenar` no cambia desde la pantalla; `approveDecision` sobre una `frenar` lanza | pipeline |
+| P-25 | Invariante 3: no existe camino en código de `escalar` a `pagar` sin una aprobación con persona; se prueba que `approveEscalation` es la única función que lo hace y exige identidad | pipeline |
+| P-26 | Invariante 4: `frenar` no cambia desde la pantalla; `approveEscalation` sobre una `frenar` lanza | pipeline |
 | P-27 | Invariante 5: el presupuesto se descuenta con `pagar` y con aprobación; nunca con `frenar` ni con `escalar` pendiente | propiedad + base |
 | P-28 | Invariante 6: toda decisión lleva versión de política y hash; una decisión sin alguno no se persiste | base |
 | P-29 | Invariante 7: reproducibilidad; `evaluate` llamada dos veces con las mismas entradas devuelve el mismo resultado, incluido el orden de hallazgos; el replay sobre el historial con la misma política reproduce cada veredicto | propiedad + regresión |

@@ -260,44 +260,48 @@ Resumen funcional. El diseño de cada pantalla, la navegación y el sistema visu
 
 ```
 yunque/
-  .github/workflows/      ci.yml: build, typecheck, lint, tests, set de regresión
+  .github/workflows/      ci.yml: typecheck, lint, formato, tests, build y set de regresión
+  proxy.ts                cookie firmada del visitante y cabeceras de seguridad (CSP con nonce)
+  instrumentation.ts      valida la configuración al arrancar el servidor
   app/                    rutas de Next.js (pantallas y API)
     (producto)/           pantallas con la barra lateral: pendientes, facturas, reglas, métricas,
                           bitácora, salud y la página de componentes
     _components/          los nueve componentes base de interfaz.md §6, estados y atajos
+    _actions/             server actions compartidas (elegir quién firma)
+    _data/                raíz de composición: configuración, conexión, empresa del visitante,
+                          almacenamiento, adaptadores de canal y entrega de avisos
     api/procesar/         procesa una factura subida (una por petición, con su llave de entrega)
     api/lote/             procesa un caso del lote del periodo, elegido de la lista cerrada del dataset
-    api/decide/           API de decisión para otros agentes
-    api/telegram/         webhook del bot
+    api/bandeja/          lee un correo de la bandeja simulada (solo en la demo)
     api/health/           salud con frescura
   src/
-    domain/               tipos, esquemas zod, política
+    config.ts             variables de entorno validadas con zod; la app no arranca si falta algo
+    domain/               tipos, esquemas zod, dinero, política. Puro
     engine/               evaluate() y catálogo de reglas. Puro, sin dependencias de red ni de reloj
     extraction/           normalización, llamada al modelo (único módulo que importa el SDK), verificador
     resolve/              resolutor de beneficiario y comparación de cuenta
-    channels/             adaptadores: upload, batch, inbox, telegram
     explain/              plantillas y resumen en prosa
     documents/            orden de pago en PDF, armada con los datos de la decisión
+    session/              firmas HMAC: visitante, aprobador y contenido a aprobar
+    dataset/              manifiesto, plantillas, generador, bandeja simulada y semilla de la demo
     ui/                   formatos y etiquetas de pantalla, puros y probados
     eval/                 set de regresión: fixtures, filas y métricas (compartidas con la pantalla), puerta e informe
     db/                   esquema drizzle, migraciones, repositorios (único módulo que importa el driver)
-    usecases/             processInvoice, approveDecision, correctAndReevaluate, savePolicy, replayPolicy, loadMetrics
+    usecases/             processInvoice, approveEscalation, rejectEscalation, correctAndReevaluate,
+                          savePolicy (con el replay), loadMetrics, checkHealth y las lecturas de pantalla
   data/
-    dataset/              manifiesto y archivos generados
+    dataset/              manifiesto, archivos generados y bandeja simulada
     seed/                 empresa, vendors, política inicial
-  scripts/
-    generate-dataset.ts
-    seed.ts
-  tests/
-    engine/               invariantes (propiedad) y tabla de casos frontera por regla
-    pipeline/             pipeline completo con extractor simulado, sin red
-    db/                   transacciones, reserva, comparación y cambio, append-only
+  scripts/                migrate, seed, generate-dataset, eval
+  tests/                  una carpeta por módulo de src/, más:
+    pipeline/             casos de uso completos con extractor simulado, sin red
     regression/           set completo y set adversarial contra decisión esperada
-    fixtures/             salidas grabadas del modelo por hash y versión de prompt
-    api/                  contratos de /api/*
-    e2e/                  seis flujos del pitch
+    fixtures/             salidas grabadas del modelo (se llenan al calibrar con la clave)
+    api/, e2e/            contratos de /api/* y los seis flujos del pitch (pendientes)
   docs/
 ```
+
+Dirección de las dependencias: `app` habla con `usecases`; `usecases` orquesta `engine`, `extraction`, `resolve`, `explain`, `documents` y `db`; `domain` no depende de nadie. Solo `app/_data` toca `src/db` directo, para abrir la conexión y sembrar la empresa del visitante. `src/ui` puede leer los tipos de salida de los casos de uso, porque los presenta. Los adaptadores de la API para otros agentes y de Telegram (pasos 31 y 32) entrarán en `app/api/decide/` y `app/api/telegram/`, y también terminarán en `processInvoice`.
 
 ## 9. Infraestructura y lo que dejamos fuera
 
@@ -306,7 +310,7 @@ Navegador ──┐
             ├─► Vercel (CDN + funciones sin estado, Next.js)
 Telegram ───┘        │
                      ├─► Turso (libSQL): vendors, políticas, facturas, decisiones,
-                     │       ledger, jobs (outbox), notifications, audit_events
+                     │       ledger, notifications (outbox), audit_events
                      ├─► Vercel Blob: binarios de facturas subidas
                      ├─► OpenRouter: extracción (Haiku 5.5) y respaldo (Sonnet 5.5)
                      └─► Telegram Bot API: respuestas al canal
@@ -334,7 +338,7 @@ La URL de entrega está abierta y tiene un modelo pagado detrás de un formulari
 |---|---|
 | Hashing consistente, sharding | No hay múltiples nodos entre los que repartir datos |
 | Almacén clave-valor distribuido, Redis, Memcached | No hay volumen ni necesidad de disponibilidad multi-nodo |
-| Brokers de mensajes (Kafka, RabbitMQ) | Una tabla outbox cubre el caso |
+| Brokers de mensajes (Kafka, RabbitMQ) | La tabla outbox de avisos cubre el caso; el lote lo recorre la pantalla, una factura por petición |
 | WebSockets | La pantalla se actualiza por polling corto durante el lote |
 | Microservicios, Kubernetes | Un solo despliegue serverless |
 | Multirregión | Sin usuarios que lo pidan |

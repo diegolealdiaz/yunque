@@ -36,8 +36,8 @@
 
 ## D7. Infraestructura mínima: funciones sin estado, una base relacional, una tabla como cola
 
-**Decisión.** Next.js en Vercel, Turso para datos, Vercel Blob para archivos. Tabla outbox para el lote y las notificaciones. Sin Redis, sin broker, sin microservicios, sin multirregión.
-**Consecuencia.** Un solo despliegue. Camino de escala documentado en `arquitectura.md`.
+**Decisión.** Next.js en Vercel, Turso para datos, Vercel Blob para archivos. Tabla outbox para las notificaciones. Sin Redis, sin broker, sin microservicios, sin multirregión.
+**Consecuencia.** Un solo despliegue. Camino de escala documentado en `arquitectura.md`. El lote no necesitó cola: la pantalla lo recorre una factura por petición, cada una con su llave de entrega, así que un corte se retoma reenviando lo que faltó. La tabla de trabajos que se previó para él se quitó sin haberse usado. Hasta el despliegue, los archivos se guardan en disco local; Vercel Blob entra en el paso 29.
 
 ## D8. Modelo barato por defecto, caro solo como segunda pasada
 

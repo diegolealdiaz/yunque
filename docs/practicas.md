@@ -71,7 +71,7 @@
 50. **Circuit breaker.** [después] Si la tasa de "pagar" sube de golpe o aparecen N cambios de cuenta bancaria en una hora, todo pasa a escalar hasta revisión humana. Nunca se rearma solo.
 51. **Modo dry-run por organización.** [demo] El agente decide y registra pero no produce órdenes ejecutables. El paso a ejecución real es explícito y visible. Los valores simulados nunca se filtran al modo real.
 52. **Health con frescura.** [demo] `/api/health` verifica base, política cargada y proveedor del modelo, y reporta antigüedad del pendiente más viejo y conteo de escaladas. El latido se escribe después del trabajo, no antes.
-53. **Fallar rápido sin defaults inseguros.** [demo] Variable de entorno ausente, clave del modelo ausente o política inválida: el sistema no arranca.
+53. **Fallar rápido sin defaults inseguros.** [demo] Variable de entorno ausente, clave del modelo ausente en producción o política inválida: el sistema no arranca. Fuera de producción, sin clave, el Lector queda apagado y lo dice la salud.
 54. **Secretos nunca en el repo.** [demo] `.env*` ignorado desde el primer commit. Variables por entorno en Vercel. Lockfile commiteado y dependencias mínimas.
 55. **Flags operativos en base o en entorno, nunca en código.** [demo] Mantenimiento, dry-run, modelo, umbrales.
 56. **Alertas, no solo logs.** [después] Cola de notificaciones fallidas, saldo del proveedor, detectores que superan el 5 por ciento de las facturas del día.
