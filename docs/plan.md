@@ -169,9 +169,9 @@
 ## Fase 6. Despliegue
 
 ### Paso 29. Producción [núcleo]
-- **Construye:** Vercel con Turso y Blob; empresa por visitante con cookie firmada; topes de subida, páginas y facturas por visitante y globales; `maxDuration` por ruta medido; archivos privados servidos solo a su empresa; reinicio de demo por empresa.
-- **Hecho cuando:** la URL pública procesa una factura de punta a punta; dos navegadores ven empresas distintas; superar un tope responde con mensaje claro.
-- **Prueba:** P-121 a P-126.
+- **Construye:** Vercel con Turso y Blob; empresa por visitante con cookie firmada; topes de subida, páginas y facturas por visitante y globales; `maxDuration` por ruta medido; archivos privados servidos solo a su empresa; reinicio de demo por empresa. Correo real para jurados (D23): cuenta de Postmark con su webhook de entrada apuntando a `/api/correo/entrante`, código de acceso entregado a los jurados por fuera del repo, y límite de gasto en la clave de OpenRouter.
+- **Hecho cuando:** la URL pública procesa una factura de punta a punta; dos navegadores ven empresas distintas; superar un tope responde con mensaje claro; un correo con una factura adjunta a la dirección de un jurado aparece decidido en su lista.
+- **Prueba:** P-121 a P-126, P-131 a P-134.
 
 ### Paso 30. Regresión en CI [núcleo]
 - **Construye:** `npm run eval` con fixtures dentro de CI; falla si hay un falso "pagar" o si la exactitud baja del umbral.

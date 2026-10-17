@@ -53,7 +53,7 @@
 
 ## Nivel 5: después del hackathon. Se mencionan como camino
 
-- Buzón de correo real por reenvío a una dirección de Yunque.
+- Buzón de correo real por reenvío a una dirección fija por empresa, con remitentes autorizados. La demo ya trae una versión para jurados, con código de acceso y dirección que vence (D23).
 - Verificación del cambio de cuenta bancaria con el beneficiario por un canal distinto al que trajo la factura.
 - Cadenas de aprobación con varios aprobadores, roles y separación de funciones.
 - Retenciones de impuestos locales y factura electrónica como evidencia de matching.

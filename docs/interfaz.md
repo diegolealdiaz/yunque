@@ -65,19 +65,23 @@ Barra lateral fija, cinco destinos, en este orden de uso:
 │               │                                              │
 │ ─────────────  │                                              │
 │ Pagos: ON     │                                              │
-│ Modo: Decidir │                                              │
+│ Agente: Decide│                                              │
 │ Salud ●       │                                              │
 │ Empresa demo ▾│                                              │
 └───────────────┴──────────────────────────────────────────────┘
 ```
 
 - **Pendientes** es el inicio. Muestra un contador cuando hay trabajo.
-- **Facturas** es el archivo completo, con filtros por veredicto, canal, beneficiario y periodo, y el botón "Procesar periodo".
-- **Reglas** es la política vigente: formulario, YAML, versiones.
+- **Facturas** es el archivo completo, con filtros por veredicto, canal, beneficiario y periodo, y el botón "Procesar facturas de ejemplo".
+- **Reglas** es la política vigente: formulario, YAML plegado, versiones.
 - **Métricas** es para el gerente y el jurado.
 - **Bitácora** es el registro de eventos de todo el sistema, filtrable.
 - El pie de la barra muestra el estado de los tres interruptores de control y la salud del sistema. Están ahí siempre porque son el argumento de seguridad del producto.
 - "Reiniciar demo" vive en el menú de la empresa, visible en modo demo, oculto en producción.
+- El contenido se centra con un ancho máximo común a todas las pantallas, para que en un monitor grande no quede pegado a la izquierda. Los formularios (Reglas, Salud) son más angostos y se alinean al mismo borde izquierdo.
+- Las tablas nunca se desplazan de lado en escritorio. Cada columna tiene prioridad: las secundarias (canal, actualizada, estado, referencia) se ocultan a medida que la pantalla se angosta, y el beneficiario recorta su texto. En el teléfono cada fila es una tarjeta: beneficiario arriba a la izquierda, monto arriba a la derecha y debajo el veredicto, el vencimiento y la referencia; toda la tarjeta abre la factura. En la Bitácora del teléfono no van los datos crudos.
+- En escritorio ninguna pantalla mueve la página entera: las listas (Facturas, Bitácora) ocupan el alto que queda y se desplazan por dentro con el encabezado de la tabla fijo, así filtros y acciones siguen a la vista. "Subir factura" abre un diálogo desde el encabezado.
+- Por debajo de 1024 px la barra lateral se pliega: arriba queda una barra con el nombre, el contador de pendientes y un botón "Menú" que la abre encima del contenido. Se cierra al navegar, con Esc o tocando fuera. Las tablas se desplazan de lado dentro de su tarjeta; la página nunca.
 
 Teclado: `J` y `K` recorren filas, `Enter` abre, `Esc` vuelve, `/` busca, `G` seguido de `P`, `F`, `R`, `M` cambia de sección. Aprobar no tiene atajo a propósito.
 
@@ -107,10 +111,13 @@ PAGADAS POR EL AGENTE HOY (14)                                   dentro de las r
 - El chip de veredicto incluye la regla en lenguaje corto. Al pasar el ratón: identificador, valor observado, umbral, versión de política.
 - Las frenadas no piden acción; se muestran para que nadie se sorprenda y se pueden abrir.
 - Las pagadas se colapsan en una línea. Abrirlas lleva a Facturas con el filtro aplicado.
+- En la demo, si hoy no llegó ninguna factura, la bandeja no dice solo "Nada pendiente": guía el primer paso, procesar las facturas de ejemplo en Facturas.
 
 ### 5.2 Detalle de decisión
 
-Tres columnas con una pregunta cada una.
+Arriba de todo, la tarjeta **Por qué**: la decisión explicada para el cliente, sin códigos ni jerga. Un titular ("No se pagó.", "Necesita tu decisión.", "Se pagó dentro de tus reglas."), una frase por cada control que no pasó con los valores de esta factura ("Cobra distinto a lo acordado. La factura cobra 10.000.000 COP. Lo acordado con el beneficiario es 80 h × 95.000 COP."), cuántos controles pasó y **qué puedes hacer**. Lleva el color del veredicto. Sale de los mismos hallazgos registrados, de forma determinista; no cambia la decisión ni reemplaza el registro técnico.
+
+Debajo, tres columnas con una pregunta cada una.
 
 ```
 ← Pendientes      DEC-2026-10-0007 · Nube Andina SAS · 4.800.000 COP        ESCALAR
@@ -145,45 +152,45 @@ Tres columnas con una pregunta cada una.
 ```
 
 - **Columna 1, Documento.** Imagen de cada página, renderizada en el servidor al ingerir, con las citas resaltadas encima cuando se conoce su posición. Debajo, el texto leído con las mismas citas resaltadas. Seleccionar un campo en la columna 2 desplaza y resalta su cita. El navegador nunca abre el PDF original ni renderiza contenido del documento como HTML.
-- **Columna 2, Lo que leyó y decidió.** Campos con confianza en punto de color más valor numérico al pasar el ratón, origen (modelo o persona, con quién y cuándo si fue corregido). Reglas: primero las que fallaron, luego las que pasaron colapsadas. Cada regla con valor observado y umbral. Explicación en prosa generada de los hallazgos, con el control de opinión.
+- **Columna 2, Lo que leyó y revisó el agente.** Campos con confianza en punto de color más valor numérico al pasar el ratón, origen (modelo o persona, con quién y cuándo si fue corregido). Controles: primero los que no pasaron, con su nombre en palabras y debajo, tenue, valor observado, umbral y código; luego los que pasaron, colapsados. Al final, plegado, el **registro técnico** tal como quedó guardado, para auditoría.
 - **Columna 3, Tu decisión.** Checklist específico para esta factura: las frases salen de las reglas que dispararon más las de severidad `warn`. Aprobar inactivo hasta completar. Rechazar pide motivo. Corregir campo abre el campo en edición con origen "persona" y reevalúa. Debajo, lo que se firma, en claro. Y la línea de tiempo con tiempos y canal.
 - Si la decisión fue "pagar" o "frenar", la columna 3 muestra el estado, la orden preparada o el motivo del freno, y la opción "Reevaluar con la política actual" cuando hay una versión más nueva.
 - En reevaluación, se muestra la decisión anterior en un bloque colapsado con la diferencia.
 
 ### 5.3 Facturas
 
-Tabla densa con filtros arriba y dos botones de acción: "Subir factura" y "Procesar periodo". "Leer bandeja" aparece junto al canal de correo simulado.
+Tabla densa con filtros arriba y los botones de acción en el encabezado: "Subir factura" (abre un diálogo) y, en la demo, "Procesar facturas de ejemplo (33)" y "Revisar correo de ejemplo (5)", con el número de casos y una línea que dice qué simulan.
 
-Columnas: estado, referencia, beneficiario, monto con moneda, vence, canal, veredicto con regla, actualizada. Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
+"Recibir por correo" (D23) aparece solo si el correo real está encendido. Abre un diálogo: sin dirección, pide el código de acceso que tienen los jurados; con ella, la muestra con un botón "Copiar", cuándo vence, cuántos correos admite por día y que Yunque nunca responde correos. La factura que llega aparece en la lista por el canal Correo, y un correo que no se procesó (dirección vencida o tope alcanzado) queda en la Bitácora como "Correo no procesado", con el motivo.
+
+Columnas: estado (punto de color y texto en tinta: ámbar espera a una persona, rojo falló o se rechazó, verde aprobada, gris en curso), referencia, beneficiario, monto con moneda, vence, canal, veredicto con regla, actualizada. Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
 
 ### 5.4 Reglas
 
 ```
-Reglas                                     Política v4 · firmada por Diego Leal · 15 oct
+Reglas                       Demo sin inicio de sesión · Firmas como [ Ana Torres ▾ ] [Usar]
+[ Pagos: Encendidos ]   [ Modo de prueba: Apagado ]   [ El agente: Decide ]
 
-┌─ Formulario ───────────────────────────────┬─ YAML ────────────────────────────────┐
-│ LÍMITES                                     │ version: 4                             │
-│ Por pago         [ 20.000.000 ] COP         │ limits:                                │
-│ Umbral aprobación[  5.000.000 ] COP         │   per_payment: {amount: 2000000000,…}  │
-│ Presupuesto      [ 50.000 ] USD / mes       │   approval_threshold: …                │
-│                                             │   budget: {amount: 5000000, …}         │
-│ BENEFICIARIOS PERMITIDOS (8)                │ allowed_payees:                        │
-│ Nube Andina SAS · ****9023 · verificado     │   - id: ven_01J…                        │
-│ …                                           │ rules:                                 │
-│                                             │   duplicate_invoice: frenar            │
-│ ACCIÓN POR REGLA                            │   first_payment_to_vendor: escalar     │
-│ duplicate_invoice         (frenar) ●        │ …                                      │
-│ first_payment_to_vendor   (escalar)●        │                                        │
-│ …                                           │ Tope del sistema: 100.000 USD (fijo)   │
-│                                             │                                        │
-│ [ Guardar como v5 ]  [ Ver qué cambiaría ]  │ Versiones: v4 · v3 · v2 · v1           │
-└─────────────────────────────────────────────┴────────────────────────────────────────┘
+ Política │ Código │ Versiones │ Tasas                       Vigente: v4 · firmada por …
+ 🔒 Tope absoluto 100.000 USD · 🔒 Cuenta origen … · 🔒 Aprobadores …
+┌─ Límites ─────────────────────────┐ ┌─ Si una regla no se cumple ────────────────┐
+│ Límite por pago      [ 20.000 ] USD│ │ Factura duplicada          [Escalar|Frenar]│
+│ Umbral de aprobación [  5.000 ] USD│ │ Primer pago a un benef.    [Escalar|Frenar]│
+│ Presupuesto  [100.000] USD  mes ▾  │ │ …                                          │
+├─ Parámetros ──────────────────────┤ └────────────────────────────────────────────┘
+│ Tolerancia [5] % · Ventana [90] días…│
+└───────────────────────────────────┘
+┌ Cambios sin guardar.        Descartar  [ Ver qué cambiaría ]  [ Guardar como v5 ] ┐ (fija)
 ```
 
-- Formulario y YAML son la misma política, editar uno actualiza el otro.
-- Las claves protegidas se muestran en gris con candado y sin edición.
-- "Ver qué cambiaría" ejecuta el replay sobre el histórico y muestra cuántas decisiones cambiarían de veredicto antes de guardar. Es la pantalla que más impresiona al jurado y vale la pena pulirla.
-- Los interruptores de pagos habilitados, modo de prueba y nivel de autonomía están arriba, separados del formulario, porque no son política sino control.
+- La pantalla cabe entera sin desplazarse, con el patrón de las páginas de configuración: pestañas en vez de una página larga, grupos en tarjetas con una frase de qué controlan y la barra de acciones fija abajo.
+- El formulario habla en palabras de producto: sin códigos de regla (quedan en el YAML y al pasar el ratón) ni montos en centavos. Cada regla muestra sus dos salidas a la vista, Escalar o Frenar, con el color del veredicto.
+- "Como código" es la misma política en YAML para auditarla o editarla entera; editar uno actualiza el otro. Una línea explica que ahí los montos van en centavos y las tolerancias en puntos básicos.
+- Las claves protegidas van en una línea con candado y sin edición.
+- La pestaña "Tasas de cambio" muestra, de solo lectura, cuánto vale 1 USD en cada moneda y desde qué fecha (D22). No se editan aquí porque cambiarlas cambiaría qué se paga. El detalle de una factura en otra moneda dice con qué tasa se convirtió a USD para los límites.
+- "Ver qué cambiaría" ejecuta el replay sobre el histórico y abre el resultado en un diálogo, desde el que se puede guardar. Es la pantalla que más impresiona al jurado y vale la pena pulirla.
+- Como la demo no tiene inicio de sesión, el aprobador que firma se elige en el encabezado. Sin elegirlo, los interruptores y el guardado quedan desactivados.
+- Los interruptores de pagos, modo de prueba y el agente (decide o solo recomienda) están arriba, separados del formulario, porque no son política sino control.
 
 ### 5.5 Métricas
 
@@ -191,7 +198,7 @@ Seis tarjetas numéricas arriba y dos gráficos abajo. Las tarjetas: autonomía 
 
 ### 5.6 Bitácora
 
-Lista cronológica de eventos de dominio con filtro por tipo, factura y persona. Cada evento muestra quién, cuándo, qué y el enlace a la factura. Es la misma tabla de auditoría, sin transformación.
+Lista cronológica de eventos de dominio con filtro por tipo, factura y persona. Cada evento muestra quién, cuándo, qué, el detalle en palabras (la regla que decidió, el canal, el costo de lectura) y el enlace a la factura. Debajo del detalle, tenues, los datos crudos del evento, completos al pasar el ratón: es la misma tabla de auditoría, sin transformación.
 
 ### 5.7 Salud
 
@@ -206,7 +213,7 @@ Página mínima: base, política cargada, proveedor del modelo, antigüedad del 
 | Tamaños | 13 px en tablas y formularios, 14 px en prosa, 20 a 24 px en títulos. Sin tamaños decorativos |
 | Neutros | Papel levemente cálido de fondo (`#F8F7F3` y blanco) con tinta azul-negra (`#1A2233`). Grises derivados de la tinta, no grises puros. Bordes de un píxel; sombras cortas solo en capas flotantes |
 | Semántica | Verde para pagar, ámbar para escalar, rojo para frenar, gris para en proceso. Siempre con icono y texto, nunca solo color |
-| Acento de marca | Ninguno. El botón primario, el logo y los enlaces son tinta. Los únicos colores cromáticos de la interfaz son los tres del veredicto: la interfaz es neutra, el color lo pone la decisión |
+| Acento de marca | Ninguno. El botón primario y los enlaces son tinta. Los únicos colores cromáticos de la interfaz son los tres del veredicto: la interfaz es neutra, el color lo pone la decisión. Hay dos excepciones, y las dos quedan fuera del contenido. Un marco de luz azul suave en el borde de la ventana, con el degradado del logo, que no intercepta clics ni se imprime. Y el logo, que se queda en su sitio: un yunque con la factura encima y las tres salidas (pagar, frenar, escalar), en el icono de la pestaña y junto al nombre en la barra lateral, a 24 px. Los archivos viven en `app/icon.png`, `app/apple-icon.png`, `public/marca.png` y `docs/marca/` |
 | Iconos | Un solo set de línea, 16 px, sin ilustraciones |
 | Espaciado | Rejilla de 4 px. Tablas con filas de 36 px. Radios de 4 px en controles y 12 px en tarjetas |
 | Movimiento | Solo transiciones de estado (fila que cambia de veredicto, contador que baja). Sin animaciones de entrada |
@@ -217,7 +224,7 @@ Componentes base: tabla, chip de veredicto, punto de confianza, tarjeta numéric
 
 ## 7. Microcopia
 
-- Botones en infinitivo: "Aprobar", "Rechazar", "Corregir campo", "Procesar periodo".
+- Botones en infinitivo: "Aprobar", "Rechazar", "Corregir campo", "Subir factura".
 - Veredictos en mayúscula sostenida corta: PAGAR, ESCALAR, FRENAR. En prosa: "pagada", "escalada", "frenada".
 - El agente se nombra como "el agente" o "Yunque", nunca "la IA" ni "el modelo" en pantalla.
 - Explicaciones en segunda persona cuando piden algo ("confirma la cuenta con el proveedor") y en tercera cuando informan ("la cuenta no coincide con la registrada").

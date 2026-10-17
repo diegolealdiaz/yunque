@@ -174,6 +174,10 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-128 | `/api/decide`: petición mal formada responde 400 con detalle de zod; nunca 500 | API |
 | P-129 | Telegram: el webhook rechaza peticiones sin el secreto; el mismo `update_id` dos veces procesa una vez | API, `@seguridad` |
 | P-130 | Telegram: la respuesta escapa HTML del contenido del documento; un archivo que no es factura responde "no pude leerla" sin excepción | API, `@seguridad` |
+| P-131 | Correo real (D23): un código de acceso equivocado no crea dirección; el correcto da una dirección con token de 60 bits que vence a las horas configuradas, y pedirla otra vez devuelve la misma; el webhook solo vale con la contraseña exacta; la configuración exige dirección, secreto y código al encenderlo, y no serializa el secreto ni el código | pipeline + unidad, `@seguridad` |
+| P-132 | Correo real: un token desconocido o mal formado se ignora sin escribir nada | pipeline, `@seguridad` |
+| P-133 | Correo real: una dirección vencida no procesa y deja "Correo no procesado" en la bitácora, sin remitente ni asunto | pipeline |
+| P-134 | Correo real: el primer adjunto que por contenido es PDF o imagen entra por el canal Correo; un reintento del proveedor no duplica la factura; superado el tope por dirección el correo no se procesa; sin adjunto válido el correo entra como mensaje sin factura | pipeline |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

@@ -24,7 +24,7 @@
 
 ## D4. Dinero en enteros de unidad mínima con moneda obligatoria
 
-**Decisión.** Prohibido flotante en el camino del dinero. Una sola función de parseo y normalización. Presupuesto agregado en USD con tasas fijas del set.
+**Decisión.** Prohibido flotante en el camino del dinero. Una sola función de parseo y normalización. Presupuesto agregado en USD con tasas fijas del set (D22).
 
 ## D5. Historial inmutable y transiciones atómicas
 
@@ -144,6 +144,35 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 **Decisión.** Cada ruta o acción que crea decisiones entrega los avisos pendientes de la empresa después de responder (`after`), así quien decide no espera al canal. Cada aviso se reclama con comparación y cambio antes de entregarlo; si el canal falla, se reintenta con espera creciente y al quinto intento queda fallido, con su evento y visible en la salud. El aviso en pantalla se entrega al dejar constancia, porque la decisión ya aparece en Pendientes y en el detalle. El aviso por Telegram se entrega a un canal simulado y el evento lo marca `simulated: true`. Los correos de la bandeja simulada llevan un Message-ID estable y su llave de recepción sale de él; un caso de correo del lote usa esa misma llave, así el correo se recibe una vez por cualquiera de los dos caminos. Un correo sin adjunto se recibe: su documento es el mensaje, no tiene páginas y se escala como ilegible sin llamar al modelo.
 
 **Consecuencia.** Un reintento que vence ocurre en la próxima entrega de esa empresa, no a la hora exacta; en el despliegue, un cron cubre ese hueco. Cuando llegue el canal de Telegram real, solo cambia su función de envío.
+
+## D22. Tasas de cambio fijas y a la vista en esta versión; diarias y registradas en producción
+
+**Contexto.** Los límites por pago, el umbral de aprobación, el presupuesto y el tope absoluto van en USD, y las facturas llegan en seis monedas. La tasa decide pagos: si la tasa del COP subiera de 4.150 a 6.000, una factura de 25.000.000 COP pasaría de unos 6.024 USD a unos 4.167 USD, quedaría bajo el umbral y se pagaría sin aprobación. Una tasa editable como un campo cualquiera sería una puerta para saltarse los límites.
+
+**Decisión.** En esta versión cada empresa tiene una tabla de tasas fija, guardada con ella y con su fecha de referencia. Los montos son enteros y la comparación contra un límite es exacta, sin redondear; el valor redondeado solo se muestra. Las tasas no se editan desde la aplicación: Reglas las muestra en una pestaña de solo lectura y el detalle de cada factura en otra moneda dice con qué tasa se convirtió. Así la demostración es reproducible y nadie cambia qué se paga sin firmar una política.
+
+**Lo correcto en producción.** Las tasas vienen a diario de un proveedor oficial (por ejemplo, la TRM del Banco de la República o las tasas de referencia del BCE), con su fecha y su fuente. Cada decisión guarda la tasa y la fecha que usó, así su explicación sigue siendo exacta aunque la tasa cambie después y el replay reproduce el mismo veredicto. Si el proveedor falla o la tasa del día no llegó, el agente no paga lo que dependa de ella: escala a una persona. Un cambio brusco de tasa frente al día anterior también escala. Editarlas a mano, si hiciera falta, pasaría por la misma firma, versión y vista previa que la política.
+
+**Consecuencia.** Hoy una tasa desactualizada se ve en pantalla, pero no se corrige sola; mientras tanto, la fecha "fijas al" deja claro con qué tasa se decidió.
+
+## D23. Correo real en la demo, solo con código de acceso y con topes antes de gastar
+
+**Contexto.** Probar la demo con una factura propia, enviada desde el propio correo, convence más que cualquier dataset. Pero una dirección pública que pone a trabajar al modelo es una puerta abierta al gasto y al abuso, y la demo no tiene inicio de sesión.
+
+**Decisión.** Un proveedor de correo entrante (Postmark) recibe los correos y llama al webhook `/api/correo/entrante` con cada uno. Nada se procesa sin pasar seis capas, en este orden:
+
+1. **Código de acceso.** La dirección solo aparece para quien escribe el código en "Recibir por correo". El código vive en una variable de entorno y se entrega a los jurados por fuera del repo; cambiarlo anula el anterior.
+2. **Dirección imposible de adivinar y con vencimiento.** Cada visitante recibe su dirección `local+token@dominio`, con un token de 60 bits de azar que apunta a su propia empresa. Vence sola a las 72 horas (configurable). Un correo a un token desconocido se ignora sin tocar nada; uno a una dirección vencida queda en la bitácora de esa empresa y no se procesa.
+3. **Topes antes de llamar al modelo.** Máximo de correos por dirección al día (10) y de toda la demo al día (60), además de los topes de facturas que ya tenía la demo. Un correo sobre el tope queda en la bitácora como "Correo no procesado", con el motivo, y no gasta.
+4. **Techo de gasto del modelo.** La clave de OpenRouter lleva un límite de gasto (10 USD sugerido). Si todo lo demás fallara, el proveedor deja de responder y no se cobra más. Protege también la subida y los botones de ejemplo. Se configura en el panel del proveedor, no en el código.
+5. **Interruptor.** `INBOUND_EMAIL_ENABLED=false` lo apaga de inmediato: las dos rutas responden 404 y el botón desaparece.
+6. **Solo recibe.** Yunque nunca responde ni reenvía un correo, así que no sirve para mandar correo a nombre de nadie. El correo es contenido no confiable como en todo canal: si el cuerpo trae instrucciones para el agente, la regla de instrucciones sospechosas lo frena.
+
+Detalles que sostienen las capas: el webhook exige autenticación básica con un secreto propio, comparado en tiempo constante. Responde de inmediato y procesa después de responder, así el proveedor no espera la lectura ni reintenta. La llave de recepción sale del identificador que el proveedor da al correo (`inbox:pm-<id>`), y un reintento del proveedor no duplica la factura. El documento es el primer adjunto que, por contenido, es PDF, PNG o JPEG; un correo sin adjunto válido entra igual y escala como "no es una factura" sin llamar al modelo. El registro de un correo rechazado no guarda el remitente ni el asunto.
+
+**Por qué este proveedor y no un orquestador de flujos.** Un proveedor que entrega el correo directo al webhook no necesita intermediario. Un orquestador de flujos sería otro servicio que pagar o mantener, y solo reenviaría lo mismo. El plan gratuito del proveedor alcanza para la demo y da una dirección de entrada sin dominio propio. Con un dominio propio, el enrutamiento de correo de Cloudflare con un Worker es la alternativa equivalente.
+
+**Consecuencia.** Los topes se cuentan antes de procesar, así que dos correos simultáneos justo en el borde pueden pasar ambos; por eso el techo de gasto del proveedor es la última capa. Vercel limita el cuerpo de una petición a 4,5 MB, así que un adjunto de más de unos 3 MB no llega. Las empresas de los visitantes todavía no se borran solas: queda para el cron del despliegue (paso 29). En producción, con inicio de sesión, cada empresa tendría su dirección fija y una lista de remitentes autorizados.
 
 ## Alternativas consideradas y descartadas
 

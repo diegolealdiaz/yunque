@@ -8,6 +8,21 @@ Yunque revisa las cuentas por pagar de una empresa y decide cuáles pagar, cuál
 
 Proyecto del equipo **Forja** para el reto Blinka.
 
+## Correo real en la demo
+
+Los jurados pueden enviar una factura propia por correo y ver cómo la decide el agente. En Facturas, "Recibir por correo" pide un código de acceso y entrega una dirección personal que vence sola. Las protecciones y el porqué están en la decisión D23 de [Decisiones](docs/decisiones.md).
+
+Para encenderlo en un despliegue:
+
+1. Crea una cuenta en Postmark y un servidor. En su pestaña de entrada copia la dirección (`...@inbound.postmarkapp.com`) en `INBOUND_EMAIL_ADDRESS`.
+2. Genera el secreto del webhook con `openssl rand -hex 32` y guárdalo en `INBOUND_EMAIL_WEBHOOK_SECRET`.
+3. En Postmark, configura el webhook de entrada con `https://yunque:<secreto>@<tu-dominio>/api/correo/entrante`.
+4. Elige un código de acceso de al menos 12 caracteres, guárdalo en `INBOUND_EMAIL_ACCESS_CODE` y entrégaselo a los jurados por fuera del repo.
+5. Pon `INBOUND_EMAIL_ENABLED=true`.
+6. En OpenRouter, ponle a la clave un límite de gasto (por ejemplo, 10 USD). Es el techo final: protege también la subida y los botones de ejemplo.
+
+Para apagarlo, `INBOUND_EMAIL_ENABLED=false`: las rutas responden 404 y el botón desaparece.
+
 ## Documentación
 
 | Documento | Qué contiene |

@@ -226,8 +226,9 @@ Antes de escalar por confianza baja, el pipeline hace una sola segunda pasada co
 | Canal | Cómo funciona en la demo | Qué reutiliza |
 |---|---|---|
 | Subida en pantalla | Arrastrar PDF, imagen o pegar texto. Procesa al instante y abre el detalle | Pipeline completo |
-| Lote del periodo | Botón "Procesar periodo". El cliente envía una factura por petición y muestra progreso. Evita límites de tiempo de funciones serverless | Pipeline completo |
-| Bandeja de correo simulada | Correos ficticios precargados (remitente, asunto, cuerpo, adjunto). Botón "Leer bandeja" | Pipeline, con el cuerpo del correo como contexto extra |
+| Lote del periodo | Botón "Procesar facturas de ejemplo". El cliente envía una factura por petición y muestra progreso. Evita límites de tiempo de funciones serverless | Pipeline completo |
+| Bandeja de correo simulada | Correos ficticios precargados (remitente, asunto, cuerpo, adjunto). Botón "Revisar correo de ejemplo" | Pipeline, con el cuerpo del correo como contexto extra |
+| Correo real (demo, D23) | Botón "Recibir por correo": con el código de acceso, cada visitante recibe su dirección personal, que vence sola. El proveedor de correo entrante llama a `/api/correo/entrante`; se procesa el primer adjunto PDF o imagen, con topes por dirección y de la demo antes de llamar al modelo | Pipeline, con el cuerpo del correo como contexto extra |
 | Telegram | Webhook en `/api/telegram`. Enviar foto o PDF, el bot responde con el veredicto y el enlace al detalle. Cada `update_id` se guarda y se ignora si se repite | Pipeline completo, bot en modo webhook |
 | API de decisión | `POST /api/decide` recibe un archivo o campos ya extraídos y devuelve el veredicto con hallazgos. Documentado en el README como "para tu propio agente" | Pipeline completo |
 
@@ -238,7 +239,7 @@ Todos los canales terminan en la misma función `processInvoice(source, payload)
 Resumen funcional. El diseño de cada pantalla, la navegación y el sistema visual están en [interfaz.md](interfaz.md).
 
 1. **Reglas**: formulario (límites, umbral, presupuesto y periodo, vendors con cuenta registrada, tolerancias, acción por regla, días antes del vencimiento) con vista YAML al lado e historial de versiones. Las claves protegidas se muestran pero no se editan. Interruptores visibles: `payments_enabled` y `dry_run`.
-2. **Facturas**: lista con canal, beneficiario, monto, moneda, veredicto y estado. Filtros por veredicto. Botones "Procesar periodo" y "Leer bandeja".
+2. **Facturas**: lista con canal, beneficiario, monto, moneda, veredicto y estado. Filtros por veredicto. Botones "Subir factura" y, en la demo, "Procesar facturas de ejemplo", "Revisar correo de ejemplo" y "Recibir por correo" (D23).
 3. **Detalle de decisión**: con un control de "¿la explicación fue clara?" (sí o no, con comentario opcional) que alimenta la mejora de las plantillas y, después, las sugerencias. Documento original con las citas resaltadas, campos extraídos con confianza y evidencia, traza regla por regla con valor y umbral, explicación, fecha programada y orden de pago etiquetada "preparada, no ejecutada" si aplica, costo de la llamada al modelo, y decisión anterior si es reevaluación. Nada del documento se renderiza como HTML, markdown, imagen ni enlace.
 4. **Pendientes de aprobación**: cola para la persona de finanzas. Los hallazgos de severidad `warn` se muestran y se reconocen uno a uno en el checklist. Aprobar exige marcar un checklist específico ("verifiqué que la cuenta coincide con la registrada", "revisé la evidencia del monto") antes de habilitar el botón. También permite corregir campos a mano y reevaluar, o rechazar con motivo. La primera resolución gana.
 5. **Métricas**: autonomía (decisiones correctas sin persona, con tasa de escalado como contra-métrica), falsos "pagar" (objetivo cero), exactitud por campo, pagado por moneda, presupuesto y saldo consumidos, reglas que más disparan, costo por factura, notificaciones pendientes y fallidas.
@@ -308,7 +309,8 @@ Dirección de las dependencias: `app` habla con `usecases`; `usecases` orquesta 
 ```
 Navegador ──┐
             ├─► Vercel (CDN + funciones sin estado, Next.js)
-Telegram ───┘        │
+Telegram ───┤        │
+Postmark ───┘        │   (correo entrante de la demo, D23)
                      ├─► Turso (libSQL): vendors, políticas, facturas, decisiones,
                      │       ledger, notifications (outbox), audit_events
                      ├─► Vercel Blob: binarios de facturas subidas
@@ -331,6 +333,7 @@ La URL de entrega está abierta y tiene un modelo pagado detrás de un formulari
 | Archivos acotados | Tamaño máximo por archivo, tipos permitidos (PDF, PNG, JPG) verificados por contenido y no por extensión, una página renderizada como máximo por encima de un límite de páginas |
 | Caché por hash siempre activa | Las 25 facturas del dataset ya están decididas; procesarlas de nuevo no llama al modelo. Es también el plan B si el proveedor cae durante el pitch |
 | Sin datos reales | Todo el contenido es ficticio y se puede borrar en cualquier momento |
+| Correo real solo para jurados | Código de acceso para obtener una dirección, dirección imposible de adivinar que vence sola, topes de correos por dirección y de la demo, interruptor `INBOUND_EMAIL_ENABLED`, y nunca se responde un correo (D23) |
 
 ### Lo que dejamos fuera a propósito
 
