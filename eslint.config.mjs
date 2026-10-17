@@ -18,13 +18,15 @@ const eslintConfig = defineConfig([
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "no-console": ["error", { allow: ["warn", "error"] }],
+      // Nada del documento se interpreta como HTML (principio 9 de docs/interfaz.md, P-110).
+      "react/no-danger": "error",
       eqeqeq: ["error", "always"],
       "prefer-const": "error",
     },
   },
   {
     // Las pruebas construyen entradas inválidas a propósito: aquí sí se permite `as`.
-    files: ["tests/**/*.ts"],
+    files: ["tests/**/*.ts", "tests/**/*.tsx"],
     rules: {
       "@typescript-eslint/consistent-type-assertions": "off",
     },
