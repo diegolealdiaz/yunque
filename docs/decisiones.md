@@ -137,6 +137,14 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 
 **Consecuencia.** Sin la clave del modelo, la salud está en rojo aunque la demo funcione, porque toda factura se escala como ilegible: es exactamente lo que hay que ver.
 
+## D21. Los avisos se entregan al responder, y Telegram es simulado en esta versión
+
+**Contexto.** La decisión encola sus avisos en su misma transacción (outbox). Falta quién los entregue. Un proceso aparte que corra todo el tiempo no existe en funciones sin estado, y el canal de Telegram es el primer recorte del plan.
+
+**Decisión.** Cada ruta o acción que crea decisiones entrega los avisos pendientes de la empresa después de responder (`after`), así quien decide no espera al canal. Cada aviso se reclama con comparación y cambio antes de entregarlo; si el canal falla, se reintenta con espera creciente y al quinto intento queda fallido, con su evento y visible en la salud. El aviso en pantalla se entrega al dejar constancia, porque la decisión ya aparece en Pendientes y en el detalle. El aviso por Telegram se entrega a un canal simulado y el evento lo marca `simulated: true`. Los correos de la bandeja simulada llevan un Message-ID estable y su llave de recepción sale de él; un caso de correo del lote usa esa misma llave, así el correo se recibe una vez por cualquiera de los dos caminos. Un correo sin adjunto se recibe: su documento es el mensaje, no tiene páginas y se escala como ilegible sin llamar al modelo.
+
+**Consecuencia.** Un reintento que vence ocurre en la próxima entrega de esa empresa, no a la hora exacta; en el despliegue, un cron cubre ese hueco. Cuando llegue el canal de Telegram real, solo cambia su función de envío.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

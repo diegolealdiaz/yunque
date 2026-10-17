@@ -129,8 +129,8 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-84 | Orden de pago: solo existe si el veredicto es `pagar`; está marcada "preparada, no ejecutada" y sus datos salen del vendor registrado; con `dry_run` la decisión se registra sin orden y sin comprometer presupuesto ni saldo, y queda como pago simulado en el historial: no cuenta como pago previo en modo real | pipeline |
 | P-85 | Nivel `recomendar`: ninguna factura recibe `pagar`; todas las que lo harían quedan `escalar` con `autonomy_recomendar`. Con los pagos apagados, igual con `payments_disabled` | pipeline |
 | P-86 | Eventos: toda transición escribe un evento con quién, cuándo y qué, con un mismo id de traza por factura; la bitácora reconstruye el estado final de cada factura; cada decisión encola un aviso | base |
-| P-87 | Notificaciones: una fallida se reintenta con espera creciente, no se duplica, y tras N intentos queda marcada como fallida y visible en salud | base |
-| P-88 | Bandeja simulada: cada correo se procesa una vez aunque se lea dos veces; un correo sin adjunto ni cuerpo de factura produce `extraction_unreadable` | pipeline |
+| P-87 | Notificaciones: cada decisión encola un aviso en pantalla (y por Telegram si llegó por ahí); una fallida se reintenta con espera creciente (1, 2, 4, 8 minutos) y no antes; dos entregas a la vez no mandan el mismo aviso dos veces; tras cinco intentos queda fallida, con su evento, y visible en salud | pipeline |
+| P-88 | Bandeja simulada: cada correo se procesa una vez aunque se lea dos veces o llegue también por "Procesar periodo" (la llave sale del Message-ID); un correo sin adjunto ni cuerpo de factura produce `extraction_unreadable` sin llamar al modelo | pipeline |
 
 ### Regresión y métricas
 

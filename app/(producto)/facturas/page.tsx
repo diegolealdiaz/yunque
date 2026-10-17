@@ -2,6 +2,7 @@ import Link from "next/link";
 import { z } from "zod";
 
 import { loadBatchCases } from "@/src/dataset/demo-seed";
+import { loadMailbox } from "@/src/dataset/mailbox";
 import {
   ChannelSchema,
   InvoiceStatusSchema,
@@ -21,16 +22,16 @@ import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
 import { appContext } from "../../_data/context";
 
-import { BatchRunner } from "./batch-runner";
+import { DeliveryRunner } from "./delivery-runner";
 import { UploadPanel } from "./upload-panel";
 
 export const metadata = { title: "Facturas · Yunque" };
 
 /**
  * Facturas (docs/interfaz.md §5.3): el archivo completo, con filtros por veredicto, estado,
- * canal y texto, y los dos caminos de entrada de la pantalla: subir archivos y procesar el
- * periodo. Los filtros viven en la URL, así un enlace (como "Ver las 15" de Pendientes)
- * abre la lista ya filtrada.
+ * canal y texto, y los caminos de entrada de la pantalla: subir archivos, procesar el periodo
+ * y, en la demo, leer la bandeja de correo simulada. Los filtros viven en la URL, así un
+ * enlace (como "Ver las 15" de Pendientes) abre la lista ya filtrada.
  */
 
 const FiltersSchema = z.object({
@@ -95,7 +96,7 @@ export default async function FacturasPage({
     { demo: config.demo.enabled, timeZone: config.displayTimeZone },
     now,
   );
-  const [rows, batch] = await Promise.all([
+  const [rows, batch, mailbox] = await Promise.all([
     loadInvoiceList(
       db,
       organization.id,
@@ -108,6 +109,7 @@ export default async function FacturasPage({
       now,
     ),
     config.demo.enabled ? loadBatchCases() : Promise.resolve([]),
+    config.demo.enabled ? loadMailbox() : Promise.resolve([]),
   ]);
   const filtered = Boolean(filters.veredicto || filters.estado || filters.canal || filters.q);
 
@@ -120,7 +122,27 @@ export default async function FacturasPage({
             {rows.length === LIST_LIMIT ? `${String(LIST_LIMIT)}+` : rows.length} facturas
           </span>
         }
-        actions={batch.length > 0 ? <BatchRunner cases={batch.map((c) => c.id)} /> : null}
+        actions={
+          config.demo.enabled ? (
+            <>
+              <DeliveryRunner
+                endpoint="/api/bandeja"
+                field="mensaje"
+                ids={mailbox.map((m) => m.id)}
+                label="Leer bandeja"
+                noun="correos"
+              />
+              <DeliveryRunner
+                endpoint="/api/lote"
+                field="caso"
+                ids={batch.map((c) => c.id)}
+                label="Procesar periodo"
+                noun="facturas"
+                primary
+              />
+            </>
+          ) : null
+        }
       />
 
       <details className="rounded-[var(--radius-card)] border border-line bg-surface p-4">

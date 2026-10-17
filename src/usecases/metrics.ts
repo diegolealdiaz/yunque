@@ -1,3 +1,4 @@
+import { datasetReceiptKey } from "@/src/dataset/demo-seed";
 import type { DatasetCase } from "@/src/dataset/schema";
 import type { Database } from "@/src/db/client";
 import {
@@ -11,7 +12,6 @@ import {
 import {
   money,
   periodKey,
-  receiptKeyFor,
   toUsd,
   type Currency,
   type Decision,
@@ -128,7 +128,7 @@ export async function loadMetrics(
   ]);
 
   // Set de regresión: cada caso del lote por su llave de recepción.
-  const caseByKey = new Map(input.cases.map((c) => [receiptKeyFor("batch", c.id), c]));
+  const caseByKey = new Map(input.cases.map((c) => [datasetReceiptKey(c), c]));
   const measured: MeasuredInvoice[] = [];
   for (const invoice of [...invoices].reverse()) {
     const c = caseByKey.get(invoice.receipt_key);

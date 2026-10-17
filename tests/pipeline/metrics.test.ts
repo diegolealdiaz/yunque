@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { datasetReceiptKey } from "@/src/dataset/demo-seed";
 import * as repos from "@/src/db/repositories";
 import { policyEditToYaml, type Policy } from "@/src/domain";
 import { runEvaluation, type EvaluationResult } from "@/src/eval";
@@ -42,7 +43,7 @@ beforeAll(async () => {
   for (const f of await datasetCases()) {
     p.client.next = f.modelOutput;
     await processInvoice(p.deps, {
-      ...p.input(f.bytes, `batch:${f.case.id}`, f.fileName),
+      ...p.input(f.bytes, datasetReceiptKey(f.case), f.fileName),
       channel: "batch",
     });
   }

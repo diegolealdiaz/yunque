@@ -5,3 +5,4 @@ export * from "./generate";
 export * from "./ideal";
 export * from "./render";
 export * from "./schema";
+export * from "./mailbox";

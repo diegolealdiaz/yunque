@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { Channel } from "@/src/domain";
+import { receiptKeyFor, type Channel, type ReceiptKey } from "@/src/domain";
 
 import {
   GroundTruthSchema,
@@ -50,6 +50,25 @@ export function channelOfFormat(format: BatchCase["format"]): Channel {
   if (format === "email") return "inbox";
   if (format === "chat") return "telegram";
   return "batch";
+}
+
+/**
+ * Llave de recepción de un caso del lote. Un correo llega por la bandeja con su Message-ID,
+ * así que su llave es la de la bandeja: procesar el periodo y leer la bandeja reciben ese
+ * correo una sola vez. Lo demás llega por el lote con el id del caso.
+ */
+export function datasetReceiptKey(c: Pick<BatchCase, "id" | "format">): ReceiptKey {
+  return c.format === "email" ? mailboxReceiptKey(c.id) : receiptKeyFor("batch", c.id);
+}
+
+/** Message-ID simulado de un mensaje de la bandeja: estable por id. */
+export function mailboxMessageId(id: string): string {
+  return `<${id}@bandeja.yunque.example>`;
+}
+
+/** Llave de recepción de un correo de la bandeja: el canal y su Message-ID. */
+export function mailboxReceiptKey(id: string): ReceiptKey {
+  return receiptKeyFor("inbox", mailboxMessageId(id));
 }
 
 export const GENERATED_DIR = path.join(process.cwd(), "data", "dataset", "generado");

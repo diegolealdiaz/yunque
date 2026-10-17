@@ -1,14 +1,16 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { z } from "zod";
 
-import { GENERATED_DIR, channelOfFormat, loadBatchCases } from "@/src/dataset/demo-seed";
-import { receiptKeyFor } from "@/src/domain";
-import { assertWithinDailyLimits, processInvoice, startOfBusinessDay } from "@/src/usecases";
+import {
+  GENERATED_DIR,
+  channelOfFormat,
+  datasetReceiptKey,
+  loadBatchCases,
+} from "@/src/dataset/demo-seed";
 
+import { deliverDatasetFile, unknownCase } from "../../_data/dataset-delivery";
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
-import { processingContext } from "../../_data/process";
 
 /**
  * "Procesar periodo" (docs/arquitectura.md §5): el navegador pide las facturas del dataset
@@ -28,43 +30,14 @@ export async function POST(request: Request): Promise<Response> {
     const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
     const cases = await loadBatchCases();
     const batchCase = parsed.success ? cases.find((c) => c.id === parsed.data.caso) : undefined;
-    if (!batchCase) {
-      return Response.json(
-        {
-          error: {
-            code: "unknown_case",
-            message: "Ese caso no está en el lote del periodo",
-            action: "Recarga la página",
-          },
-        },
-        { status: 404 },
-      );
-    }
-    const { config, db, organization, deps } = await processingContext();
-    await assertWithinDailyLimits(
-      db,
-      organization.id,
-      {
-        perOrganization: config.demo.maxInvoicesPerVisitorPerDay,
-        global: config.demo.maxInvoicesPerDay,
-      },
-      startOfBusinessDay(new Date(), config.displayTimeZone).toISOString(),
-    );
-    const bytes = new Uint8Array(await readFile(path.join(GENERATED_DIR, batchCase.file)));
-    const result = await processInvoice(deps, {
-      organizationId: organization.id,
+    if (!batchCase) return unknownCase("Ese caso no está en el lote del periodo");
+    return await deliverDatasetFile({
+      id: batchCase.id,
+      file: path.join(GENERATED_DIR, batchCase.file),
       channel: channelOfFormat(batchCase.format),
-      // La misma llave por caso: volver a procesar el periodo no duplica facturas.
-      receiptKey: receiptKeyFor("batch", batchCase.id),
-      bytes,
-      originalName: batchCase.file,
-    });
-    return Response.json({
-      kind: result.kind,
-      caso: batchCase.id,
-      invoiceId: result.invoice.id,
-      reference: result.invoice.reference,
-      verdict: result.decision?.verdict ?? null,
+      // La misma llave por caso: volver a procesar el periodo no duplica facturas, y un
+      // correo ya leído de la bandeja no se recibe de nuevo.
+      receiptKey: datasetReceiptKey(batchCase),
     });
   } catch (error) {
     return errorResponse(error);
