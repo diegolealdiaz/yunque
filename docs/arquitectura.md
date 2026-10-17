@@ -73,8 +73,9 @@ PolicyVersion  versión inmutable de las reglas (JSON), append-only, con hash de
                quién la firmó y cuándo. Es el mandato que el agente ejecuta: cada decisión lo
                referencia por versión y hash. Claves protegidas que el formulario no edita: tope
                absoluto del sistema, cuenta origen, aprobadores
-Invoice        factura: id ULID, organización, canal de origen, hash SHA-256 del archivo, llave
-               semántica (vendor + número + monto + moneda), estado de archivo (pendiente | subida),
+Invoice        factura: id ULID, organización, canal de origen, llave de recepción (identidad de la
+               entrega, única), hash SHA-256 del archivo, llave semántica (vendor + número + monto
+               + moneda), estado de archivo (pendiente | subida),
                texto normalizado, campos extraídos con cita literal y confianza por campo
 Decision       inmutable: veredicto pagar | frenar | escalar, hallazgos (regla, severidad, valor,
                umbral, cita), explicación, fecha programada de pago, orden de pago (borrador, no
@@ -116,6 +117,8 @@ AuditEvent     bitácora append-only: cada transición con actor (agente | human
 | `totals_mismatch` Subtotal más impuestos no cuadra con el total | verificador | escalar |
 | `suspicious_instructions` Instrucciones sospechosas o token canario en el documento | detector | frenar |
 | `extraction_unreadable` No es factura o no se pudo leer | Lector | escalar |
+
+Además del catálogo, el sistema emite hallazgos propios que ninguna política relaja: pagos apagados, autonomía `recomendar`, artefacto ausente, regla que lanzó (`rule_error`, frena) y etapa del caso de uso que falló (`processing_error`, escala).
 
 Cada regla declara `on_fail: frenar | escalar`. La empresa ajusta eso desde el formulario. Tres cosas son siempre de personas y ninguna regla las relaja: dar de alta un beneficiario, aceptar un cambio de cuenta bancaria, y liberar un pago escalado.
 

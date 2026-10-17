@@ -38,6 +38,8 @@ export type RuleCode = z.infer<typeof RuleCodeSchema>;
  * - `autonomy_recomendar`: la empresa pidió que toda decisión pase por una persona.
  * - `policy_missing`, `vendors_missing`, `ledger_missing`: falta un artefacto (invariante 11).
  * - `rule_error`: una regla lanzó; el veredicto por defecto es frenar (invariante 11).
+ * - `processing_error`: una etapa del caso de uso falló antes de decidir (normalización,
+ *   lectura, resolución); la factura escala con el error como motivo, nunca se paga.
  */
 export const SYSTEM_FINDING_CODES = [
   "payments_disabled",
@@ -46,6 +48,7 @@ export const SYSTEM_FINDING_CODES = [
   "vendors_missing",
   "ledger_missing",
   "rule_error",
+  "processing_error",
 ] as const;
 export const SystemFindingCodeSchema = z.enum(SYSTEM_FINDING_CODES);
 

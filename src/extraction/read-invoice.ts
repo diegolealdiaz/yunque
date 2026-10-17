@@ -10,7 +10,13 @@ import type { VerificationReport } from "@/src/engine";
 import { detectAll } from "./detector";
 import type { IngestedDocument } from "./ingest";
 import type { PromptInput } from "./prompt";
-import { readDocument, type ReadResult, type ReaderDeps } from "./reader";
+import {
+  MIN_ATTEMPT_MS,
+  readDocument,
+  remainingMs,
+  type ReadResult,
+  type ReaderDeps,
+} from "./reader";
 import type { FileStorage } from "./storage";
 import { needsFallback, verifyExtraction, type Verification } from "./verify";
 
@@ -18,7 +24,8 @@ import { needsFallback, verifyExtraction, type Verification } from "./verify";
  * Lectura completa de una factura: Lector con el modelo principal, Verificador, y una sola
  * segunda pasada con el modelo de respaldo si la primera fue ilegible o la verificación
  * encontró citas o valores que no cuadran. Si también falla, se sigue con los hallazgos.
- * El Detector suma sus señales al informe. Nunca hay bucle.
+ * El Detector suma sus señales al informe. Nunca hay bucle, y todo cabe en un plazo
+ * global: si no queda tiempo para la segunda pasada, se decide con la primera.
  *
  * La segunda pasada solo puede endurecer:
  * - "No es una factura" no se repasa: ningún otro modelo la convierte en pagable.
@@ -31,7 +38,13 @@ export type ReadInvoiceOptions = {
   readonly primaryModel: string;
   readonly fallbackModel: string | null;
   readonly maxOutputTokens: number;
+  /** Plazo de cada llamada al modelo. */
   readonly timeoutMs: number;
+  /**
+   * Plazo de toda la lectura, con reintentos y segunda pasada. Debe quedar por debajo del
+   * `maxDuration` de la ruta: si se agota, la lectura termina como ilegible y escala.
+   */
+  readonly deadlineMs?: number;
 };
 
 export type ReadInvoiceResult = {
@@ -87,6 +100,7 @@ export async function readInvoice(
   doc: IngestedDocument,
   options: ReadInvoiceOptions,
 ): Promise<ReadInvoiceResult> {
+  const deadlineAt = options.deadlineMs === undefined ? undefined : deps.now() + options.deadlineMs;
   const input = { ...(await promptInputFor(doc, storage)), document_hash: doc.document_hash };
   const text = doc.has_text_layer ? doc.text : null;
 
@@ -95,6 +109,7 @@ export async function readInvoice(
     maxOutputTokens: options.maxOutputTokens,
     timeoutMs: options.timeoutMs,
     fallbackUsed: false,
+    deadlineAt,
   });
   let chosen = first;
   let verification = verifyExtraction(first.record.extraction, text);
@@ -104,12 +119,14 @@ export async function readInvoice(
   const extraAmbiguities: Ambiguity[] = [];
   const wantsSecond =
     firstKind === "unreadable" || (firstKind === "invoice" && needsFallback(verification));
-  if (options.fallbackModel !== null && wantsSecond) {
+  const timeLeft = remainingMs(deadlineAt, deps.now()) >= MIN_ATTEMPT_MS;
+  if (options.fallbackModel !== null && wantsSecond && timeLeft) {
     const second = await readDocument(deps, input, {
       model: options.fallbackModel,
       maxOutputTokens: options.maxOutputTokens,
       timeoutMs: options.timeoutMs,
       fallbackUsed: true,
+      deadlineAt,
     });
     passes.push(second);
     const secondVerification = verifyExtraction(second.record.extraction, text);

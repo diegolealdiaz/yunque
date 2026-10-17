@@ -126,6 +126,7 @@ export const invoices = sqliteTable(
     organizationId: id("organization_id").references(() => organizations.id),
     reference: text("reference").notNull(),
     channel: text("channel").notNull(),
+    receiptKey: text("receipt_key").notNull(),
     sourceKind: text("source_kind").notNull(),
     documentHash: text("document_hash").notNull(),
     fileKey: text("file_key").notNull(),
@@ -143,14 +144,16 @@ export const invoices = sqliteTable(
     updatedAt: timestamp("updated_at"),
   },
   (t) => [
-    uniqueIndex("invoices_org_document_hash_idx").on(t.organizationId, t.documentHash),
+    // La entrega es la identidad idempotente; el documento puede repetirse (duplicado).
+    uniqueIndex("invoices_org_receipt_key_idx").on(t.organizationId, t.receiptKey),
+    index("invoices_org_document_hash_idx").on(t.organizationId, t.documentHash),
     uniqueIndex("invoices_org_reference_idx").on(t.organizationId, t.reference),
     index("invoices_org_semantic_key_idx").on(t.organizationId, t.semanticKey),
     index("invoices_org_status_idx").on(t.organizationId, t.status),
   ],
 );
 
-/** Extracciones persistidas; sirven también de caché exacta por documento y versión de prompt. */
+/** Extracción con la que se decidió cada factura, con su procedencia (modelo, prompt, esquema). */
 export const extractions = sqliteTable(
   "extractions",
   {
@@ -165,6 +168,26 @@ export const extractions = sqliteTable(
     index("extractions_org_invoice_idx").on(t.organizationId, t.invoiceId),
     index("extractions_org_document_idx").on(t.organizationId, t.documentHash),
   ],
+);
+
+/**
+ * Caché exacta del Lector, direccionada por contenido: la llave es el hash de (documento,
+ * versión de prompt, versión de esquema, modelo, hash del prompt construido). No guarda
+ * nada que no se derive del documento mismo.
+ *
+ * Excepción documentada a "toda tabla lleva organization_id": la columna `scope` vale el id
+ * de la organización en producto, y un ámbito compartido en la demo pública, para que las
+ * copias de cada visitante reutilicen las lecturas del dataset sin volver a pagar el modelo.
+ */
+export const extractionCache = sqliteTable(
+  "extraction_cache",
+  {
+    scope: text("scope").notNull(),
+    keyHash: text("key_hash").notNull(),
+    record: json<ExtractionRecord>("record"),
+    createdAt: timestamp("created_at"),
+  },
+  (t) => [primaryKey({ columns: [t.scope, t.keyHash] })],
 );
 
 /** Append-only. */

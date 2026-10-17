@@ -69,6 +69,24 @@
 
 **Consecuencia.** Dos canales distintos son dos lecturas; la señal del canario se repite en cada reproceso. Cuesta una llamada más cuando el mismo documento llega por dos canales, que es justo el caso que hay que mirar.
 
+## D13. Idempotencia por entrega, no por archivo
+
+**Contexto.** El mismo PDF reenviado por otro correo es el duplicado clásico que hay que frenar y mostrar. Si el hash del archivo fuera único en la base, la segunda entrega no podría registrarse como factura y el duplicado nunca tendría su decisión ni su explicación. A la vez, un reintento de red o un doble clic no deben crear dos facturas.
+
+**Opciones.** (a) Hash del archivo único: la segunda entrega se descarta sin decisión. (b) Sin unicidad: cada reintento crea otra factura. (c) Una llave de recepción por entrega (id del correo, update de Telegram, caso del lote, llave de idempotencia de quien sube), única por organización, y el hash del archivo como índice no único.
+
+**Decisión.** (c). La misma entrega dos veces devuelve la factura existente sin procesarla otra vez. El mismo archivo por otra entrega es otra factura que el motor frena con `duplicate_invoice`; la caché del Lector evita pagar el modelo dos veces por el mismo documento.
+
+**Consecuencia.** El duplicado exacto aparece en pendientes como frenado, con su traza. Cada canal debe entregar una llave estable; la subida en pantalla genera una por archivo elegido.
+
+## D14. Caché del Lector compartible en la demo
+
+**Contexto.** En la demo pública cada visitante recibe su propia copia de la empresa. Si la caché del Lector fuera por organización, cada copia volvería a pagar el modelo por las mismas facturas del dataset, y sin proveedor la demo no tendría plan B.
+
+**Decisión.** La caché vive en su propia tabla, direccionada por contenido: la llave es el hash del documento, la versión de prompt y de esquema, el modelo y el hash del prompt construido. Una columna de ámbito vale el id de la organización en producto y un ámbito compartido en la demo. Es la única tabla sin `organization_id`, y no guarda nada que no se derive del documento mismo.
+
+**Consecuencia.** Procesar el dataset en una copia nueva no llama al modelo. En producto, una empresa nunca lee lecturas de otra.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

@@ -82,7 +82,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-43 | Reserva de presupuesto: N reservas concurrentes contra un límite L comprometen como máximo L; las que no caben reciben `budget_exceeded` | base + propiedad |
 | P-44 | Dos aprobaciones simultáneas de la misma decisión: exactamente una gana, la otra recibe conflicto, el ledger se descuenta una vez | base |
 | P-45 | Aprobación con monto, hash, cuenta o versión distintos a los firmados: rechazada en servidor aunque el cliente la envíe bien formada | base, `@seguridad` |
-| P-46 | Idempotencia: el mismo archivo dos veces crea una factura; la misma llave semántica con otro archivo crea factura y hallazgo `duplicate_invoice` | base |
+| P-46 | Idempotencia por entrega: la misma llave de recepción dos veces (incluso a la vez) crea una sola factura y una sola lectura; el mismo archivo por otra entrega crea otra factura que se frena con `duplicate_invoice` sin volver a llamar al modelo; la misma llave semántica con otro archivo también produce `duplicate_invoice` | base + pipeline |
 | P-47 | Transiciones: solo las permitidas (`recibida → procesando → decidida | esperando_aprobacion → aprobada | rechazada`, con `fallida` y reintento); una transición desde un estado viejo falla por comparación y cambio | base |
 
 ### Dataset e ingesta
@@ -110,7 +110,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-66 | Verificador: una cita que no está en el texto produce `evidence_missing`; una cita con espacios o saltos distintos pero mismo contenido normalizado pasa | unitario |
 | P-67 | Verificador: valor normalizado distinto del que se deriva de la cita produce hallazgo; monto en letras distinto del numérico produce `field_ambiguous` | unitario |
 | P-68 | Totales: subtotal más impuestos distinto del total fuera de tolerancia produce `totals_mismatch` | unitario |
-| P-69 | Respaldo: se invoca una sola vez y solo tras lectura ilegible o fallo del verificador en citas, valores o totales; "no es factura" no se repasa; el respaldo solo endurece (si dice que no es factura gana esa lectura; si discrepa en un campo crítico queda una ambigüedad); si también falla, se continúa con hallazgos; se registra como llamada separada con su costo | unitario |
+| P-69 | Respaldo: se invoca una sola vez y solo tras lectura ilegible o fallo del verificador en citas, valores o totales; "no es factura" no se repasa; el respaldo solo endurece (si dice que no es factura gana esa lectura; si discrepa en un campo crítico queda una ambigüedad); si también falla, se continúa con hallazgos; se registra como llamada separada con su costo; un plazo global por factura acota cada intento y, si no queda tiempo, no hay segunda pasada | unitario |
 | P-70 | Resolutor: normalización de razón social (S.A.S., SAS, S.A.S, mayúsculas, tildes, puntuación) resuelve al mismo vendor | unitario + propiedad |
 | P-71 | Resolutor: nombre parecido pero distinto resuelve desconocido con el vendor más cercano y su similitud; nombre nuevo resuelve desconocido sin cercano; ambos producen `payee_not_allowed` con el detalle | unitario |
 | P-72 | Resolutor: cuenta distinta a la registrada produce `bank_account_mismatch`; titular distinto produce `account_holder_mismatch`; coincidencia por identificador fiscal gana sobre nombre | unitario |
@@ -122,13 +122,13 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 
 | Id | Verifica | Tipo |
 |---|---|---|
-| P-80 | Con extractor simulado, cada factura del manifiesto termina en la decisión y regla esperadas | pipeline |
-| P-81 | La decisión, sus hallazgos, la reserva y el evento se escriben en una transacción: si falla la reserva, no queda decisión | base |
-| P-82 | Error en cualquier etapa (ingesta, modelo, verificador, resolutor, regla): la factura queda `escalar` con hallazgo del error y evento; nunca `pagar`, nunca estado intermedio | pipeline |
+| P-80 | Con modelo simulado detrás del Lector real, cada factura del manifiesto procesada en orden sobre una base sembrada con el historial termina en la decisión y regla esperadas, con versión y hash de política; cero falsos `pagar`; presupuesto y saldos se mueven exactamente por lo pagado | pipeline |
+| P-81 | La decisión, sus hallazgos, la reserva y el evento se escriben en una transacción: si falla la reserva, no queda decisión de pago; dos facturas simultáneas que no caben juntas en el presupuesto terminan en un `pagar` y un `frenar` por `budget_exceeded` | base + pipeline |
+| P-82 | Error en cualquier etapa (normalización, lectura, resolución, evaluación, registro): la factura queda `escalar` con el hallazgo `processing_error` y su evento; nunca `pagar`, nunca estado intermedio; si ni eso se puede escribir, queda `fallida` con su evento. Un error del modelo deja la lectura ilegible (`extraction_unreadable`); una regla que lanza frena con `rule_error`, que es más estricto. Una entrega vacía o de tipo no soportado se rechaza sin registrar factura | pipeline |
 | P-83 | Fecha programada: factura con vencimiento dentro de la ventana se programa; vencida fuera del atraso máximo escala; cálculo sobre fecha de calendario en la zona configurada | unitario |
-| P-84 | Orden de pago: solo existe si el veredicto es `pagar`; está marcada "preparada, no ejecutada"; con `dry_run` no se produce | pipeline |
-| P-85 | Nivel `recomendar`: ninguna factura recibe `pagar`; todas las que lo harían quedan `escalar` con `autonomy_recommend` | pipeline |
-| P-86 | Eventos: toda transición escribe un evento con quién, cuándo y qué; la bitácora reconstruye el estado final de cada factura | base |
+| P-84 | Orden de pago: solo existe si el veredicto es `pagar`; está marcada "preparada, no ejecutada" y sus datos salen del vendor registrado; con `dry_run` la decisión se registra sin orden y sin comprometer presupuesto ni saldo | pipeline |
+| P-85 | Nivel `recomendar`: ninguna factura recibe `pagar`; todas las que lo harían quedan `escalar` con `autonomy_recomendar`. Con los pagos apagados, igual con `payments_disabled` | pipeline |
+| P-86 | Eventos: toda transición escribe un evento con quién, cuándo y qué, con un mismo id de traza por factura; la bitácora reconstruye el estado final de cada factura; cada decisión encola un aviso | base |
 | P-87 | Notificaciones: una fallida se reintenta con espera creciente, no se duplica, y tras N intentos queda marcada como fallida y visible en salud | base |
 | P-88 | Bandeja simulada: cada correo se procesa una vez aunque se lea dos veces; un correo sin adjunto ni cuerpo de factura produce `extraction_unreadable` | pipeline |
 

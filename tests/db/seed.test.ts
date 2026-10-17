@@ -245,6 +245,7 @@ describe("facturas y decisiones", () => {
       organization_id: orgId,
       reference: `YQ-2026-10-${hash.slice(0, 4)}`,
       channel: "upload",
+      receipt_key: `upload:${hash.slice(0, 8)}`,
       source_kind: "pdf",
       document_hash: hash,
       file_key: `files/${hash}`,
@@ -266,8 +267,16 @@ describe("facturas y decisiones", () => {
   it("transiciones por comparación y cambio (P-47): solo las permitidas y solo desde el estado actual", async () => {
     const inv = invoice("1111".repeat(16));
     await insertInvoice(t.db, inv);
-    await expect(insertInvoice(t.db, { ...inv, id: t.newId() })).rejects.toMatchObject({
-      code: "conflict",
+    // La misma entrega dos veces es una sola factura (P-46).
+    await expect(
+      insertInvoice(t.db, { ...inv, id: t.newId(), reference: "YQ-2026-10-9999" }),
+    ).rejects.toMatchObject({ code: "conflict" });
+    // El mismo archivo por otra entrega sí es otra factura: el motor la frena como duplicada.
+    await insertInvoice(t.db, {
+      ...inv,
+      id: t.newId(),
+      reference: "YQ-2026-10-9998",
+      receipt_key: "upload:otra-entrega",
     });
     await expect(
       transitionInvoice(t.db, orgId, inv.id, "recibida", "aprobada", t.now().toISOString()),

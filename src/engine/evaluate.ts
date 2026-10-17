@@ -77,6 +77,18 @@ function verdictFrom(findings: readonly Finding[]): Verdict {
   return "pagar";
 }
 
+/**
+ * El hallazgo que explica el veredicto: el primero, en el orden del registro, cuya acción
+ * coincide con el veredicto. Null cuando se paga. Es la regla que muestra el chip de la
+ * pantalla y la que el dataset declara como esperada.
+ */
+export function decidingFinding(
+  evaluation: Pick<Evaluation, "verdict" | "findings">,
+): Finding | null {
+  if (evaluation.verdict === "pagar") return null;
+  return evaluation.findings.find((f) => f.action === evaluation.verdict) ?? null;
+}
+
 /** Evalúa la factura contra la política y devuelve veredicto, hallazgos, registro y fecha. */
 export function evaluate(ctx: EvaluationContext): Evaluation {
   const findings: Finding[] = [];

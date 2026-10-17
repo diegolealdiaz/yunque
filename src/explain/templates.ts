@@ -138,6 +138,11 @@ export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
     explain: (f) => `Una regla no pudo evaluarse (${s(f.observed)}); se exige ${s(f.threshold)}.`,
     check: null,
   },
+  processing_error: {
+    explain: (f) =>
+      `El procesamiento se interrumpió en ${s(f.observed)}; se necesita ${s(f.threshold)}.`,
+    check: () => "Revisé el documento y los campos a mano; el error de proceso no cambia el pago",
+  },
 };
 
 /** Frase de explicación para un hallazgo. */

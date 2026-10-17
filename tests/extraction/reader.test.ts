@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { loadDatasetSources } from "@/src/dataset";
 import {
   MAX_ATTEMPTS,
+  MIN_ATTEMPT_MS,
   ModelError,
   PROMPT_VERSION,
   cacheKeyFor,
@@ -122,6 +123,29 @@ describe("Lector (P-60 a P-64)", () => {
     expect((await readDocument(transient, input(), options)).record.extraction.kind).toBe(
       "invoice",
     );
+  });
+
+  it("el plazo global acota cada intento y, agotado, no se llama al modelo", async () => {
+    const roomy = { ...readerDeps(fakeClient([await validOutput()])), now: () => 0 };
+    await readDocument(roomy, input(), { ...options, timeoutMs: 30_000, deadlineAt: 10_000 });
+    const client = fakeClient([await validOutput()]);
+    const tight = { ...readerDeps(client), now: () => 0 };
+    const late = await readDocument(tight, input(), {
+      ...options,
+      deadlineAt: MIN_ATTEMPT_MS - 1,
+    });
+    expect(client.requests).toHaveLength(0);
+    expect(late.record.extraction.kind).toBe("unreadable");
+    if (late.record.extraction.kind === "unreadable") {
+      expect(late.record.extraction.reason).toContain("plazo");
+    }
+    const timed = fakeClient([await validOutput()]);
+    await readDocument({ ...readerDeps(timed), now: () => 0 }, input(), {
+      ...options,
+      timeoutMs: 30_000,
+      deadlineAt: 10_000,
+    });
+    expect(timed.requests[0]?.timeoutMs).toBe(10_000);
   });
 
   it("un fallo al escribir el registro o la caché no tumba la lectura", async () => {

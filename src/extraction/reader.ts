@@ -23,7 +23,8 @@ import {
 /**
  * El Lector: una llamada al modelo con salida estructurada, validada por zod en nuestro
  * código, con exactamente un reintento. El reintento le dice al modelo qué falló; un error
- * terminal del proveedor (clave inválida, petición rechazada) no se reintenta.
+ * terminal del proveedor (clave inválida, petición rechazada) no se reintenta, y ningún
+ * intento pasa del plazo global de la factura.
  *
  * Caché exacta por hash de documento, versión de prompt, versión de esquema, modelo y hash
  * del prompt construido: el mismo PDF adjunto a dos correos distintos son dos entradas,
@@ -73,8 +74,14 @@ export type ReaderDeps = {
 export type ReadOptions = {
   readonly model: string;
   readonly maxOutputTokens: number;
+  /** Plazo de cada intento. */
   readonly timeoutMs: number;
   readonly fallbackUsed: boolean;
+  /**
+   * Instante (en el reloj de `deps.now`) en que vence el plazo global de la factura. Ningún
+   * intento empieza ni se extiende más allá; sin él, solo cuenta el plazo por intento.
+   */
+  readonly deadlineAt?: number;
 };
 
 export type ReadResult = {
@@ -86,6 +93,14 @@ export type ReadResult = {
 };
 
 export const MAX_ATTEMPTS = 2;
+
+/** Si al plazo global le queda menos que esto, un intento no alcanza a responder: no se empieza. */
+export const MIN_ATTEMPT_MS = 2_000;
+
+/** Lo que resta del plazo global, o infinito si no hay plazo global. */
+export function remainingMs(deadlineAt: number | undefined, now: number): number {
+  return deadlineAt === undefined ? Number.POSITIVE_INFINITY : deadlineAt - now;
+}
 
 let processCanary: string | undefined;
 function defaultCanary(): string {
@@ -166,6 +181,12 @@ export async function readDocument(
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const started = deps.now();
+    const remaining = remainingMs(options.deadlineAt, started);
+    if (remaining < MIN_ATTEMPT_MS) {
+      lastProblem = "se agotó el plazo de lectura de la factura";
+      break;
+    }
+    const timeoutMs = Math.min(options.timeoutMs, remaining);
     let raw: string | null = null;
     let status: LlmCallLog["status"] = "ok";
     let error: string | null = null;
@@ -179,7 +200,7 @@ export async function readDocument(
         system,
         parts: attempt > 1 && lastWasInvalidOutput ? [...parts, retryHint(lastProblem)] : parts,
         maxOutputTokens: options.maxOutputTokens,
-        timeoutMs: options.timeoutMs,
+        timeoutMs,
       });
       raw = response.text;
       inputTokens = response.inputTokens;

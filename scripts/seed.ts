@@ -1,13 +1,15 @@
 import "./env";
 
 import { getConfig } from "@/src/config";
+import { loadDatasetSources } from "@/src/dataset";
 import { closeDatabase, createDatabase, runMigrations } from "@/src/db/client";
-import { loadSeedData, seedOrganization } from "@/src/db/seed";
+import { loadSeedData, seedDatasetOrganization } from "@/src/db/seed";
 import { createUlidGenerator } from "@/src/domain";
 
 /**
- * Siembra la empresa ficticia en la base local. Es idempotente: si la empresa base
- * (sin visitante) ya existe, no hace nada.
+ * Siembra la empresa ficticia en la base local: empresa, saldos, vendors, política v1, dos
+ * meses de historial y lo ya comprometido del mes del dataset. Es idempotente: si la
+ * empresa base (sin visitante) ya existe, no hace nada.
  */
 async function main(): Promise<void> {
   const config = getConfig();
@@ -19,16 +21,19 @@ async function main(): Promise<void> {
       console.warn(`La base ya tiene la empresa ${existing.name}; no se siembra de nuevo`);
       return;
     }
-    const data = await loadSeedData();
-    const result = await seedOrganization(db, {
+    const [data, dataset] = await Promise.all([loadSeedData(), loadDatasetSources()]);
+    const result = await seedDatasetOrganization(db, {
       data,
       newId: createUlidGenerator(),
       now: () => new Date(),
       systemHardCapUsdCents: config.systemHardCapUsdCents,
       visitorId: null,
+      history: dataset.history,
+      committedUsdCents: dataset.manifest.october_committed_usd_cents,
+      today: dataset.manifest.today,
     });
     console.warn(
-      `Sembrada ${result.organization.name} (${result.organization.id}) con ${String(result.vendors.length)} vendors`,
+      `Sembrada ${result.organization.name} (${result.organization.id}) con ${String(result.vendors.length)} vendors y ${String(dataset.history.length)} facturas de historial`,
     );
   } finally {
     closeDatabase(db);

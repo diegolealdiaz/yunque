@@ -13,7 +13,7 @@ import {
   type LedgerPeriod,
   type Verdict,
 } from "@/src/domain";
-import { evaluate, type Evaluation, type PriorInvoice } from "@/src/engine";
+import { decidingFinding, evaluate, type Evaluation, type PriorInvoice } from "@/src/engine";
 import { detectAll, verifyExtraction } from "@/src/extraction";
 import { resolvePayee } from "@/src/resolve";
 
@@ -37,10 +37,9 @@ export type SimulatedCase = {
   readonly evaluation: Evaluation;
 };
 
-/** El hallazgo que explica el veredicto: el primero cuya acción coincide con él. */
+/** Código de la regla que explica el veredicto, o null cuando se paga. */
 export function decidingRule(evaluation: Evaluation): string | null {
-  if (evaluation.verdict === "pagar") return null;
-  return evaluation.findings.find((f) => f.action === evaluation.verdict)?.code ?? null;
+  return decidingFinding(evaluation)?.code ?? null;
 }
 
 export async function simulateDataset(): Promise<{

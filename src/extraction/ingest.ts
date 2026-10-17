@@ -7,9 +7,15 @@ import { MIME_BY_TYPE, parseChannelPayload, sniffType, type ChannelPayload } fro
 import type { FileStorage } from "./storage";
 
 /**
- * Ingesta y normalización. De un archivo subido (o un correo o chat con adjunto) produce:
- * hash del documento, tipo verificado por contenido, texto por página si hay capa, PNG por
- * página siempre (la pantalla nunca abre el PDF original), y los metadatos del canal.
+ * Ingesta y normalización, en dos fases que el caso de uso separa:
+ *
+ * 1. `receiveDocument`: valida tamaño y tipo por contenido, abre el correo o chat y toma el
+ *    adjunto, y calcula el hash. Un error aquí es una entrega rechazada: no hay factura.
+ * 2. `normalizeDocument`: texto por página si hay capa y PNG por página siempre (la pantalla
+ *    nunca abre el PDF original). Un error aquí ocurre con la factura ya registrada, que
+ *    escala con el error como motivo.
+ *
+ * `ingestDocument` encadena las dos y guarda el original solo si el documento se pudo abrir.
  * No toca la base: el caso de uso persiste lo que sale de aquí.
  */
 
@@ -35,21 +41,28 @@ export type IngestedPage = {
   readonly height: number;
 };
 
-export type IngestedDocument = {
+/** Documento aceptado: tipo verificado, hash calculado, todavía sin renderizar. */
+export type ReceivedDocument = {
   readonly source_kind: SourceKind;
   /** Tipo real del documento (el adjunto, en correo y chat). */
   readonly mime_type: string;
   /** Hash de los bytes del documento: en correo y chat, los del adjunto. */
   readonly document_hash: Sha256;
   readonly size_bytes: number;
+  /** Llave del original en el almacenamiento: por hash, nunca con el nombre del cliente. */
   readonly file_key: string;
+  /** Bytes del documento: el archivo subido, o el adjunto en correo y chat. */
+  readonly bytes: Uint8Array;
+  readonly channel_meta: Readonly<Record<string, string>>;
+  /** Cuerpo del correo o del chat, para el Detector y el Lector. */
+  readonly channel_text: string | null;
+};
+
+export type IngestedDocument = Omit<ReceivedDocument, "bytes"> & {
   readonly pages: readonly IngestedPage[];
   /** Texto de todas las páginas; vacío si el documento no tiene capa de texto. */
   readonly text: string;
   readonly has_text_layer: boolean;
-  readonly channel_meta: Readonly<Record<string, string>>;
-  /** Cuerpo del correo o del chat, para el Detector y el Lector. */
-  readonly channel_text: string | null;
 };
 
 const RENDER_DPI = 110;
@@ -220,14 +233,10 @@ function channelMeta(payload: ChannelPayload): { meta: Record<string, string>; t
 }
 
 /**
- * Ingiere un archivo. Para correo y chat, el documento es el adjunto; el cuerpo queda como
- * texto del canal. El original siempre se guarda con su hash, nunca con el nombre del cliente.
+ * Acepta o rechaza una entrega. Para correo y chat, el documento es el adjunto; el cuerpo
+ * queda como texto del canal. No guarda nada: ver `storeOriginal`.
  */
-export async function ingestDocument(
-  input: IngestInput,
-  storage: FileStorage,
-  limits: IngestLimits,
-): Promise<IngestedDocument> {
+export function receiveDocument(input: IngestInput, limits: IngestLimits): ReceivedDocument {
   assertSize(input.bytes, limits);
   const type = sniffType(input.bytes);
   if (type === null) {
@@ -259,26 +268,62 @@ export async function ingestDocument(
   }
 
   const hash = documentHash(documentBytes);
-  const documentType = type === "json" ? "pdf" : type;
-  const mimeType = MIME_BY_TYPE[documentType];
+  const documentType = documentTypeOf(type);
   const extension = documentType === "jpeg" ? "jpg" : documentType;
-  const fileKey = `${input.storagePrefix}/${hash}/original.${extension}`;
-
-  // Primero se abre y renderiza; el original solo se guarda si el documento es válido.
-  const content =
-    documentType === "pdf"
-      ? await ingestPdf(documentBytes, hash, input.storagePrefix, storage, limits)
-      : await ingestImage(documentBytes, hash, input.storagePrefix, storage, documentType);
-  await storage.put(fileKey, documentBytes, mimeType);
-
   return {
     source_kind: sourceKind,
-    mime_type: mimeType,
+    mime_type: MIME_BY_TYPE[documentType],
     document_hash: hash,
     size_bytes: documentBytes.length,
-    file_key: fileKey,
-    ...content,
+    file_key: `${input.storagePrefix}/${hash}/original.${extension}`,
+    bytes: documentBytes,
     channel_meta: meta,
     channel_text: channelText,
   };
+}
+
+/** El correo y el chat llevan un PDF adjunto: su documento es un PDF. */
+function documentTypeOf(type: "pdf" | "png" | "jpeg" | "json"): "pdf" | "png" | "jpeg" {
+  return type === "json" ? "pdf" : type;
+}
+
+/** Guarda el original bajo su hash. Escribir dos veces la misma llave deja el mismo contenido. */
+export async function storeOriginal(doc: ReceivedDocument, storage: FileStorage): Promise<void> {
+  await storage.put(doc.file_key, doc.bytes, doc.mime_type);
+}
+
+/** Renderiza las páginas y extrae el texto de un documento ya aceptado. */
+export async function normalizeDocument(
+  doc: ReceivedDocument,
+  storagePrefix: string,
+  storage: FileStorage,
+  limits: IngestLimits,
+): Promise<IngestedDocument> {
+  const content =
+    doc.mime_type === MIME_BY_TYPE.pdf
+      ? await ingestPdf(doc.bytes, doc.document_hash, storagePrefix, storage, limits)
+      : await ingestImage(
+          doc.bytes,
+          doc.document_hash,
+          storagePrefix,
+          storage,
+          doc.mime_type === MIME_BY_TYPE.png ? "png" : "jpeg",
+        );
+  const { bytes: _bytes, ...rest } = doc;
+  return { ...rest, ...content };
+}
+
+/**
+ * Ingiere un archivo de punta a punta. Primero se abre y renderiza; el original solo se
+ * guarda si el documento es válido.
+ */
+export async function ingestDocument(
+  input: IngestInput,
+  storage: FileStorage,
+  limits: IngestLimits,
+): Promise<IngestedDocument> {
+  const received = receiveDocument(input, limits);
+  const doc = await normalizeDocument(received, input.storagePrefix, storage, limits);
+  await storeOriginal(received, storage);
+  return doc;
 }

@@ -1,10 +1,11 @@
-import { and, desc, eq, gte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ne } from "drizzle-orm";
 
 import {
   InvoiceSchema,
   canTransition,
   type Invoice,
   type InvoiceStatus,
+  type ReceiptKey,
   type Sha256,
   type Ulid,
 } from "@/src/domain";
@@ -15,8 +16,9 @@ import { parseRow } from "../rows";
 import { invoices } from "../schema";
 
 /**
- * Facturas. La identidad del archivo es única por organización (`document_hash`): el mismo
- * archivo dos veces produce `conflict`, que el caso de uso traduce en "ya existe".
+ * Facturas. La identidad idempotente es la entrega (`receipt_key`), única por organización:
+ * la misma entrega dos veces produce `conflict`, que el caso de uso traduce en "ya existe".
+ * El mismo archivo por otra entrega es otra factura; el motor la frena como duplicada.
  */
 
 function toRow(inv: Invoice): typeof invoices.$inferInsert {
@@ -25,6 +27,7 @@ function toRow(inv: Invoice): typeof invoices.$inferInsert {
     organizationId: inv.organization_id,
     reference: inv.reference,
     channel: inv.channel,
+    receiptKey: inv.receipt_key,
     sourceKind: inv.source_kind,
     documentHash: inv.document_hash,
     fileKey: inv.file_key,
@@ -51,6 +54,7 @@ function toInvoice(row: typeof invoices.$inferSelect): Invoice {
       organization_id: row.organizationId,
       reference: row.reference,
       channel: row.channel,
+      receipt_key: row.receiptKey,
       source_kind: row.sourceKind,
       document_hash: row.documentHash,
       file_key: row.fileKey,
@@ -71,13 +75,13 @@ function toInvoice(row: typeof invoices.$inferSelect): Invoice {
   );
 }
 
-/** Inserta una factura nueva. El mismo documento o la misma referencia producen `conflict`. */
+/** Inserta una factura nueva. La misma entrega o la misma referencia producen `conflict`. */
 export async function insertInvoice(exec: Executor, invoice: Invoice): Promise<void> {
   try {
     await exec.insert(invoices).values(toRow(InvoiceSchema.parse(invoice)));
   } catch (error) {
     if (isUniqueViolation(error)) {
-      throw new DbError("conflict", "Ya existe una factura con ese documento o referencia");
+      throw new DbError("conflict", "Ya existe una factura con esa entrega o referencia");
     }
     throw error;
   }
@@ -92,19 +96,33 @@ export async function getInvoice(exec: Executor, organizationId: Ulid, id: Ulid)
   return toInvoice(row);
 }
 
-/** Factura con ese hash de archivo, o null. */
-export async function findInvoiceByDocumentHash(
+/** Factura de esa entrega, o null si la entrega es nueva. */
+export async function findInvoiceByReceiptKey(
+  exec: Executor,
+  organizationId: Ulid,
+  receiptKey: ReceiptKey,
+): Promise<Invoice | null> {
+  const row = await exec.query.invoices.findFirst({
+    where: and(eq(invoices.organizationId, organizationId), eq(invoices.receiptKey, receiptKey)),
+  });
+  return row ? toInvoice(row) : null;
+}
+
+/** Facturas con ese hash de archivo, la primera recibida primero. */
+export async function listInvoicesByDocumentHash(
   exec: Executor,
   organizationId: Ulid,
   documentHash: Sha256,
-): Promise<Invoice | null> {
-  const row = await exec.query.invoices.findFirst({
+): Promise<Invoice[]> {
+  const rows = await exec.query.invoices.findMany({
     where: and(
       eq(invoices.organizationId, organizationId),
       eq(invoices.documentHash, documentHash),
     ),
+    orderBy: [asc(invoices.receivedAt), asc(invoices.id)],
+    limit: 50,
   });
-  return row ? toInvoice(row) : null;
+  return rows.map(toInvoice);
 }
 
 /** Facturas con la misma llave semántica recibidas desde `since` (ISO), sin incluir `excludeId`. */

@@ -5,7 +5,9 @@ import { ExtractedFieldNameSchema, FieldSourceSchema } from "./extraction";
 import { FindingSchema, hasBlocking } from "./finding";
 import { Sha256Schema } from "./hash";
 import { UlidSchema } from "./ids";
-import { MoneySchema } from "./money";
+import { MoneySchema, type Money } from "./money";
+import type { Policy } from "./policy";
+import { maskAccount, type Vendor } from "./vendor";
 
 /**
  * Decisión: inmutable. Cada reevaluación crea una decisión nueva que apunta a la anterior.
@@ -41,9 +43,36 @@ export const PaymentOrderDraftSchema = z.strictObject({
 export type PaymentOrderDraft = Readonly<z.infer<typeof PaymentOrderDraftSchema>>;
 
 /**
+ * Prepara la orden de pago de un `pagar`. Beneficiario, ruta y cuenta salen del vendor
+ * registrado, nunca del texto del documento (invariante 10); la cuenta origen sale de las
+ * claves protegidas de la política.
+ */
+export function paymentOrderFor(input: {
+  readonly vendor: Vendor;
+  readonly amount: Money;
+  readonly policy: Policy;
+  readonly scheduledFor: string;
+  readonly reference: string;
+}): PaymentOrderDraft {
+  const { vendor } = input;
+  return PaymentOrderDraftSchema.parse({
+    status: "preparada_no_ejecutada",
+    vendor_id: vendor.id,
+    beneficiary_name: vendor.name,
+    amount: input.amount,
+    rail: vendor.account.rail,
+    account_masked: maskAccount(vendor.account.account_number),
+    source_account_id: input.policy.protected.source_account_id,
+    scheduled_for: input.scheduledFor,
+    reference: input.reference,
+  });
+}
+
+/**
  * Invariantes que el esquema fija en el borde:
- * - `pagar` exige cero hallazgos `block`, una orden de pago y una fecha programada igual
- *   a la de la orden (invariantes 1 y 10).
+ * - `pagar` exige cero hallazgos `block` y una fecha programada (invariante 1).
+ * - Fuera del modo de prueba, `pagar` exige además una orden de pago con la misma fecha
+ *   (invariante 10). En modo de prueba la decisión se registra sin orden: no compromete nada.
  * - `frenar` y `escalar` no llevan orden de pago.
  */
 export const DecisionSchema = z
@@ -83,7 +112,18 @@ export const DecisionSchema = z
       if (hasBlocking(d.findings)) {
         ctx.addIssue({ code: "custom", path: ["verdict"], message: "pagar con un hallazgo block" });
       }
-      if (d.payment_order === null) {
+      if (d.scheduled_for === null) {
+        ctx.addIssue({ code: "custom", path: ["scheduled_for"], message: "pagar exige fecha" });
+      }
+      if (d.dry_run) {
+        if (d.payment_order !== null) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["payment_order"],
+            message: "en modo de prueba no se prepara orden de pago",
+          });
+        }
+      } else if (d.payment_order === null) {
         ctx.addIssue({ code: "custom", path: ["payment_order"], message: "pagar exige una orden" });
       } else if (d.scheduled_for !== d.payment_order.scheduled_for) {
         ctx.addIssue({

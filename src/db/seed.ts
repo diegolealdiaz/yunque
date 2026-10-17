@@ -12,17 +12,34 @@ import {
   FxTableSchema,
   VerificationSchema,
   defaultPolicy,
+  money,
+  paymentOrderFor,
+  periodKey,
+  semanticKey,
+  sha256Hex,
+  toUsd,
+  type Currency,
+  type Decision,
+  type InvoiceStatus,
   type Organization,
+  type PolicyVersion,
   type UlidGenerator,
   type Vendor,
+  type Verdict,
 } from "@/src/domain";
 
-import type { Database } from "./client";
+import { withWriteTransaction, type Database } from "./client";
 import {
   appendEvent,
   appendPolicyVersion,
   createOrganization,
+  ensureLedgerPeriod,
+  getPolicyVersion,
+  insertDecision,
+  insertInvoice,
   insertVendor,
+  nextReference,
+  reserveBudget,
   setBalance,
 } from "./repositories";
 
@@ -85,6 +102,8 @@ export type SeedOptions = {
 export type SeedResult = {
   readonly organization: Organization;
   readonly vendors: readonly Vendor[];
+  /** Los mismos vendors, por la clave que usan la semilla y el dataset. */
+  readonly vendorsByKey: ReadonlyMap<string, Vendor>;
   readonly policyVersionId: string;
 };
 
@@ -118,6 +137,7 @@ export async function seedOrganization(db: Database, options: SeedOptions): Prom
     }
 
     const vendors: Vendor[] = [];
+    const vendorsByKey = new Map<string, Vendor>();
     for (const seed of data.vendors) {
       const vendor: Vendor = {
         id: newId(),
@@ -133,6 +153,7 @@ export async function seedOrganization(db: Database, options: SeedOptions): Prom
       };
       await insertVendor(tx, vendor);
       vendors.push(vendor);
+      vendorsByKey.set(seed.key, vendor);
     }
 
     const base = defaultPolicy({
@@ -160,6 +181,181 @@ export async function seedOrganization(db: Database, options: SeedOptions): Prom
       occurred_at: nowIso,
     });
 
-    return { organization, vendors, policyVersionId: version.id };
+    return { organization, vendors, vendorsByKey, policyVersionId: version.id };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Historial: facturas de meses anteriores ya decididas, y lo comprometido del mes en curso.
+// Sin esto, las reglas de historial (primer pago, monto atípico, duplicados) no tendrían
+// con qué comparar y el presupuesto del mes arrancaría vacío.
+// ---------------------------------------------------------------------------
+
+/** Factura anterior tal como la describe `data/dataset/historial.json`. */
+export type HistorySeedEntry = {
+  readonly vendor_key: string;
+  readonly invoice_number: string;
+  readonly received_at: string;
+  readonly currency: Currency;
+  readonly amount: number;
+  readonly verdict: Verdict;
+  readonly resolution: "aprobada" | "rechazada" | null;
+};
+
+export type HistorySeedOptions = {
+  readonly organization: Organization;
+  readonly vendorsByKey: ReadonlyMap<string, Vendor>;
+  readonly policyVersion: PolicyVersion;
+  readonly entries: readonly HistorySeedEntry[];
+  /** Presupuesto del periodo en curso ya comprometido, en centavos de USD. */
+  readonly committedUsdCents: number;
+  /** Día de negocio (`YYYY-MM-DD`) que fija el periodo del presupuesto. */
+  readonly today: string;
+  readonly newId: UlidGenerator;
+};
+
+/** Estado final de una factura del historial según su veredicto y su resolución humana. */
+function historyStatus(entry: HistorySeedEntry): InvoiceStatus {
+  if (entry.resolution !== null) return entry.resolution;
+  return entry.verdict === "escalar" ? "esperando_aprobacion" : "decidida";
+}
+
+/**
+ * Siembra el historial en una sola transacción: por cada entrada, una factura en su estado
+ * final, su decisión y su evento; después, el periodo de presupuesto con lo ya comprometido.
+ * Las facturas del historial no tienen archivo: su hash es sintético y su archivo queda
+ * `pendiente`. Sus decisiones no llevan hallazgos y su explicación lo dice.
+ */
+export async function seedHistory(db: Database, options: HistorySeedOptions): Promise<void> {
+  const { organization, policyVersion, newId } = options;
+  const policy = policyVersion.content;
+  await withWriteTransaction(db, async (tx) => {
+    for (const [i, entry] of options.entries.entries()) {
+      const vendor = options.vendorsByKey.get(entry.vendor_key);
+      if (!vendor)
+        throw new Error(`El historial nombra un vendor inexistente: ${entry.vendor_key}`);
+      const receivedAt = entry.received_at;
+      const receivedDay = receivedAt.slice(0, 10);
+      const amount = money(entry.amount, entry.currency);
+      const reference = await nextReference(
+        tx,
+        organization.id,
+        organization.reference_prefix,
+        new Date(receivedAt),
+      );
+      const documentHash = sha256Hex(`historial:${organization.id}:${String(i)}`);
+      const invoiceId = newId();
+      await insertInvoice(tx, {
+        id: invoiceId,
+        organization_id: organization.id,
+        reference,
+        channel: "batch",
+        receipt_key: `seed:historial-${String(i)}`,
+        source_kind: "pdf",
+        document_hash: documentHash,
+        file_key: `${organization.id}/historial/${String(i)}`,
+        file_state: "pendiente",
+        original_name: `historial-${entry.invoice_number}`,
+        mime_type: "application/pdf",
+        size_bytes: 0,
+        page_keys: [],
+        text: null,
+        semantic_key: semanticKey({
+          payeeName: vendor.name,
+          invoiceNumber: entry.invoice_number,
+          amount: entry.amount,
+          currency: entry.currency,
+        }),
+        status: historyStatus(entry),
+        approval_expires_at: null,
+        channel_meta: {},
+        received_at: receivedAt,
+        updated_at: receivedAt,
+      });
+      const paid = entry.verdict === "pagar";
+      const decision: Decision = {
+        id: newId(),
+        organization_id: organization.id,
+        invoice_id: invoiceId,
+        verdict: entry.verdict,
+        findings: [],
+        explanation: `Decisión del historial sembrado: ${entry.verdict}${
+          entry.resolution === null ? "" : `, ${entry.resolution} por una persona`
+        }.`,
+        summary: null,
+        scheduled_for: paid ? receivedDay : null,
+        payment_order: paid
+          ? paymentOrderFor({ vendor, amount, policy, scheduledFor: receivedDay, reference })
+          : null,
+        amount,
+        amount_usd: { amount: toUsd(amount, organization.fx).amount, currency: "USD" },
+        vendor_id: vendor.id,
+        policy_version_id: policyVersion.id,
+        policy_hash: policyVersion.content_hash,
+        document_hash: documentHash,
+        extraction_hash: null,
+        field_sources: {},
+        previous_decision_id: null,
+        dry_run: false,
+        actor: { kind: "agente" },
+        cost_usd_micros: 0,
+        latency_ms: 0,
+        decided_at: receivedAt,
+      };
+      await insertDecision(tx, decision);
+      await appendEvent(tx, {
+        id: newId(),
+        organization_id: organization.id,
+        type: entry.verdict === "escalar" ? "invoice.escalated" : "invoice.decided",
+        actor: { kind: "agente" },
+        invoice_id: invoiceId,
+        decision_id: decision.id,
+        data: { verdict: entry.verdict, resolution: entry.resolution, seed: true },
+        trace_id: `seed-${organization.id}`,
+        occurred_at: receivedAt,
+      });
+    }
+
+    const { budget } = policy.limits;
+    const period = periodKey(new Date(`${options.today}T00:00:00.000Z`), budget.period);
+    const nowIso = `${options.today}T00:00:00.000Z`;
+    await ensureLedgerPeriod(tx, organization.id, period, budget.currency, budget.amount, nowIso);
+    if (options.committedUsdCents > 0) {
+      await reserveBudget(
+        tx,
+        organization.id,
+        period,
+        budget.currency,
+        options.committedUsdCents,
+        nowIso,
+      );
+    }
+  });
+}
+
+export type DatasetSeedOptions = SeedOptions &
+  Pick<HistorySeedOptions, "committedUsdCents" | "today"> & {
+    readonly history: readonly HistorySeedEntry[];
+  };
+
+/**
+ * Empresa lista para el dataset: semilla completa más historial y presupuesto comprometido.
+ * La usan la base local, las pruebas del caso de uso y la copia de cada visitante de la demo.
+ */
+export async function seedDatasetOrganization(
+  db: Database,
+  options: DatasetSeedOptions,
+): Promise<SeedResult & { readonly policyVersion: PolicyVersion }> {
+  const seeded = await seedOrganization(db, options);
+  const policyVersion = await getPolicyVersion(db, seeded.organization.id, seeded.policyVersionId);
+  await seedHistory(db, {
+    organization: seeded.organization,
+    vendorsByKey: seeded.vendorsByKey,
+    policyVersion,
+    entries: options.history,
+    committedUsdCents: options.committedUsdCents,
+    today: options.today,
+    newId: options.newId,
+  });
+  return { ...seeded, policyVersion };
 }

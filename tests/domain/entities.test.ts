@@ -184,6 +184,13 @@ describe("hallazgos, checklist y decisión", () => {
     );
   });
 
+  it("en modo de prueba, pagar se registra con fecha pero sin orden de pago", () => {
+    const dry = { ...decision, dry_run: true, payment_order: null };
+    expect(DecisionSchema.safeParse(dry).success).toBe(true);
+    expect(DecisionSchema.safeParse({ ...decision, dry_run: true }).success).toBe(false);
+    expect(DecisionSchema.safeParse({ ...dry, scheduled_for: null }).success).toBe(false);
+  });
+
   it("frenar y escalar no llevan orden de pago", () => {
     const frenar = {
       ...decision,

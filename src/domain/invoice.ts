@@ -59,6 +59,12 @@ export function isFinalStatus(status: InvoiceStatus): boolean {
   return TRANSITIONS[status].length === 0;
 }
 
+/** `canal:identificador`, solo caracteres seguros para logs y llaves. */
+export const ReceiptKeySchema = z
+  .string()
+  .regex(/^[a-z]+:[A-Za-z0-9._:-]{1,190}$/, { error: "Llave de recepción inválida" });
+export type ReceiptKey = z.infer<typeof ReceiptKeySchema>;
+
 export const FileStateSchema = z.enum(["pendiente", "subida"]);
 
 const MAX_CHANNEL_META_KEYS = 50;
@@ -68,8 +74,15 @@ export const InvoiceSchema = z.strictObject({
   organization_id: UlidSchema,
   reference: ReferenceSchema,
   channel: ChannelSchema,
+  /**
+   * Llave de recepción: identifica la entrega, no el documento (id del correo, update de
+   * Telegram, archivo del lote, o la llave de idempotencia que manda quien sube). Única por
+   * organización: la misma entrega dos veces es una sola factura. El mismo archivo por otra
+   * entrega sí es otra factura, y el motor la frena como duplicada.
+   */
+  receipt_key: ReceiptKeySchema,
   source_kind: SourceKindSchema,
-  /** SHA-256 de los bytes del archivo original. */
+  /** SHA-256 de los bytes del archivo original. Puede repetirse entre facturas: es un duplicado. */
   document_hash: Sha256Schema,
   /** Ruta o clave del archivo original en el almacenamiento. */
   file_key: z.string().min(1).max(500),

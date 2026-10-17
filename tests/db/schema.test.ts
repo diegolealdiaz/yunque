@@ -18,7 +18,10 @@ const tableNames = Object.values(schema)
   .filter((v) => is(v, SQLiteTable))
   .map((t) => getTableName(t));
 
-const MIGRATIONS = 4;
+const MIGRATIONS = 5;
+
+/** Única tabla sin organization_id (D14): la caché por contenido lleva `scope` en su lugar. */
+const SCOPED_BY_CONTENT = "extraction_cache";
 
 describe("migraciones y esquema (P-40, P-41)", () => {
   let t: TestDatabase;
@@ -51,16 +54,22 @@ describe("migraciones y esquema (P-40, P-41)", () => {
       expect(
         columns.map((c) => c.name),
         name,
-      ).toContain("organization_id");
+      ).toContain(name === SCOPED_BY_CONTENT ? "scope" : "organization_id");
     }
   });
 
   it("los repositorios exigen el id de organización en la firma", () => {
     // Excepciones: crean o buscan la organización misma, o reciben una entidad con organization_id.
     const exempt = new Set(["createOrganization", "findOrganizationByVisitor", "setBalance"]);
+    // La caché por contenido (D14) exige su ámbito en la firma en lugar de la organización.
+    const scoped = new Set(["getCachedExtraction", "putCachedExtraction"]);
     for (const [name, fn] of Object.entries(repos)) {
       if (typeof fn !== "function" || exempt.has(name)) continue;
       const source = fn.toString();
+      if (scoped.has(name)) {
+        expect(/^async function \w+\(\s*exec,\s*scope\b/.test(source), name).toBe(true);
+        continue;
+      }
       const takesOrgId = /^async function \w+\(\s*exec,\s*organizationId\b/.test(source);
       const takesEntity =
         /^async function \w+\(\s*exec,\s*\w+\s*\)/.test(source) &&
@@ -122,6 +131,7 @@ describe("tablas append-only (P-42)", () => {
       organizationId: orgId,
       reference: "YQ-2026-10-0001",
       channel: "upload",
+      receiptKey: "upload:prueba-1",
       sourceKind: "pdf",
       documentHash: hash,
       fileKey: "k",

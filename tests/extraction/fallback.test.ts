@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { loadDatasetSources, pdfText } from "@/src/dataset";
-import { MemoryFileStorage, ingestDocument, readInvoice } from "@/src/extraction";
+import { MemoryFileStorage, ingestDocument, readInvoice, type ModelClient } from "@/src/extraction";
 
 import { fakeClient, generatedFile, idealExtraction, readerDeps } from "./helpers";
 
@@ -79,6 +79,23 @@ describe("lectura con respaldo (P-69)", () => {
     expect(client.requests).toHaveLength(2);
     expect(result.verification.evidence_missing).toEqual(["total"]);
     expect(result.record.fallback_used).toBe(false);
+  });
+
+  it("sin tiempo para la segunda pasada se decide con la primera", async () => {
+    const f = await fixtures("nube_oct");
+    let clock = 0;
+    const client = fakeClient([f.bad, f.good]);
+    const slow: ModelClient = {
+      complete: (request) => {
+        clock += 59_000;
+        return client.complete(request);
+      },
+    };
+    const deps = { ...readerDeps(slow), now: () => clock };
+    const result = await readInvoice(deps, f.storage, f.doc, { ...options, deadlineMs: 60_000 });
+    expect(client.requests).toHaveLength(1);
+    expect(result.passes).toHaveLength(1);
+    expect(result.verification.evidence_missing).toEqual(["total"]);
   });
 
   it("sin modelo de respaldo configurado no hay segunda pasada", async () => {
