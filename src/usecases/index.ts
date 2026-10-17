@@ -2,6 +2,7 @@
  * Casos de uso: orquestan dominio, motor, extracción y base. Es la única capa que conoce
  * a todas las demás; las rutas de la app y los canales solo hablan con esta.
  */
+export * from "./audit-log";
 export * from "./business-day";
 export * from "./correct-invoice";
 export type { DecideDeps } from "./decide";

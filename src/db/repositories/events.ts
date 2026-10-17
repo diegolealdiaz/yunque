@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
-import { AuditEventSchema, type AuditEvent, type Ulid } from "@/src/domain";
+import { AuditEventSchema, type AuditEvent, type EventType, type Ulid } from "@/src/domain";
 
 import type { Executor } from "../client";
 import { parseRow } from "../rows";
@@ -24,16 +24,31 @@ export async function appendEvent(exec: Executor, event: AuditEvent): Promise<vo
   });
 }
 
-/** Eventos de la organización, más recientes primero, con filtro opcional por factura. */
+export type EventFilter = {
+  readonly invoiceId?: Ulid;
+  readonly type?: EventType;
+  /** Quién: el agente, o una persona por su nombre exacto. */
+  readonly actor?: { readonly kind: "agente" } | { readonly kind: "humano"; readonly name: string };
+  readonly limit?: number;
+};
+
+/** Eventos de la organización, más recientes primero, con filtros opcionales. */
 export async function listEvents(
   exec: Executor,
   organizationId: Ulid,
-  filter: { invoiceId?: Ulid; limit?: number } = {},
+  filter: EventFilter = {},
 ): Promise<AuditEvent[]> {
+  const { actor } = filter;
   const rows = await exec.query.auditEvents.findMany({
     where: and(
       eq(auditEvents.organizationId, organizationId),
       filter.invoiceId === undefined ? undefined : eq(auditEvents.invoiceId, filter.invoiceId),
+      filter.type === undefined ? undefined : eq(auditEvents.type, filter.type),
+      actor === undefined
+        ? undefined
+        : actor.kind === "agente"
+          ? sql`json_extract(${auditEvents.actor}, '$.kind') = 'agente'`
+          : sql`json_extract(${auditEvents.actor}, '$.name') = ${actor.name}`,
     ),
     orderBy: [desc(auditEvents.occurredAt), desc(auditEvents.id)],
     limit: filter.limit ?? 200,

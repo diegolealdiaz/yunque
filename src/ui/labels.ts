@@ -2,6 +2,7 @@
 // índice del dominio arrastra `node:crypto`.
 import type {
   Channel,
+  EventType,
   ExtractedFieldName,
   FindingCode,
   InvoiceStatus,
@@ -115,4 +116,28 @@ export const STATUS_LABEL: Readonly<Record<InvoiceStatus, string>> = {
   aprobada: "aprobada",
   rechazada: "rechazada",
   fallida: "falló, reintentar",
+};
+
+/** Tipo de evento de la bitácora, en palabras de producto. Uno por tipo: uno nuevo sin etiqueta no compila. */
+export const EVENT_LABEL: Readonly<Record<EventType, string>> = {
+  "invoice.received": "Factura recibida",
+  "invoice.processing": "Lectura iniciada",
+  "invoice.normalized": "Documento normalizado",
+  "invoice.extracted": "Factura leída",
+  "invoice.decided": "Decisión del agente",
+  "invoice.escalated": "Escalada a una persona",
+  "invoice.approved": "Aprobada",
+  "invoice.rejected": "Rechazada",
+  "invoice.corrected": "Corregida a mano",
+  "invoice.failed": "Falló el proceso",
+  "policy.saved": "Política firmada",
+  "policy.replayed": "Facturas reevaluadas",
+  "controls.changed": "Interruptores cambiados",
+  "vendor.created": "Beneficiario creado",
+  "vendor.verified": "Beneficiario verificado",
+  "vendor.account_changed": "Cuenta de beneficiario cambiada",
+  "notification.sent": "Aviso enviado",
+  "notification.failed": "Aviso fallido",
+  "llm.called": "Llamada al modelo",
+  "llm.failed": "Llamada al modelo fallida",
 };

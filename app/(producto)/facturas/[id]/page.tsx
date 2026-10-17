@@ -373,6 +373,12 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
               <div className="mt-2">
                 <Timeline entries={timelineLines(detail.timeline)} />
               </div>
+              <Link
+                href={`/bitacora?factura=${detail.invoice.reference}`}
+                className="mt-2 inline-block text-[12px] text-ink-2 underline underline-offset-4"
+              >
+                Ver todos sus eventos en la bitácora
+              </Link>
             </div>
           </Column>
         </div>

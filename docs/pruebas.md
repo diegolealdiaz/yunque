@@ -154,7 +154,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-106 | Reglas: editar el formulario actualiza el YAML y viceversa; un YAML roto desactiva el formulario con aviso; claves protegidas y controles no se cambian desde el YAML; solo firma un aprobador de la lista; guardar crea versión nueva con firma; un interruptor crea su versión y su evento sin tocar el resto | pipeline + e2e |
 | P-107 | Replay: cambiar el umbral muestra el diff exacto de decisiones que cambiarían, sin escribir nada y acumulando el presupuesto que consumen los pagos nuevos; guardar cambia exactamente lo anunciado, nunca toca las pagadas, y la bitácora lo registra | pipeline + e2e |
 | P-108 | Métricas: cada tarjeta y cada barra enlaza a las facturas que la componen y el conteo coincide; cada factura de una barra de regla tiene esa regla en su decisión vigente; lo pagado por moneda más lo comprometido antes suma lo comprometido del periodo | pipeline + e2e |
-| P-109 | Bitácora: filtra por factura y por tipo; cada evento enlaza a su factura | e2e |
+| P-109 | Bitácora: cada transición del pipeline aparece como evento de su factura; filtra por tipo, por factura (referencia o id) y por persona o el agente; cada evento enlaza a su factura; la factura de otra empresa no se encuentra | pipeline + e2e |
 | P-110 | Escape: una factura cuyo nombre de beneficiario es `<img src=x onerror=alert(1)>` se muestra como texto literal en pendientes, detalle, explicación y notificación | e2e, `@seguridad` |
 | P-112 | Corrección: los campos corregidos quedan con origen humano y el motor reevalúa con la política vigente; un valor inválido, un obligatorio vacío o un aprobador fuera de la lista se rechazan; lo que pagaría escala con `human_correction` y quien corrigió no puede aprobarlo, otra persona sí (propiedad: una corrección nunca vuelve más permisivo el veredicto); reevaluar con una política nueva puede pagar, pero nunca ablanda: una instrucción que venía en el cuerpo del correo sigue frenando; una factura pagada no se reevalúa | pipeline + propiedad, `@seguridad` |
 | P-111 | Orden de pago PDF: se genera con los datos del vendor; abrirla no requiere el PDF original | API |
@@ -163,7 +163,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 
 | Id | Verifica | Tipo |
 |---|---|---|
-| P-120 | `/api/health`: verde con todo en orden; rojo si falta la política, falla la base o el proveedor; incluye antigüedad del pendiente más viejo | API |
+| P-120 | `/api/health`: verde con todo en orden; rojo (503) si falta la política, falla la base o el proveedor (sin clave o con la última llamada fallida hace menos de media hora); ámbar con escaladas vencidas o avisos sin entregar; incluye antigüedad del pendiente más viejo; una consulta sin cookie no siembra una empresa; la pantalla de Salud y la barra lateral dicen lo mismo | pipeline + API |
 | P-121 | Empresa por visitante: dos clientes sin cookie reciben empresas distintas; un cliente con cookie recibe siempre la misma; una cookie alterada se rechaza y se emite una nueva | API, `@seguridad` |
 | P-122 | Aislamiento: una petición con cookie de la empresa A pidiendo una factura o archivo de la empresa B recibe 404 | API, `@seguridad` |
 | P-123 | Topes: la factura N+1 del día para un visitante responde 429 con mensaje; el tope global igual; el dataset precargado sigue consultable | API |

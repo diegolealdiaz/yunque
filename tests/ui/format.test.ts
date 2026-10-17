@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  auditInstant,
   calendarDate,
   clock,
   dueRelative,
   duration,
+  eventData,
   instant,
   percent,
   shortHash,
@@ -43,5 +45,14 @@ describe("formatos de pantalla", () => {
     expect(duration(5 * 3_600_000 + 1)).toBe("5 h");
     expect(duration(3 * 86_400_000)).toBe("3 d");
     expect(duration(-5)).toBe("0 ms");
+  });
+
+  it("la bitácora: instante con segundos y datos del evento sin interpretar", () => {
+    expect(auditInstant("2026-10-17T14:12:05.000Z")).toBe("17 oct 2026, 09:12:05");
+    expect(eventData({ verdict: "frenar", pages: 2, retry: true, actor: null })).toBe(
+      "verdict: frenar · pages: 2 · retry: sí · actor: —",
+    );
+    expect(eventData({ to: { payments_enabled: false } })).toBe('to: {"payments_enabled":false}');
+    expect(eventData({ note: "x".repeat(400) })).toHaveLength(240);
   });
 });

@@ -121,6 +121,18 @@ export async function findInvoiceByReceiptKey(
   return row ? toInvoice(row) : null;
 }
 
+/** La factura con esa referencia de pantalla (`YQ-2026-10-0001`), o null. */
+export async function findInvoiceByReference(
+  exec: Executor,
+  organizationId: Ulid,
+  reference: string,
+): Promise<Invoice | null> {
+  const row = await exec.query.invoices.findFirst({
+    where: and(eq(invoices.organizationId, organizationId), eq(invoices.reference, reference)),
+  });
+  return row ? toInvoice(row) : null;
+}
+
 /** Facturas con ese hash de archivo, la primera recibida primero. */
 export async function listInvoicesByDocumentHash(
   exec: Executor,
