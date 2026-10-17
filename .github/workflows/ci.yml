@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: typecheck, lint, format, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Valores de prueba para que la validación de configuración y el build pasen en CI.
+      # Ningún secreto real vive aquí; los de producción se configuran en Vercel.
+      NODE_ENV: test
+      DATABASE_URL: file:./data/ci.db
+      APPROVAL_SIGNING_SECRET: ci-approval-signing-secret-0000000000000000
+      SESSION_SECRET: ci-session-secret-00000000000000000000000000
+      SYSTEM_HARD_CAP_USD_CENTS: "10000000"
+      DEMO_MODE: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run check
