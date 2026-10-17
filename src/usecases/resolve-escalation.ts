@@ -175,7 +175,7 @@ async function approvalBlocker(
   if (!vendor) {
     return {
       message:
-        "El beneficiario no está en la lista de vendors: primero hay que darlo de alta. Mientras tanto, solo se puede rechazar.",
+        "El beneficiario no está en la lista de beneficiarios aprobados: primero hay que darlo de alta. Mientras tanto, solo se puede rechazar.",
       reevaluate: false,
     };
   }

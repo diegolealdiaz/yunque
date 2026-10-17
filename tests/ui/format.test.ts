@@ -9,6 +9,7 @@ import {
   eventData,
   instant,
   percent,
+  rateText,
   shortHash,
   usdMicros,
 } from "@/src/ui/format";
@@ -56,5 +57,14 @@ describe("formatos de pantalla", () => {
     );
     expect(eventData({ to: { payments_enabled: false } })).toBe('to: {"payments_enabled":false}');
     expect(eventData({ note: "x".repeat(400) })).toHaveLength(240);
+  });
+});
+
+describe("tasas de cambio", () => {
+  it("muestra la tasa exacta, con separadores en español y sin ceros de más", () => {
+    expect(rateText(4_150_250_000)).toBe("4.150,25");
+    expect(rateText(920_000)).toBe("0,92");
+    expect(rateText(1_450_000_000)).toBe("1.450");
+    expect(rateText(18_250_000)).toBe("18,25");
   });
 });

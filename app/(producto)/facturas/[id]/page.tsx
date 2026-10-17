@@ -3,10 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { EXTRACTED_FIELD_NAMES, formatMoney, isSupportedCurrency, money } from "@/src/domain";
+import {
+  EXTRACTED_FIELD_NAMES,
+  formatMoney,
+  isSupportedCurrency,
+  money,
+  toUsd,
+  type FxTable,
+} from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
-import { calendarDate, instant, usdMicros } from "@/src/ui/format";
+import { calendarDate, instant, rateText, usdMicros } from "@/src/ui/format";
 import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
+import { decisionSummary, reasonFor } from "@/src/ui/reasons";
 import { timelineLines } from "@/src/ui/timeline";
 import {
   approvalOffer,
@@ -83,8 +91,8 @@ function SubTitle({ children }: { readonly children: ReactNode }) {
 
 /** Cómo se ve una regla que falló, según lo que hace: frenar o escalar. Siempre con texto. */
 const FAILED_STYLE = {
-  frenar: { Icon: StopIcon, className: "text-hold-solid", label: "falló · frena" },
-  escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "falló · escala" },
+  frenar: { Icon: StopIcon, className: "text-hold-solid", label: "no pasó · la frena" },
+  escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "no pasó · la escala" },
 } as const;
 
 function RuleRow({ rule }: { readonly rule: RuleTrace }) {
@@ -99,16 +107,94 @@ function RuleRow({ rule }: { readonly rule: RuleTrace }) {
         <Icon />
       </span>
       <span>
-        <span className="font-mono text-[12px] text-ink">{rule.code}</span>{" "}
-        <span className="text-ink-2">· {ruleTitle(rule.code)}</span>
+        <span className="text-ink">
+          {rule.finding ? reasonFor(rule.finding).title : ruleTitle(rule.code)}
+        </span>
         <span className={style ? `font-medium ${style.className}` : "text-ink-3"}> · {status}</span>
         {rule.finding ? (
-          <span className="block text-[12px] text-ink-2">
-            observado {rule.finding.observed} · umbral {rule.finding.threshold}
+          <span className="block text-[12px] text-ink-3">
+            observado {rule.finding.observed} · umbral {rule.finding.threshold} ·{" "}
+            <span className="font-mono">{rule.code}</span>
           </span>
         ) : null}
       </span>
     </li>
+  );
+}
+
+/** Color, icono y borde de la tarjeta "Por qué", según cómo terminó la factura. */
+const WHY_TONE = {
+  pagar: { Icon: CheckIcon, text: "text-pay", box: "border-pay-solid/40 bg-pay-tint" },
+  escalar: {
+    Icon: AlertIcon,
+    text: "text-escalate",
+    box: "border-escalate-solid/40 bg-escalate-tint",
+  },
+  frenar: { Icon: StopIcon, text: "text-hold", box: "border-hold-solid/40 bg-hold-tint" },
+} as const;
+
+/**
+ * La decisión explicada para el cliente, arriba de todo (docs/interfaz.md §5.2): qué pasó,
+ * por qué, en frases simples, y qué puede hacer. Sale de los mismos hallazgos registrados;
+ * el registro técnico sigue más abajo para auditoría.
+ */
+function WhyCard({ detail, fx }: { readonly detail: InvoiceDetail; readonly fx: FxTable }) {
+  const { decision, invoice } = detail;
+  if (!decision) return null;
+  const findings = detail.rules.flatMap((rule) => (rule.finding ? [rule.finding] : []));
+  const summary = decisionSummary(decision.verdict, invoice.status, findings);
+  const tone =
+    invoice.status === "rechazada"
+      ? WHY_TONE.frenar
+      : invoice.status === "aprobada"
+        ? WHY_TONE.pagar
+        : WHY_TONE[decision.verdict];
+  // Primero lo que frena, luego lo que escala: así la razón de más peso va arriba.
+  const reasons = [...findings]
+    .sort((a, b) => (a.action === b.action ? 0 : a.action === "frenar" ? -1 : 1))
+    .map(reasonFor);
+  const passed = detail.rules.filter((rule) => rule.outcome === "pass").length;
+  const { Icon } = tone;
+  return (
+    <section
+      aria-label="Por qué"
+      className={`rounded-[var(--radius-card)] border px-5 py-4 ${tone.box}`}
+    >
+      <p className={`flex items-center gap-2 text-[16px] font-semibold ${tone.text}`}>
+        <Icon className="shrink-0" />
+        {summary.headline}
+      </p>
+      {reasons.length > 0 ? (
+        <ul className="mt-3 space-y-2">
+          {reasons.map((reason) => (
+            <li key={reason.title} className="text-[14px] leading-relaxed">
+              <span className="font-semibold text-ink">{reason.title}.</span>{" "}
+              <span className="text-ink-2">{reason.detail}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <p className="mt-3 text-[13px] text-ink-2">
+        {passed > 0
+          ? reasons.length > 0
+            ? passed === 1
+              ? "Pasó el otro control que aplica."
+              : `Pasó los otros ${String(passed)} controles.`
+            : `Pasó los ${String(passed)} controles que aplican.`
+          : "Factura del historial de ejemplo: llegó ya decidida, sin el detalle de sus controles."}
+      </p>
+      <p className="mt-1 text-[14px] text-ink">
+        <span className="font-semibold">Qué puedes hacer:</span> {summary.next}
+      </p>
+      {decision.amount && decision.amount.currency !== "USD" ? (
+        <p className="mt-2 text-[12px] text-ink-3">
+          Para los límites en USD: {formatMoney(decision.amount)} ≈{" "}
+          {formatMoney(toUsd(decision.amount, fx))}, con 1 USD ={" "}
+          {rateText(fx.perUsd[decision.amount.currency])} {decision.amount.currency} (tasas fijas al{" "}
+          {calendarDate(fx.asOf)}).
+        </p>
+      ) : null}
+    </section>
   );
 }
 
@@ -196,12 +282,31 @@ function DecisionPanel({
       </div>
     );
   }
+  // Escalada que ya no espera: el historial sembrado trae aprobadas sin orden de Yunque. No
+  // es una frenada, y la pantalla no debe decir que lo es.
+  if (decision.verdict === "escalar") {
+    return (
+      <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+        {invoice.status === "aprobada" ? (
+          <p className="font-medium text-pay">
+            Aprobada por {approval ? approval.approver : "una persona"}
+            {approval ? ` · ${instant(approval.created_at, timeZone)}` : ""}
+          </p>
+        ) : (
+          <p className="font-medium text-escalate">Escalada a una persona.</p>
+        )}
+        <p className="text-ink-2">
+          {invoice.status === "aprobada"
+            ? "El agente la escaló y una persona la aprobó."
+            : "El agente la escaló: la decide una persona."}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
       <p className="font-medium text-hold">El agente la frenó.</p>
-      <p className="text-ink-2">
-        No se paga. Para reconsiderarla hay que corregir la causa y reprocesar.
-      </p>
+      <p className="text-ink-2">No se paga. Arriba está el porqué.</p>
       {detail.newerPolicy ? (
         <>
           <p className="text-ink-2">
@@ -309,6 +414,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         )}
       </div>
 
+      <WhyCard detail={detail} fx={organization.fx} />
+
       <EvidenceProvider>
         {/*
           Tres columnas en pantallas grandes. Entre 1024 y 1280 px, dos: el documento a la
@@ -338,7 +445,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </Column>
 
           <Column
-            title="Lo que leyó y decidió"
+            title="Lo que leyó y revisó el agente"
             className="lg:col-start-2 lg:row-start-2 xl:row-start-1"
           >
             <div className="space-y-1">
@@ -369,7 +476,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
             <div>
               <SubTitle>
-                {detail.rulesFromEscalation ? "Reglas de la escalada aprobada" : "Reglas"}
+                {detail.rulesFromEscalation ? "Controles de la escalada aprobada" : "Controles"}
               </SubTitle>
               <ul className="mt-1">
                 {failed.map((rule) => (
@@ -379,7 +486,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
               {others.length > 0 ? (
                 <details className="mt-1 text-[13px]">
                   <summary className="cursor-pointer text-ink-2">
-                    {others.length} reglas más, en orden
+                    {others.length} controles más, en orden
                   </summary>
                   <ul>
                     {others.map((rule) => (
@@ -391,12 +498,14 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
 
             {decision ? (
-              <div>
-                <SubTitle>Explicación</SubTitle>
-                <p className="mt-1 text-[14px] leading-relaxed whitespace-pre-line text-ink">
+              <details className="text-[13px]">
+                <summary className="cursor-pointer text-[12px] font-medium tracking-wide text-ink-3 uppercase">
+                  Registro técnico (auditoría)
+                </summary>
+                <p className="mt-2 font-mono text-[12px] leading-relaxed whitespace-pre-line text-ink-2">
                   {decision.explanation}
                 </p>
-              </div>
+              </details>
             ) : null}
 
             {decision ? (

@@ -51,7 +51,7 @@ export const RULE_SHORT_LABEL: Readonly<Record<FindingCode, string>> = {
   evidence_missing: "sin evidencia",
   totals_mismatch: "totales no cuadran",
   suspicious_instructions: "instrucciones sospechosas",
-  extraction_unreadable: "no se pudo leer",
+  extraction_unreadable: "no es factura o ilegible",
   payments_disabled: "pagos apagados",
   autonomy_recomendar: "modo recomendar",
   policy_missing: "sin política",

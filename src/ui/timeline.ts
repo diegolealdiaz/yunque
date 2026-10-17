@@ -1,8 +1,8 @@
-import { ChannelSchema, VerdictSchema } from "@/src/domain";
+import { ChannelSchema, FindingCodeSchema, VerdictSchema } from "@/src/domain";
 import type { TimelineItem } from "@/src/usecases";
 
 import { usdMicros } from "./format";
-import { CHANNEL_LABEL, VERDICT_PARTICIPLE } from "./labels";
+import { CHANNEL_LABEL, RULE_SHORT_LABEL, VERDICT_PARTICIPLE } from "./labels";
 
 /**
  * Cada evento de la bitácora como una línea de la historia de la factura (docs/interfaz.md
@@ -40,8 +40,8 @@ function line(item: TimelineItem): Omit<TimelineLine, "id" | "at" | "actor"> | n
     case "invoice.extracted": {
       if (d["kind"] !== "invoice")
         return {
-          label: "No se pudo leer",
-          detail: str(d["kind"]) === "not_invoice" ? "no es una factura" : null,
+          label: str(d["kind"]) === "not_invoice" ? "No es una factura" : "No se pudo leer",
+          detail: null,
         };
       const cost = num(d["cost_usd_micros"]);
       const detail =
@@ -58,7 +58,9 @@ function line(item: TimelineItem): Omit<TimelineLine, "id" | "at" | "actor"> | n
     case "invoice.decided":
     case "invoice.escalated": {
       const verdict = VerdictSchema.safeParse(d["verdict"]);
-      const rule = str(d["deciding_rule"]);
+      // La regla en palabras, no su código: la línea de tiempo la lee el cliente.
+      const code = FindingCodeSchema.safeParse(d["deciding_rule"]);
+      const rule = code.success ? RULE_SHORT_LABEL[code.data] : null;
       return {
         label: verdict.success
           ? `${VERDICT_PARTICIPLE[verdict.data].charAt(0).toUpperCase()}${VERDICT_PARTICIPLE[verdict.data].slice(1)}`
@@ -86,4 +88,12 @@ export function timelineLines(items: readonly TimelineItem[]): TimelineLine[] {
     const l = line(item);
     return l ? [{ id: item.id, at: item.at, actor: item.actor, ...l }] : [];
   });
+}
+
+/**
+ * El detalle de un evento suelto en palabras de producto, para la bitácora: la regla que
+ * decidió, el canal, el costo de lectura. Null si el evento no tiene un detalle legible.
+ */
+export function eventDetail(item: TimelineItem): string | null {
+  return line(item)?.detail ?? null;
 }

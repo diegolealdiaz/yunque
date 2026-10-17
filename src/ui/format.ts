@@ -138,3 +138,17 @@ export function eventData(data: Readonly<Record<string, unknown>>): string {
 export function shortHash(hash: string, length = 6): string {
   return hash.length <= length ? hash : `${hash.slice(0, length)}…`;
 }
+
+/**
+ * Una tasa de la tabla de cambio (escala 1e6, unidades por 1 USD) con todos sus decimales
+ * significativos y separadores en español: 4_150_250_000 → «4.150,25». Sin flotantes: es
+ * aritmética entera sobre la tasa guardada.
+ */
+export function rateText(perUsdScaled: number): string {
+  const whole = Math.trunc(perUsdScaled / 1_000_000);
+  const fraction = String(perUsdScaled % 1_000_000)
+    .padStart(6, "0")
+    .replace(/0+$/, "");
+  const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return fraction ? `${grouped},${fraction}` : grouped;
+}

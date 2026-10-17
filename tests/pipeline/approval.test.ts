@@ -249,7 +249,7 @@ describe("lo que el servidor rechaza (P-45)", () => {
     p = await openPipeline();
     const id = await process("beneficiario_nuevo");
     const offer = await offerFor(id);
-    expect(offer.blocked).toMatch(/no está en la lista de vendors/);
+    expect(offer.blocked).toMatch(/no está en la lista de beneficiarios aprobados/);
     expect(offer.payload.vendor_id).toBeNull();
     expect(await approve(id).catch(codeOf)).toBe("not_approvable");
 
