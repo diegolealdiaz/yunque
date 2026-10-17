@@ -99,3 +99,15 @@ export const LockIcon = (p: IconProps) => (
     <path d="M5.5 7V5a2.5 2.5 0 015 0v2" />
   </Icon>
 );
+
+export const MenuIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+  </Icon>
+);
+
+export const CloseIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3.5 3.5l9 9M12.5 3.5l-9 9" />
+  </Icon>
+);

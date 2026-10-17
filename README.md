@@ -1,5 +1,7 @@
 # Yunque
 
+<p align="center"><img src="docs/marca/yunque-logo.png" alt="Yunque: el agente que paga sin salirse de las reglas" width="320"></p>
+
 El agente que paga sin salirse de las reglas.
 
 Yunque revisa las cuentas por pagar de una empresa y decide cuáles pagar, cuáles frenar y cuáles escalar a una persona, dentro de las reglas que la empresa define. Cada decisión queda registrada y explicada.

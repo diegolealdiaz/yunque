@@ -40,6 +40,10 @@
   --pending: #4b5468;
   --pending-tint: #ecebe6;
 
+  /* Marco de marca: luz suave en el borde de la ventana, con los azules del logo. */
+  --glow-deep: rgb(30 107 255 / 0.22);
+  --glow-light: rgb(0 180 255 / 0.3);
+
   /* Foco: anillo de tinta, siempre visible al navegar con teclado */
   --focus: #1a2233;
 
@@ -120,5 +124,26 @@ table {
 @media (prefers-reduced-motion: reduce) {
   .skeleton {
     animation: none;
+  }
+}
+
+/*
+ * Marco de marca: una luz azul, del degradado del logo, en el borde de la ventana. Es la
+ * única presencia de color de marca en las pantallas y queda por fuera del contenido: no
+ * compite con los colores del veredicto ni intercepta clics. No se imprime.
+ */
+.brand-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 36px 4px var(--glow-deep),
+    inset 0 0 6px 0 var(--glow-light);
+}
+
+@media print {
+  .brand-frame {
+    display: none;
   }
 }
