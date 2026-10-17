@@ -12,11 +12,12 @@ import {
   type InvoiceStatus,
   type Verdict,
 } from "@/src/domain";
-import { dueRelative, instant } from "@/src/ui/format";
+import { dueRelative, instant, relativeInstant } from "@/src/ui/format";
 import { CHANNEL_LABEL, STATUS_LABEL } from "@/src/ui/labels";
 import {
   LIST_LIMIT,
   currentBusinessDate,
+  startOfBusinessDay,
   activeAccess,
   loadInboundAddress,
   loadTelegramStatus,
@@ -26,6 +27,7 @@ import {
 import { DataTable } from "../../_components/data-table";
 import { PageHeader } from "../../_components/page-header";
 import { ActionDialog } from "../../_components/action-dialog";
+import { CloseIcon } from "../../_components/icons";
 import { StatusBadge } from "../../_components/status-badge";
 import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
@@ -50,6 +52,8 @@ const FiltersSchema = z.object({
   estado: InvoiceStatusSchema.optional().catch(undefined),
   canal: ChannelSchema.optional().catch(undefined),
   q: z.string().max(100).optional().catch(undefined),
+  /** "hoy": solo las decididas hoy, como las cuenta Pendientes. */
+  dia: z.literal("hoy").optional().catch(undefined),
 });
 
 type Filters = z.infer<typeof FiltersSchema>;
@@ -110,6 +114,7 @@ function verdictHref(filters: Filters, verdict: Verdict | null): string {
   if (filters.estado) params.set("estado", filters.estado);
   if (filters.canal) params.set("canal", filters.canal);
   if (filters.q) params.set("q", filters.q);
+  if (filters.dia) params.set("dia", filters.dia);
   const query = params.toString();
   return query ? `/facturas?${query}` : "/facturas";
 }
@@ -138,6 +143,9 @@ export default async function FacturasPage({
         ...(filters.estado ? { status: filters.estado } : {}),
         ...(filters.canal ? { channel: filters.canal } : {}),
         ...(filters.q ? { query: filters.q } : {}),
+        ...(filters.dia
+          ? { decidedSince: startOfBusinessDay(now, config.displayTimeZone).toISOString() }
+          : {}),
       },
       now,
     ),
@@ -157,7 +165,9 @@ export default async function FacturasPage({
         ? { chats: telegramStatus.chats, maxPerDay: telegram.maxPerChatPerDay }
         : null,
   };
-  const filtered = Boolean(filters.veredicto || filters.estado || filters.canal || filters.q);
+  const filtered = Boolean(
+    filters.veredicto || filters.estado || filters.canal || filters.q || filters.dia,
+  );
 
   return (
     <div className="flex flex-col gap-4 lg:h-full">
@@ -235,6 +245,18 @@ export default async function FacturasPage({
               </li>
             );
           })}
+          {filters.dia ? (
+            <li>
+              <Link
+                href={verdictHref({ ...filters, dia: undefined }, filters.veredicto ?? null)}
+                aria-label="Quitar el filtro: decididas hoy"
+                className="inline-flex h-8 items-center gap-2 rounded-full border border-line-strong px-3.5 text-[13px] text-ink hover:bg-surface-hover"
+              >
+                Decididas hoy
+                <CloseIcon />
+              </Link>
+            </li>
+          ) : null}
         </ul>
       </nav>
 
@@ -242,6 +264,7 @@ export default async function FacturasPage({
         {filters.veredicto ? (
           <input type="hidden" name="veredicto" value={filters.veredicto} />
         ) : null}
+        {filters.dia ? <input type="hidden" name="dia" value={filters.dia} /> : null}
         <label className="flex flex-col gap-1 text-[12px] text-ink-3">
           Buscar
           <input
@@ -328,7 +351,9 @@ export default async function FacturasPage({
               <VerdictChip key="v" verdict="en_proceso" />
             ),
             <span key="u" className="text-ink-3">
-              {instant(row.updatedAt, config.displayTimeZone)}
+              <time dateTime={row.updatedAt} title={instant(row.updatedAt, config.displayTimeZone)}>
+                {relativeInstant(row.updatedAt, now, config.displayTimeZone)}
+              </time>
             </span>,
           ],
         }))}

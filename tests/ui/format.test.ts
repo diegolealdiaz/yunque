@@ -10,6 +10,7 @@ import {
   instant,
   percent,
   rateText,
+  relativeInstant,
   shortHash,
   usdMicros,
 } from "@/src/ui/format";
@@ -66,5 +67,24 @@ describe("tasas de cambio", () => {
     expect(rateText(920_000)).toBe("0,92");
     expect(rateText(1_450_000_000)).toBe("1.450");
     expect(rateText(18_250_000)).toBe("18,25");
+  });
+});
+
+describe("instante relativo en listas", () => {
+  const NOW = new Date("2026-10-17T15:00:00.000Z");
+  const ago = (ms: number) => new Date(NOW.getTime() - ms).toISOString();
+  const rel = (iso: string) => relativeInstant(iso, NOW, "America/Bogota");
+
+  it("dice cuánto hace en minutos, horas y días", () => {
+    expect(rel(ago(20_000))).toBe("ahora");
+    expect(rel(ago(12 * 60_000))).toBe("hace 12 min");
+    expect(rel(ago(3 * 3_600_000))).toBe("hace 3 h");
+    expect(rel(ago(30 * 3_600_000))).toBe("ayer");
+    expect(rel(ago(4 * 86_400_000))).toBe("hace 4 días");
+  });
+
+  it("desde una semana, el instante absoluto; el futuro cuenta como ahora", () => {
+    expect(rel(ago(9 * 86_400_000))).toBe(instant(ago(9 * 86_400_000), "America/Bogota"));
+    expect(rel(new Date(NOW.getTime() + 60_000).toISOString())).toBe("ahora");
   });
 });

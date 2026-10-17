@@ -81,3 +81,21 @@ export function TableSkeleton({
     </div>
   );
 }
+
+/** Tarjeta en carga: título y unas líneas, con la forma de la tarjeta que viene. */
+export function CardSkeleton({
+  lines = 3,
+  className = "",
+}: {
+  readonly lines?: number;
+  readonly className?: string;
+}) {
+  return (
+    <div aria-hidden="true" className={`card space-y-3 p-5 ${className}`}>
+      <span className="skeleton block h-4 w-1/3" />
+      {Array.from({ length: lines }, (_, i) => (
+        <span key={i} className={`skeleton block h-3 ${i % 2 === 0 ? "w-full" : "w-4/5"}`} />
+      ))}
+    </div>
+  );
+}

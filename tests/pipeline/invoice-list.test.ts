@@ -69,6 +69,26 @@ describe("lista de facturas (P-104)", () => {
     expect(search.length).toBeGreaterThan(0);
   });
 
+  it("filtra por decididas desde un instante, como «pagadas hoy» de Pendientes", async () => {
+    const all = await loadInvoiceList(p.t.db, p.organizationId, {}, NOW);
+    const processed = all.filter((r) => r.reference.startsWith("YQ-"));
+    const since = processed
+      .map((r) => r.decided?.decidedAt ?? "")
+      .reduce((a, b) => (a < b ? a : b));
+    const recent = await loadInvoiceList(p.t.db, p.organizationId, { decidedSince: since }, NOW);
+    expect(recent.map((r) => r.invoiceId)).toEqual(
+      expect.arrayContaining(processed.map((r) => r.invoiceId)),
+    );
+    expect(recent.every((r) => (r.decided?.decidedAt ?? "") >= since)).toBe(true);
+    const future = await loadInvoiceList(
+      p.t.db,
+      p.organizationId,
+      { decidedSince: "2999-01-01T00:00:00.000Z" },
+      NOW,
+    );
+    expect(future).toEqual([]);
+  });
+
   it("los topes del día rechazan con un mensaje claro y un 429", async () => {
     const since = "2026-10-17T05:00:00.000Z";
     const fresh = "upload:nueva-entrega";

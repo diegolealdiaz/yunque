@@ -191,7 +191,7 @@ export default async function PendientesPage() {
           <p className="text-[13px] text-ink-3">El agente no pagó ninguna factura hoy.</p>
         ) : (
           <Link
-            href="/facturas?veredicto=pagar"
+            href="/facturas?veredicto=pagar&dia=hoy"
             className="inline-flex items-center gap-1 text-[13px] font-medium text-ink underline underline-offset-4"
           >
             Ver las {inbox.paid.length}

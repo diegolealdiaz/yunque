@@ -28,6 +28,8 @@ export type InvoiceListFilter = {
   readonly channel?: Channel;
   /** Texto libre: beneficiario o referencia. */
   readonly query?: string;
+  /** Solo las decididas desde este instante (ISO), como "pagadas hoy" en Pendientes. */
+  readonly decidedSince?: string;
 };
 
 export type InvoiceListRow = {
@@ -64,6 +66,7 @@ export async function loadInvoiceList(
     .filter(({ invoice, row }) => {
       if (filter.channel && invoice.channel !== filter.channel) return false;
       if (filter.verdict && row?.verdict !== filter.verdict) return false;
+      if (filter.decidedSince && (!row || row.decidedAt < filter.decidedSince)) return false;
       if (query) {
         const haystack = normalizeText(`${invoice.reference} ${row?.payeeName ?? ""}`);
         if (!haystack.includes(query)) return false;

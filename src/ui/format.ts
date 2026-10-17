@@ -58,6 +58,23 @@ export function instant(iso: string, timeZone: string): string {
   return `${get("day")} ${get("month")}, ${get("hour")}:${get("minute")}`;
 }
 
+/**
+ * Instante relativo para listas (docs/interfaz.md §6): "ahora", "hace 12 min", "hace 3 h",
+ * "ayer", "hace 4 días"; desde una semana, el instante absoluto. La pantalla pone el absoluto
+ * al pasar el ratón. Un instante en el futuro (relojes desfasados) cuenta como "ahora".
+ */
+export function relativeInstant(iso: string, now: Date, timeZone: string): string {
+  const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
+  if (minutes < 1) return "ahora";
+  if (minutes < 60) return `hace ${String(minutes)} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `hace ${String(hours)} h`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "ayer";
+  if (days < 7) return `hace ${String(days)} días`;
+  return instant(iso, timeZone);
+}
+
 /** Instante absoluto con segundos, para la bitácora: "16 oct 2026, 09:12:05". */
 export function auditInstant(iso: string, timeZone: string): string {
   const get = dateParts(new Date(iso), {
