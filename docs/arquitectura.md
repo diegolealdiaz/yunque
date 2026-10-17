@@ -262,6 +262,9 @@ Resumen funcional. El diseño de cada pantalla, la navegación y el sistema visu
 yunque/
   .github/workflows/      ci.yml: build, typecheck, lint, tests, set de regresión
   app/                    rutas de Next.js (pantallas y API)
+    (producto)/           pantallas con la barra lateral: pendientes, facturas, reglas, métricas,
+                          bitácora, salud y la página de componentes
+    _components/          los nueve componentes base de interfaz.md §6, estados y atajos
     api/process/          procesa una factura (usado por subida, lote y bandeja)
     api/decide/           API de decisión para otros agentes
     api/telegram/         webhook del bot
@@ -273,6 +276,8 @@ yunque/
     resolve/              resolutor de beneficiario y comparación de cuenta
     channels/             adaptadores: upload, batch, inbox, telegram
     explain/              plantillas y resumen en prosa
+    ui/                   formatos y etiquetas de pantalla, puros y probados
+    eval/                 set de regresión: fixtures, métricas, puerta e informe
     db/                   esquema drizzle, migraciones, repositorios (único módulo que importa el driver)
     usecases/             processInvoice, approveDecision, correctAndReevaluate, savePolicy, replayPolicy
   data/

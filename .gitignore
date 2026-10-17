@@ -24,4 +24,6 @@ data/files/
 .vscode/
 .claude/
 CLAUDE.local.md
+# lo regenera `next dev`: instrucciones para asistentes, no son parte del producto
+AGENTS.md
 next-env.d.ts
