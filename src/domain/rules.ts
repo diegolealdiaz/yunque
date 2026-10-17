@@ -35,13 +35,17 @@ export type RuleCode = z.infer<typeof RuleCodeSchema>;
 /**
  * Hallazgos que no son reglas de la política pero sí aparecen en decisiones:
  * - `payments_disabled`: el interruptor de pagos está apagado (invariante 9).
+ * - `autonomy_recomendar`: la empresa pidió que toda decisión pase por una persona.
  * - `policy_missing`, `vendors_missing`, `ledger_missing`: falta un artefacto (invariante 11).
+ * - `rule_error`: una regla lanzó; el veredicto por defecto es frenar (invariante 11).
  */
 export const SYSTEM_FINDING_CODES = [
   "payments_disabled",
+  "autonomy_recomendar",
   "policy_missing",
   "vendors_missing",
   "ledger_missing",
+  "rule_error",
 ] as const;
 export const SystemFindingCodeSchema = z.enum(SYSTEM_FINDING_CODES);
 

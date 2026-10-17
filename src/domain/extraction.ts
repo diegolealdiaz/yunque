@@ -85,12 +85,14 @@ export const AmbiguitySchema = z.strictObject({
   field: ExtractedFieldNameSchema,
   candidates: z.array(z.string().min(1).max(500)).min(2).max(10),
 });
+export type Ambiguity = z.infer<typeof AmbiguitySchema>;
 
 /** Señales de inyección que el modelo reporta. El Detector de código las confirma aparte. */
 export const SuspicionSchema = z.strictObject({
   kind: z.enum(["instruction_to_agent", "hidden_text", "canary", "amount_in_words_differs"]),
   quote: z.string().min(1).max(1000),
 });
+export type Suspicion = z.infer<typeof SuspicionSchema>;
 
 /** Resultado tipado del Lector. "No la entendí" es un valor, no una excepción. */
 export const ExtractionSchema = z.discriminatedUnion("kind", [
@@ -125,7 +127,9 @@ export const ExtractionRecordSchema = z.strictObject({
 });
 export type ExtractionRecord = Readonly<z.infer<typeof ExtractionRecordSchema>>;
 
-/** Distingue un campo leído de uno ausente. */
-export function isPresent<T>(f: Present<T> | Missing): f is Present<T> {
+/** Distingue un campo leído de uno ausente; funciona sobre cualquier unión de campos. */
+export function isPresent<T extends { readonly value: unknown }>(
+  f: T,
+): f is Exclude<T, { readonly value: null }> {
   return f.value !== null;
 }
