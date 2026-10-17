@@ -4,6 +4,7 @@ import {
   type Channel,
   type ExtractedFieldName,
   type FindingCode,
+  type InvoiceStatus,
   type Verdict,
 } from "@/src/domain";
 
@@ -103,3 +104,14 @@ export function ruleTitle(code: FindingCode): string {
   const rule = RuleCodeSchema.safeParse(code);
   return rule.success ? RULES[rule.data].title : (SYSTEM_TITLE[code] ?? code);
 }
+
+/** Estado de la factura, en palabras de producto. */
+export const STATUS_LABEL: Readonly<Record<InvoiceStatus, string>> = {
+  recibida: "recibida",
+  procesando: "leyendo",
+  decidida: "decidida",
+  esperando_aprobacion: "espera tu decisión",
+  aprobada: "aprobada",
+  rechazada: "rechazada",
+  fallida: "falló, reintentar",
+};

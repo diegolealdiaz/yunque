@@ -73,11 +73,11 @@ export function parseChannelPayload(bytes: Uint8Array): ChannelPayload {
   }
   const parsed = ChannelPayloadSchema.safeParse(data);
   if (!parsed.success) {
-    const first = parsed.error.issues[0];
+    // El mensaje es para la persona: no describe el esquema interno ni repite el contenido.
     throw new IngestError(
       "invalid_channel_payload",
-      `Correo o chat con formato inválido${first ? `: ${first.path.map(String).join(".")} ${first.message}` : ""}`,
-      "Revisa el formato del correo o chat",
+      "El JSON no es un correo ni un chat con adjunto que Yunque reconozca",
+      "Sube la factura en PDF o como imagen",
     );
   }
   return parsed.data;

@@ -65,6 +65,8 @@ describe("migraciones y esquema (P-40, P-41)", () => {
       "findOrganizationByVisitor",
       "findBaseOrganization",
       "setBalance",
+      // Tope global de la demo: cuenta sobre todas las empresas y solo devuelve un número.
+      "countAllInvoicesSince",
     ]);
     // La caché por contenido (D14) exige su ámbito en la firma en lugar de la organización.
     const scoped = new Set(["getCachedExtraction", "putCachedExtraction"]);

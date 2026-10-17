@@ -17,7 +17,9 @@ export type UseCaseErrorCode =
   /** No se pudo guardar el original. */
   | "storage_unavailable"
   /** Ni la decisión ni el escalado por error se pudieron registrar. */
-  | "record_failed";
+  | "record_failed"
+  /** Se alcanzó el tope de facturas del día, por visitante o global. */
+  | "limit_reached";
 
 export type Severity = "error" | "warning";
 

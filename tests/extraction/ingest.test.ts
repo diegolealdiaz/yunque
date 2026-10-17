@@ -144,6 +144,13 @@ describe("ingesta (P-52 a P-56)", () => {
         limits,
       ),
     ).rejects.toMatchObject({ code: "invalid_channel_payload" });
+    // El mensaje es para la persona: no expone el esquema interno.
+    const message = await ingestDocument(
+      { bytes: bad, originalName: "b.json", storagePrefix: prefix },
+      storage,
+      limits,
+    ).catch((e: unknown) => (e instanceof Error ? e.message : ""));
+    expect(message).not.toMatch(/Expected|Invalid|discriminator/);
     const notPdf = new TextEncoder().encode(
       JSON.stringify({
         kind: "chat",

@@ -70,30 +70,25 @@ export function byDueDate(a: InboxRow, b: InboxRow): number {
   return a.decidedAt < b.decidedAt ? -1 : a.decidedAt > b.decidedAt ? 1 : 0;
 }
 
-export async function loadInbox(
+/**
+ * Fila de pantalla de cada factura con decisión: vendor registrado o nombre leído, monto,
+ * vencimiento, veredicto y su regla. La comparten Pendientes y Facturas, así las dos
+ * pantallas muestran siempre lo mismo para la misma factura. Las facturas sin decisión
+ * todavía (recibidas, en proceso, fallidas) vuelven con fila null.
+ */
+export async function describeInvoices(
   db: Database,
   organizationId: Ulid,
-  window: InboxWindow,
-): Promise<Inbox> {
-  const [waitingInvoices, recent, vendors, policies] = await Promise.all([
-    listInvoices(db, organizationId, { status: "esperando_aprobacion", limit: 500 }),
-    listDecisionsSince(db, organizationId, window.decidedSince),
+  invoices: readonly Invoice[],
+  now: Date,
+): Promise<{ readonly invoice: Invoice; readonly row: InboxRow | null }[]> {
+  const ids = invoices.map((inv) => inv.id);
+  const [decisions, extractions, vendors, policies] = await Promise.all([
+    listLatestDecisions(db, organizationId, ids),
+    listLatestExtractions(db, organizationId, ids),
     listVendors(db, organizationId),
     listPolicyVersions(db, organizationId),
   ]);
-
-  // Solo cuentan las facturas cuya decisión vigente es la de hoy y siguen decididas.
-  const recentIds = [...new Set(recent.map((d) => d.invoice_id))];
-  const recentInvoices = (await listInvoicesByIds(db, organizationId, recentIds)).filter(
-    (inv) => inv.status === "decidida",
-  );
-  const invoices = [...waitingInvoices, ...recentInvoices];
-  const ids = invoices.map((inv) => inv.id);
-  const [decisions, extractions] = await Promise.all([
-    listLatestDecisions(db, organizationId, ids),
-    listLatestExtractions(db, organizationId, ids),
-  ]);
-
   const vendorName = new Map(vendors.map((v) => [v.id, v.name]));
   const policyNumber = new Map(policies.map((p) => [p.id, p.version]));
 
@@ -118,14 +113,38 @@ export async function loadInbox(
       decidedAt: decision.decided_at,
       expired:
         invoice.approval_expires_at !== null &&
-        Date.parse(invoice.approval_expires_at) < window.now.getTime(),
+        Date.parse(invoice.approval_expires_at) < now.getTime(),
     };
   };
 
-  const rows = invoices.flatMap((invoice) => {
+  return invoices.map((invoice) => {
     const decision = decisions.get(invoice.id);
-    return decision ? [{ invoice, row: toRow(invoice, decision) }] : [];
+    return { invoice, row: decision ? toRow(invoice, decision) : null };
   });
+}
+
+export async function loadInbox(
+  db: Database,
+  organizationId: Ulid,
+  window: InboxWindow,
+): Promise<Inbox> {
+  const [waitingInvoices, recent] = await Promise.all([
+    listInvoices(db, organizationId, { status: "esperando_aprobacion", limit: 500 }),
+    listDecisionsSince(db, organizationId, window.decidedSince),
+  ]);
+
+  // Solo cuentan las facturas cuya decisión vigente es la de hoy y siguen decididas.
+  const recentIds = [...new Set(recent.map((d) => d.invoice_id))];
+  const recentInvoices = (await listInvoicesByIds(db, organizationId, recentIds)).filter(
+    (inv) => inv.status === "decidida",
+  );
+  const described = await describeInvoices(
+    db,
+    organizationId,
+    [...waitingInvoices, ...recentInvoices],
+    window.now,
+  );
+  const rows = described.flatMap(({ invoice, row }) => (row ? [{ invoice, row }] : []));
   const newestFirst = (a: InboxRow, b: InboxRow) => (a.decidedAt < b.decidedAt ? 1 : -1);
   const decidedToday = (row: InboxRow) => row.decidedAt >= window.decidedSince;
 

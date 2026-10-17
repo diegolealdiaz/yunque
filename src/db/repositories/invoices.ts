@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, ne } from "drizzle-orm";
 
 import {
   InvoiceSchema,
@@ -220,4 +220,29 @@ export async function transitionInvoice(
   if (result.rowsAffected === 0) {
     throw new DbError("stale_state", `La factura ${id} ya no está en ${from}`);
   }
+}
+
+/** Facturas recibidas por la organización desde `since` (ISO): base del tope por visitante. */
+export async function countInvoicesSince(
+  exec: Executor,
+  organizationId: Ulid,
+  since: string,
+): Promise<number> {
+  const [row] = await exec
+    .select({ n: count() })
+    .from(invoices)
+    .where(and(eq(invoices.organizationId, organizationId), gte(invoices.receivedAt, since)));
+  return row?.n ?? 0;
+}
+
+/**
+ * Facturas recibidas por todas las organizaciones desde `since`: base del tope global de la
+ * demo pública. Es la única consulta sin filtro de organización, y solo devuelve un número.
+ */
+export async function countAllInvoicesSince(exec: Executor, since: string): Promise<number> {
+  const [row] = await exec
+    .select({ n: count() })
+    .from(invoices)
+    .where(gte(invoices.receivedAt, since));
+  return row?.n ?? 0;
 }

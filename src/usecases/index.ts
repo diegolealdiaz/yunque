@@ -8,6 +8,7 @@ export type { DecideDeps } from "./decide";
 export * from "./errors";
 export * from "./inbox";
 export * from "./invoice-detail";
+export * from "./invoice-list";
 export * from "./invoice-reader";
 export * from "./process-invoice";
 export * from "./resolve-escalation";
