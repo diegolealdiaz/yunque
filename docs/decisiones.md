@@ -87,6 +87,14 @@
 
 **Consecuencia.** Procesar el dataset en una copia nueva no llama al modelo. En producto, una empresa nunca lee lecturas de otra.
 
+## D15. La empresa sale de una cookie firmada desde la primera pantalla con datos
+
+**Contexto.** El plan dejaba la empresa por visitante para el despliegue (paso 29). Pero toda pantalla y toda acción necesitan saber de quién son los datos, y construirlas leyendo "la única empresa" obligaría a rehacerlas después.
+
+**Decisión.** Desde el paso 20, el proxy entrega a cada visitante una cookie firmada con HMAC (`SESSION_SECRET`), y el servidor saca la empresa solo de esa firma verificada; al primer acceso siembra su copia de la empresa ficticia con el historial. Fuera de la demo, la empresa es la base. Ninguna ruta acepta un identificador de empresa del cliente, y una factura de otra empresa responde igual que una inexistente. En la misma pieza se fija la política de seguridad de contenido: scripts solo propios con nonce por petición, sin incrustar la app en otros sitios.
+
+**Consecuencia.** Las pantallas se renderizan por petición, nunca al compilar. Queda para el despliegue (paso 29) limitar cuántas empresas se siembran por día: hoy cada visita nueva sin cookie crea una.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

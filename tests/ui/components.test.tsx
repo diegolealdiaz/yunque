@@ -25,6 +25,23 @@ vi.mock("next/navigation", () => ({
 const HOSTILE = "<img src=x onerror=alert(1)>";
 
 describe("componentes base (P-100, P-110)", () => {
+  it("las tablas con columnas sin título visible no generan avisos de React", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    renderToStaticMarkup(
+      <DataTable
+        caption="x"
+        columns={[
+          { header: "Estado", hideHeader: true },
+          { header: "Beneficiario" },
+          { header: "Acción", hideHeader: true },
+        ]}
+        rows={[{ key: "1", cells: ["!", "Nube Andina SAS", "Revisar"] }]}
+      />,
+    );
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+  });
+
   it("el chip de veredicto lleva icono, texto y la regla; el detalle es accesible por foco", () => {
     const html = renderToStaticMarkup(
       <VerdictChip

@@ -14,7 +14,10 @@ import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
  */
 
 export type Column = {
+  /** Título de la columna. Siempre presente: lo leen los lectores de pantalla. */
   readonly header: string;
+  /** Oculta el título a la vista (columnas de icono o de acción), no a los lectores. */
+  readonly hideHeader?: boolean;
   readonly align?: "left" | "right";
   /** Ancho CSS opcional: "6rem", "20%". */
   readonly width?: string;
@@ -88,14 +91,14 @@ export function DataTable({
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-line text-left">
-            {columns.map((column) => (
+            {columns.map((column, c) => (
               <th
-                key={column.header}
+                key={c}
                 scope="col"
                 style={column.width ? { width: column.width } : undefined}
                 className={`h-8 px-3 text-[12px] font-medium text-ink-2 ${column.align === "right" ? "text-right" : ""}`}
               >
-                {column.header}
+                <span className={column.hideHeader ? "sr-only" : undefined}>{column.header}</span>
               </th>
             ))}
           </tr>
@@ -123,7 +126,7 @@ export function DataTable({
             >
               {row.cells.map((cell, c) => (
                 <td
-                  key={columns[c]?.header ?? c}
+                  key={c}
                   className={`px-3 align-middle text-ink ${columns[c]?.align === "right" ? "num text-right" : ""}`}
                 >
                   {cell}

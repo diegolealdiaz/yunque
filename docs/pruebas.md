@@ -146,7 +146,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | Id | Verifica | Tipo |
 |---|---|---|
 | P-100 | Página de componentes: los nueve renderizan; contraste 4.5:1 en texto y 3:1 en chips, puntos y bordes de controles, calculado sobre los tokens de `globals.css`; foco visible al navegar con teclado; sin errores de consola | unitario (tokens y render en servidor) + e2e |
-| P-101 | Pendientes muestra las escaladas ordenadas por vencimiento, las frenadas, y el contador coincide con la barra lateral | e2e |
+| P-101 | Pendientes muestra exactamente las escaladas del dataset ordenadas por vencimiento, las frenadas y las pagadas del día, sin el historial; el contador de la barra sale de la misma lectura; otra empresa no ve nada | pipeline + e2e |
 | P-102 | Detalle: seleccionar un campo resalta la cita en imagen y texto; las reglas falladas aparecen primero con valor y umbral | e2e |
 | P-103 | Aprobación: el botón está inactivo hasta marcar todo el checklist; aprobar registra persona y hora; la decisión desaparece de pendientes | e2e |
 | P-104 | Subida: archivo inválido muestra error con causa; válido aparece en la tabla con estado y luego veredicto | e2e |

@@ -1,22 +1,15 @@
 import type { ReactNode } from "react";
 
 import { KeyboardShortcuts } from "../_components/shortcuts";
-import { Sidebar, type ShellState } from "../_components/sidebar";
+import { Sidebar } from "../_components/sidebar";
+import { shellState } from "../_data/inbox";
 
 /**
- * Armazón de todas las pantallas del producto: barra lateral fija y contenido.
- *
- * El estado de la barra (contador, controles, salud) es de muestra hasta el paso 20, en
- * que la barra lee la empresa del visitante y su política vigente.
+ * Armazón de todas las pantallas del producto: barra lateral fija y contenido. La barra lee
+ * la empresa de quien pide, su política vigente y el contador de pendientes.
  */
-const SAMPLE_STATE: ShellState = {
-  organizationName: "Forja Labs Inc.",
-  pendingCount: 3,
-  controls: { payments_enabled: true, dry_run: false, autonomy: "decidir" },
-  health: "ok",
-};
-
-export default function ProductLayout({ children }: { children: ReactNode }) {
+export default async function ProductLayout({ children }: { children: ReactNode }) {
+  const state = await shellState();
   return (
     <div className="flex h-dvh">
       <a
@@ -25,7 +18,7 @@ export default function ProductLayout({ children }: { children: ReactNode }) {
       >
         Saltar al contenido
       </a>
-      <Sidebar state={SAMPLE_STATE} />
+      <Sidebar state={state} />
       <main id="contenido" tabIndex={-1} className="flex-1 overflow-y-auto px-8 py-6 outline-none">
         {children}
       </main>
