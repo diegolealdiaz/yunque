@@ -110,12 +110,12 @@ PAGADAS POR EL AGENTE HOY (14)                                   dentro de las r
 - Las filas escaladas se ordenan por fecha de vencimiento, no por monto, porque lo urgente es lo que vence.
 - El chip de veredicto incluye la regla en lenguaje corto. Al pasar el ratón: identificador, valor observado, umbral, versión de política.
 - Las frenadas no piden acción; se muestran para que nadie se sorprenda y se pueden abrir.
-- Las pagadas se colapsan en una línea. Abrirlas lleva a Facturas con el filtro aplicado.
+- Las pagadas se colapsan en una línea. Abrirlas lleva a Facturas filtrada por veredicto y por "decididas hoy", así la lista tiene las mismas que cuenta la bandeja.
 - En la demo, si hoy no llegó ninguna factura, la bandeja no dice solo "Nada pendiente": guía el primer paso, procesar las facturas de ejemplo en Facturas.
 
 ### 5.2 Detalle de decisión
 
-Arriba de todo, la tarjeta **Por qué**: la decisión explicada para el cliente, sin códigos ni jerga. Un titular ("No se pagó.", "Necesita tu decisión.", "Se pagó dentro de tus reglas."), una frase por cada control que no pasó con los valores de esta factura ("Cobra distinto a lo acordado. La factura cobra 10.000.000 COP. Lo acordado con el beneficiario es 80 h × 95.000 COP."), cuántos controles pasó y **qué puedes hacer**. Lleva el color del veredicto. Sale de los mismos hallazgos registrados, de forma determinista; no cambia la decisión ni reemplaza el registro técnico.
+Arriba de todo, la tarjeta **Por qué**: la decisión explicada para el cliente, sin códigos ni jerga. Un titular ("No se pagó.", "Necesita tu decisión.", "Se pagó dentro de tus reglas."), una frase por cada control que no pasó con los valores de esta factura ("Cobra distinto a lo acordado. La factura cobra 10.000.000 COP. Lo acordado con el beneficiario es 80 h × 95.000 COP."), cuántos controles pasó y **qué puedes hacer**. Lleva el color del veredicto. Sale de los mismos hallazgos registrados, de forma determinista; no cambia la decisión ni reemplaza el registro técnico. Al pie, "¿Fue clara la explicación?" con Sí y No; con No se abre un comentario opcional. La opinión queda en la bitácora y en la línea de tiempo, no cambia la decisión, y la más reciente es la que cuenta.
 
 Debajo, tres columnas con una pregunta cada una.
 
@@ -159,11 +159,11 @@ Debajo, tres columnas con una pregunta cada una.
 
 ### 5.3 Facturas
 
-Tabla densa con filtros arriba y los botones de acción en el encabezado: "Subir factura" (abre un diálogo) y, en la demo, "Procesar facturas de ejemplo (33)" y "Revisar correo de ejemplo (5)", con el número de casos y una línea que dice qué simulan.
+Tabla densa con los botones de acción en el encabezado y, arriba de la tabla, los veredictos en píldoras (Todas, Pagadas, Escaladas, Frenadas) y el formulario de búsqueda, estado y canal. Si se llega desde Pendientes, una píldora "Decididas hoy" muestra el filtro del día y lo quita con un clic. Botones del encabezado: "Subir factura" (abre un diálogo) y, en la demo, "Procesar facturas de ejemplo (33)" y "Revisar correo de ejemplo (5)", con el número de casos y una línea que dice qué simulan.
 
 "Probar con tu factura" (D23, D24) aparece solo si el correo real o Telegram están encendidos. Abre un diálogo: sin acceso, pide el código que tienen los clientes; con él, dice cuándo vence el acceso y muestra una sección por canal. "Por correo": la dirección personal con un botón "Copiar" y cuántos correos admite por día. "Por Telegram": el botón "Conectar Telegram", que abre el bot con un enlace de un solo uso, si el chat ya está conectado y cuántas facturas admite por día. Con un chat conectado, las facturas de ejemplo no se avisan una por una: al terminar el lote, el progreso dice "resumen enviado a Telegram". Yunque nunca responde ni reenvía correos. La factura que llega aparece en la lista por el canal Correo, y un correo que no se procesó (dirección vencida o tope alcanzado) queda en la Bitácora como "Correo no procesado", con el motivo.
 
-Columnas: estado (punto de color y texto en tinta: ámbar espera a una persona, rojo falló o se rechazó, verde aprobada, gris en curso), referencia, beneficiario, monto con moneda, vence, canal, veredicto con regla, actualizada. Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
+Columnas: estado (punto de color y texto en tinta: ámbar espera a una persona, rojo falló o se rechazó, verde aprobada, gris en curso), referencia, beneficiario, monto con moneda, vence, canal, veredicto con regla, actualizada ("hace 12 min", con la fecha exacta al pasar el ratón). Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
 
 ### 5.4 Reglas
 
@@ -186,6 +186,7 @@ Reglas                       Demo sin inicio de sesión · Firmas como [ Ana Tor
 - La pantalla cabe entera sin desplazarse, con el patrón de las páginas de configuración: pestañas en vez de una página larga, grupos en tarjetas con una frase de qué controlan y la barra de acciones fija abajo.
 - El formulario habla en palabras de producto: sin códigos de regla (quedan en el YAML y al pasar el ratón) ni montos en centavos. Cada regla muestra sus dos salidas a la vista, Escalar o Frenar, con el color del veredicto.
 - "Como código" es la misma política en YAML para auditarla o editarla entera; editar uno actualiza el otro. Una línea explica que ahí los montos van en centavos y las tolerancias en puntos básicos.
+- "A quién se puede pagar" lista los beneficiarios registrados con una casilla cada uno, si están verificados y cuántos están permitidos. Es la lista `allowed_payees` de la política: marcar o desmarcar cambia el YAML como cualquier otro campo, y uno fuera de la lista sigue la regla «Beneficiario fuera de la lista».
 - Las claves protegidas van en una línea con candado y sin edición.
 - La pestaña "Tasas de cambio" muestra, de solo lectura, cuánto vale 1 USD en cada moneda y desde qué fecha (D22). No se editan aquí porque cambiarlas cambiaría qué se paga. El detalle de una factura en otra moneda dice con qué tasa se convirtió a USD para los límites.
 - "Ver qué cambiaría" ejecuta el replay sobre el histórico y abre el resultado en un diálogo, desde el que se puede guardar. Es la pantalla que más convence a un cliente y vale la pena pulirla.
@@ -235,10 +236,10 @@ Componentes base: tabla, chip de veredicto, punto de confianza, tarjeta numéric
 
 ## 8. Accesibilidad y estados
 
-- Contraste mínimo 4.5:1 en texto, 3:1 en chips.
-- Todo operable con teclado; foco visible.
+- Contraste mínimo 4.5:1 en texto, 3:1 en chips, en los dos temas.
+- Todo operable con teclado; foco visible. El detalle que se abre al pasar el ratón o con el foco (el del chip de veredicto) se cierra con Esc sin mover el ratón ni el foco.
 - Semántica de color siempre acompañada de icono y texto.
-- Estados de carga como esqueleto de la tabla, no como rueda.
+- Estados de carga como esqueleto con la forma de cada pantalla (cifra y tabla en Pendientes, píldoras y tabla en Facturas, tarjeta "Por qué" y tres columnas en el detalle, tarjetas en Reglas y Métricas), no como rueda.
 - Estado vacío con una frase que confirma lo que pasó y un enlace a verlo.
 - Error de red: la fila mantiene su último estado y muestra "sin conexión, reintentando".
 

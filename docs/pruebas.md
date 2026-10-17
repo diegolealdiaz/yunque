@@ -185,6 +185,8 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-139 | Acceso de cliente: sin acceso, las acciones de cliente se rechazan; tras 5 intentos fallidos en 15 minutos el código no se revisa, ni el correcto, hasta que pasa la ventana; el acceso dura lo configurado y no se extiende | pipeline, `@seguridad` |
 | P-140 | Rutas de los canales de cliente, invocadas como en Next con una base temporal: `/api/acceso` exige el mismo origen, limita intentos (429) y da acceso; `/api/telegram/enlace` solo con acceso; `/api/correo/entrante` exige la contraseña, ignora lo inválido y admite el correo a una dirección real; `/api/telegram` exige el secreto, responde «privado» a un chat desconocido y conecta con el enlace; `/api/lote/resumen` exige el mismo origen y no manda nada sin facturas de ejemplo | API, `@seguridad` |
 | P-141 | Tema: sin elección guardada sigue al sistema; la elección guardada manda; con el almacenamiento bloqueado queda el claro; el selector alterna entre los dos | unidad |
+| P-142 | "¿Fue clara la explicación?": sin opiniones no hay ninguna; la opinión queda como evento en la bitácora y en la línea de tiempo sin cambiar la decisión; la más reciente es la que cuenta; no se opina sobre una decisión que ya no es la vigente; un comentario de más de 500 caracteres no se guarda | pipeline |
+| P-143 | Pulido de listas: Facturas filtra por "decididas desde", como las pagadas de hoy en Pendientes; las listas dicen "hace 12 min", "ayer" o la fecha exacta desde una semana; la lista de beneficiarios permitidos se lee y se cambia en el YAML sin duplicados y sin tocar el resto | pipeline + unidad |
 
 ## 4. Matriz de fronteras por regla (P-20)
 
