@@ -19,7 +19,9 @@ export type UseCaseErrorCode =
   /** Ni la decisión ni el escalado por error se pudieron registrar. */
   | "record_failed"
   /** Se alcanzó el tope de facturas del día, por visitante o global. */
-  | "limit_reached";
+  | "limit_reached"
+  /** La política vigente ya no es la que se editó: otra persona guardó antes. */
+  | "policy_changed";
 
 export type Severity = "error" | "warning";
 

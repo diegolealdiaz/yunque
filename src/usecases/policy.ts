@@ -1,4 +1,4 @@
-import { withWriteTransaction } from "@/src/db/client";
+import { withWriteTransaction, type Executor } from "@/src/db/client";
 import {
   appendEvent,
   appendPolicyVersion,
@@ -27,12 +27,13 @@ import {
   type Ulid,
   type Verdict,
 } from "@/src/domain";
-import { decidingFinding, evaluate, type PayeeMatch } from "@/src/engine";
+import { decidingFinding, evaluate, type PayeeMatch, type PriorInvoice } from "@/src/engine";
 import { resolvePayee } from "@/src/resolve";
 
 import { businessDateOf, engineNow } from "./business-day";
 import { CorrectionError, readingFor, reevaluateWithCurrentPolicy } from "./correct-invoice";
 import { readEvaluationContext, type DecideDeps } from "./decide";
+import { UseCaseError } from "./errors";
 
 /**
  * Política: ver qué cambiaría, guardar una versión nueva y cambiar los interruptores
@@ -114,8 +115,13 @@ export async function previewPolicyChange(
   const changes: PolicyChange[] = [];
   let skipped = 0;
   // Lo que los `pagar` anteriores del mismo replay ya comprometerían, en USD y por moneda.
+  // En modo de prueba el replay no reserva nada, así que tampoco se acumula aquí.
+  const dryRun = input.candidate.controls.dry_run;
   let committedUsd = 0;
   const spent = new Map<string, number>();
+  // Facturas que el replay pagaría antes: para las siguientes ya cuentan como pagadas en el
+  // historial (primer pago, monto atípico, duplicados), igual que después de guardar.
+  const predicted = new Map<Ulid, PriorInvoice["outcome"]>();
 
   for (const { invoice, decision } of open) {
     const stored = await getLatestExtraction(deps.db, organization.id, invoice.id);
@@ -148,13 +154,20 @@ export async function previewPolicyChange(
         ...b,
         available: b.available - (spent.get(b.currency) ?? 0),
       })),
+      prior: context.prior.map((row) => {
+        const outcome = predicted.get(row.invoice_id);
+        return outcome ? { ...row, outcome } : row;
+      }),
     });
-    if (evaluation.verdict === "pagar" && decision.amount) {
-      committedUsd += toUsd(decision.amount, organization.fx).amount;
-      spent.set(
-        decision.amount.currency,
-        (spent.get(decision.amount.currency) ?? 0) + decision.amount.amount,
-      );
+    if (evaluation.verdict === "pagar") {
+      predicted.set(invoice.id, dryRun ? "simulada" : "pagar");
+      if (!dryRun && decision.amount) {
+        committedUsd += toUsd(decision.amount, organization.fx).amount;
+        spent.set(
+          decision.amount.currency,
+          (spent.get(decision.amount.currency) ?? 0) + decision.amount.amount,
+        );
+      }
     }
     const before = summary(decision);
     const after = summary(evaluation);
@@ -165,9 +178,13 @@ export async function previewPolicyChange(
   return { evaluated: open.length, changes, skipped };
 }
 
-/** Quien firma debe estar en la lista de aprobadores de la política vigente. */
-async function authorize(deps: DecideDeps, organizationId: Ulid, signer: string | null) {
-  const current = await getCurrentPolicy(deps.db, organizationId);
+/**
+ * Quien firma debe estar en la lista de aprobadores de la política vigente. Se lee dentro de
+ * la transacción que escribe la versión nueva: un cambio simultáneo de otra pestaña (apagar
+ * pagos, otra versión) no se pisa.
+ */
+async function authorize(exec: Executor, organizationId: Ulid, signer: string | null) {
+  const current = await getCurrentPolicy(exec, organizationId);
   if (!current) throw new PolicyError(["La empresa no tiene política vigente"]);
   if (signer === null || !current.content.protected.approvers.includes(signer)) {
     throw new CorrectionError(
@@ -185,7 +202,7 @@ export type ReplayResult = {
   readonly changed: number;
   /** Abiertas sin lectura guardada: no se reevalúan, como en la vista previa. */
   readonly skipped: number;
-  /** Las que otra persona cambió mientras se reevaluaban. */
+  /** Las que no se pudieron reevaluar: otra persona las cambió o algo falló; siguen abiertas. */
   readonly failed: number;
 };
 
@@ -195,20 +212,29 @@ export async function savePolicy(
   input: {
     readonly organizationId: Ulid;
     readonly candidate: Policy;
+    /** Versión sobre la que se editó: si ya no es la vigente, no se guarda. */
+    readonly baseVersion: number;
     readonly signedBy: string | null;
     readonly note: string | null;
   },
 ): Promise<ReplayResult> {
-  const { current, signer } = await authorize(deps, input.organizationId, input.signedBy);
-  // Las claves protegidas y los controles nunca llegan desde el editor.
-  const content = parsePolicy({
-    ...input.candidate,
-    protected: current.content.protected,
-    controls: current.content.controls,
-  });
   const at = deps.now().toISOString();
   const traceId = `tr-${deps.newId()}`;
-  const version = await withWriteTransaction(deps.db, async (tx) => {
+  const { version, signer } = await withWriteTransaction(deps.db, async (tx) => {
+    const { current, signer } = await authorize(tx, input.organizationId, input.signedBy);
+    if (current.version !== input.baseVersion) {
+      throw new UseCaseError(
+        "policy_changed",
+        `La política cambió desde que la abriste: ahora es la v${String(current.version)}`,
+        { action: "Recarga la página y vuelve a aplicar tus cambios" },
+      );
+    }
+    // Las claves protegidas y los controles nunca llegan desde el editor.
+    const content = parsePolicy({
+      ...input.candidate,
+      protected: current.content.protected,
+      controls: current.content.controls,
+    });
     const saved = await appendPolicyVersion(
       tx,
       input.organizationId,
@@ -241,7 +267,7 @@ export async function savePolicy(
       trace_id: traceId,
       occurred_at: at,
     });
-    return saved;
+    return { version: saved, signer };
   });
 
   const open = await openInvoices(deps, input.organizationId);
@@ -263,8 +289,9 @@ export async function savePolicy(
       const before = summary(decision);
       const after = summary(result.decision);
       if (before.verdict !== after.verdict || before.rule !== after.rule) changed += 1;
-    } catch (error) {
-      if (!(error instanceof CorrectionError)) throw error;
+    } catch {
+      // La versión ya está guardada: una factura que no se pudo reevaluar queda abierta con
+      // su decisión anterior y se cuenta, sin cortar el replay de las demás ni su registro.
       failed += 1;
     }
   }
@@ -297,11 +324,11 @@ export async function changeControls(
     readonly signedBy: string | null;
   },
 ): Promise<PolicyVersion> {
-  const { current, signer } = await authorize(deps, input.organizationId, input.signedBy);
-  const controls = { ...current.content.controls, ...input.controls };
-  const content = parsePolicy({ ...current.content, controls });
   const at = deps.now().toISOString();
   return withWriteTransaction(deps.db, async (tx) => {
+    const { current, signer } = await authorize(tx, input.organizationId, input.signedBy);
+    const controls = { ...current.content.controls, ...input.controls };
+    const content = parsePolicy({ ...current.content, controls });
     const saved = await appendPolicyVersion(
       tx,
       input.organizationId,

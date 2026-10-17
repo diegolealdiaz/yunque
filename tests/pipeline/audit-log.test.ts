@@ -89,6 +89,7 @@ describe("bitácora (P-109)", () => {
       {
         organizationId: p.organizationId,
         candidate: current.content,
+        baseVersion: current.version,
         signedBy: "Diego Leal",
         note: null,
       },

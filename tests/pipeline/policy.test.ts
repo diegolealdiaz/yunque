@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import * as repos from "@/src/db/repositories";
 import { PolicyError, policyEditToYaml, type Policy } from "@/src/domain";
+import { decidingFinding } from "@/src/engine";
 import {
   CorrectionError,
   candidateFromYaml,
@@ -60,6 +61,50 @@ function higherThreshold(current: Policy): Policy {
   return candidateFromYaml(current, yaml);
 }
 
+/** Veredicto y regla vigentes de cada factura de la empresa. */
+async function verdicts(): Promise<Map<string, string>> {
+  const invoices = await repos.listInvoices(p.t.db, p.organizationId, { limit: 500 });
+  const latest = await repos.listLatestDecisions(
+    p.t.db,
+    p.organizationId,
+    invoices.map((i) => i.id),
+  );
+  return new Map(
+    [...latest].map(([id, d]) => [id, `${d.verdict}:${decidingFinding(d)?.code ?? "-"}`]),
+  );
+}
+
+/**
+ * Guarda el candidato y comprueba que el replay cambió exactamente las facturas que la vista
+ * previa anunció, cada una al veredicto y la regla anunciados.
+ */
+async function expectReplayAsPreviewed(candidate: Policy): Promise<number> {
+  const preview = await previewPolicyChange(deps(), {
+    organizationId: p.organizationId,
+    candidate,
+  });
+  const before = await verdicts();
+  await savePolicy(deps(), {
+    organizationId: p.organizationId,
+    candidate,
+    baseVersion: await currentVersion(),
+    signedBy: SIGNER,
+    note: null,
+  });
+  const after = await verdicts();
+  const changed = [...after].filter(([id, v]) => before.get(id) !== v).map(([id]) => id);
+  expect(changed.sort()).toEqual(preview.changes.map((c) => c.invoiceId).sort());
+  for (const change of preview.changes) {
+    expect(after.get(change.invoiceId)).toBe(`${change.after.verdict}:${change.after.rule ?? "-"}`);
+  }
+  return preview.changes.length;
+}
+
+/** Número de la versión vigente: sobre ella se edita lo que se guarda. */
+async function currentVersion(): Promise<number> {
+  return (await repos.getCurrentPolicy(p.t.db, p.organizationId))?.version ?? 0;
+}
+
 async function current(): Promise<Policy> {
   const version = await repos.getCurrentPolicy(p.t.db, p.organizationId);
   if (!version) throw new Error("sin política");
@@ -102,6 +147,7 @@ describe("ver qué cambiaría (P-107)", () => {
     const result = await savePolicy(deps(), {
       organizationId: p.organizationId,
       candidate,
+      baseVersion: await currentVersion(),
       signedBy: SIGNER,
       note: "Umbral al límite por pago",
     });
@@ -119,6 +165,32 @@ describe("ver qué cambiaría (P-107)", () => {
   }, 120_000);
 });
 
+describe("la vista previa es exacta (P-107)", () => {
+  it("con el presupuesto justo, lo que paga una factura ya no cabe para la siguiente", async () => {
+    const raised = higherThreshold(await current());
+    const ledger = await repos.getLedgerPeriod(p.t.db, p.organizationId, "2026-10", "USD");
+    if (!ledger) throw new Error("sin periodo");
+    // Queda espacio para un pago chico, no para el que libera el umbral nuevo.
+    const tight = candidateFromYaml(
+      raised,
+      policyEditToYaml(raised).replace(
+        /budget:\n(\s+)amount: \d+/,
+        `budget:\n$1amount: ${String(ledger.committed + 100_000)}`,
+      ),
+    );
+    await expectReplayAsPreviewed(tight);
+  }, 120_000);
+
+  it("en modo de prueba el replay no reserva, y la vista previa tampoco", async () => {
+    await changeControls(deps(), {
+      organizationId: p.organizationId,
+      controls: { dry_run: true },
+      signedBy: SIGNER,
+    });
+    expect(await expectReplayAsPreviewed(higherThreshold(await current()))).toBeGreaterThan(0);
+  }, 120_000);
+});
+
 describe("guardar y reproducir (P-106, P-29)", () => {
   it("P-29 con la misma política el replay reproduce cada veredicto, y las pagadas no se tocan", async () => {
     const paidBefore = (
@@ -127,6 +199,7 @@ describe("guardar y reproducir (P-106, P-29)", () => {
     const result = await savePolicy(deps(), {
       organizationId: p.organizationId,
       candidate: await current(),
+      baseVersion: await currentVersion(),
       signedBy: SIGNER,
       note: null,
     });
@@ -149,10 +222,34 @@ describe("guardar y reproducir (P-106, P-29)", () => {
       savePolicy(deps(), {
         organizationId: p.organizationId,
         candidate: policy,
+        baseVersion: await currentVersion(),
         signedBy: "Alguien Más",
         note: null,
       }),
     ).rejects.toBeInstanceOf(CorrectionError);
+  });
+
+  it("no pisa lo que otra persona guardó: se rechaza si la versión editada ya no es la vigente", async () => {
+    const edited = await currentVersion();
+    const candidate = higherThreshold(await current());
+    // Otra pestaña apaga los pagos mientras tanto: eso crea una versión nueva.
+    await changeControls(deps(), {
+      organizationId: p.organizationId,
+      controls: { payments_enabled: false },
+      signedBy: SIGNER,
+    });
+    await expect(
+      savePolicy(deps(), {
+        organizationId: p.organizationId,
+        candidate,
+        baseVersion: edited,
+        signedBy: SIGNER,
+        note: null,
+      }),
+    ).rejects.toMatchObject({ code: "policy_changed" });
+    const now = await current();
+    expect(now.controls.payments_enabled).toBe(false);
+    expect(await currentVersion()).toBe(edited + 1);
   });
 
   it("un interruptor crea una versión con su evento, sin tocar el resto de la política", async () => {

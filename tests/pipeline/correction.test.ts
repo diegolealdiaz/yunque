@@ -127,6 +127,7 @@ describe("corregir campos de una escalada", () => {
     await savePolicy(deps(), {
       organizationId: p.organizationId,
       candidate: current.content,
+      baseVersion: current.version,
       signedBy: CORRECTOR,
       note: null,
     });

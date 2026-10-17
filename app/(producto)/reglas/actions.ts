@@ -8,6 +8,7 @@ import { PolicyError, type Controls, type FindingCode, type Verdict } from "@/sr
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
 import {
   CorrectionError,
+  UseCaseError,
   candidateFromYaml,
   changeControls,
   previewPolicyChange,
@@ -82,6 +83,8 @@ export async function saveAction(_previous: SaveState, form: FormData): Promise<
     const result = await savePolicy(deps, {
       organizationId: organization.id,
       candidate,
+      // La versión que el editor tenía cargada: si otra persona guardó antes, no se pisa.
+      baseVersion: Number(text(form, "version")),
       signedBy: approver,
       note: text(form, "nota").trim() || null,
     });
@@ -90,14 +93,14 @@ export async function saveAction(_previous: SaveState, form: FormData): Promise<
     deliverNotificationsAfterResponse(organization.id);
     return {
       ok: true,
-      message: `Guardada como v${String(result.version.version)}. Se reevaluaron ${String(result.evaluated - result.skipped)} facturas abiertas y cambiaron ${String(result.changed)}.`,
+      message: `Guardada como v${String(result.version.version)}. Se reevaluaron ${String(result.evaluated - result.skipped - result.failed)} facturas abiertas y cambiaron ${String(result.changed)}.${result.failed > 0 ? ` ${String(result.failed)} no se pudieron reevaluar y siguen como estaban.` : ""}`,
       action: null,
     };
   } catch (error) {
     if (error instanceof PolicyError) {
       return { ok: false, message: error.problems.join(" · "), action: "Corrige el YAML" };
     }
-    if (error instanceof CorrectionError) {
+    if (error instanceof CorrectionError || error instanceof UseCaseError) {
       return { ok: false, message: error.message, action: error.action };
     }
     throw error;

@@ -90,7 +90,13 @@ describe("Métricas contra la evaluación (P-91)", () => {
         timeZone: "America/Bogota",
         businessDate: TODAY,
       },
-      { organizationId: p.organizationId, candidate: raised, signedBy: "Diego Leal", note: null },
+      {
+        organizationId: p.organizationId,
+        candidate: raised,
+        baseVersion: current.version,
+        signedBy: "Diego Leal",
+        note: null,
+      },
     );
     expect(replay.changed).toBeGreaterThan(0);
     const after = await metrics();

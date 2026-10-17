@@ -17,6 +17,7 @@ const STATUS: Readonly<Record<UseCaseErrorCode, number>> = {
   storage_unavailable: 503,
   record_failed: 500,
   limit_reached: 429,
+  policy_changed: 409,
 };
 
 export type ApiError = {

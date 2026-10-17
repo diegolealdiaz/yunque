@@ -405,6 +405,7 @@ export function PolicyWorkbench({
             no se tocan.
           </p>
           <input type="hidden" name="yaml" value={yaml} />
+          <input type="hidden" name="version" value={version} />
           <label className="block text-[13px]">
             <span className="text-[12px] text-ink-3">Nota (opcional, queda en la versión)</span>
             <input
