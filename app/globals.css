@@ -1,27 +1,86 @@
 @import "tailwindcss";
 
+/*
+ * Sistema visual de Yunque (docs/interfaz.md §6).
+ *
+ * - Neutros cálidos: papel y tinta azul-negra; los grises derivan de la tinta.
+ * - Ningún color de marca. Los únicos colores cromáticos son los del veredicto:
+ *   verde pagar, ámbar escalar, rojo frenar. Siempre acompañados de icono y texto.
+ * - Contraste: texto 4.5:1 sobre su fondo, chips y puntos 3:1. La prueba
+ *   tests/ui/tokens.test.ts lee este archivo y lo comprueba par por par.
+ * - Rejilla de 4 px, filas de 36 px, radios de 4 px en controles y 12 px en tarjetas.
+ */
+
 :root {
+  /* Superficies */
   --paper: #f8f7f3;
   --surface: #ffffff;
+  --surface-hover: #f1efe9;
+  --surface-sunken: #efede6;
+
+  /* Tinta y sus derivados */
   --ink: #1a2233;
-  --ink-muted: #5b6474;
-  --line: #e2e1dc;
-  --verdict-pay: #1f7a4d;
-  --verdict-escalate: #b4690e;
-  --verdict-hold: #b42318;
+  --ink-2: #4b5468;
+  --ink-3: #636b7d;
+  --line: #e3e1da;
+  --line-strong: #c9c6bd;
+  /* Borde de controles (casillas, campos, interruptores): 3:1 sobre la superficie. */
+  --control: #7b8292;
+
+  /* Veredictos: texto sobre su tinte, y el punto sólido para iconos y marcas */
+  --pay: #17663f;
+  --pay-tint: #e6f2eb;
+  --pay-solid: #1f8a52;
+  --escalate: #8a4b00;
+  --escalate-tint: #fbf0de;
+  --escalate-solid: #b86e00;
+  --hold: #a11b12;
+  --hold-tint: #fbe7e5;
+  --hold-solid: #c62b1f;
+  --pending: #4b5468;
+  --pending-tint: #ecebe6;
+
+  /* Foco: anillo de tinta, siempre visible al navegar con teclado */
+  --focus: #1a2233;
+
+  --radius-control: 4px;
+  --radius-card: 12px;
+  --row-height: 36px;
 }
 
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-sunken: var(--surface-sunken);
   --color-ink: var(--ink);
-  --color-ink-muted: var(--ink-muted);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
   --color-line: var(--line);
-  --color-verdict-pay: var(--verdict-pay);
-  --color-verdict-escalate: var(--verdict-escalate);
-  --color-verdict-hold: var(--verdict-hold);
+  --color-line-strong: var(--line-strong);
+  --color-control: var(--control);
+  --color-pay: var(--pay);
+  --color-pay-tint: var(--pay-tint);
+  --color-pay-solid: var(--pay-solid);
+  --color-escalate: var(--escalate);
+  --color-escalate-tint: var(--escalate-tint);
+  --color-escalate-solid: var(--escalate-solid);
+  --color-hold: var(--hold);
+  --color-hold-tint: var(--hold-tint);
+  --color-hold-solid: var(--hold-solid);
+  --color-pending: var(--pending);
+  --color-pending-tint: var(--pending-tint);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --radius-control: var(--radius-control);
+  --radius-card: var(--radius-card);
+  --text-table: 13px;
+  --text-prose: 14px;
+  --text-title: 22px;
+}
+
+html {
+  background: var(--paper);
 }
 
 body {
@@ -29,5 +88,37 @@ body {
   color: var(--ink);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Números tabulares en toda cifra: montos, conteos, fechas. */
+.num,
+table {
   font-variant-numeric: tabular-nums;
+}
+
+/* Foco visible solo con teclado, nunca suprimido. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+/* Esqueleto de carga: bloques quietos con un pulso suave que respeta la preferencia del sistema. */
+.skeleton {
+  background: var(--surface-sunken);
+  border-radius: var(--radius-control);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
