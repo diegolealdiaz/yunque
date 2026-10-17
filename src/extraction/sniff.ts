@@ -47,7 +47,8 @@ export const ChannelPayloadSchema = z.discriminatedUnion("kind", [
     sent_at: z.iso.datetime(),
     subject: z.string().max(500).nullable(),
     body: z.string().max(20_000),
-    attachment: AttachmentSchema,
+    /** Un correo puede llegar sin factura adjunta: se recibe y se escala como ilegible. */
+    attachment: AttachmentSchema.nullable(),
   }),
   z.strictObject({
     kind: z.literal("chat"),

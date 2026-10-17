@@ -108,6 +108,7 @@ export type ProcessInvoiceResult =
     };
 
 const LECTOR_OFF = "El Lector está apagado: falta la clave del modelo";
+const NO_DOCUMENT = "El mensaje no trae una factura adjunta";
 
 // ---------------------------------------------------------------------------
 // Caso de uso
@@ -389,10 +390,13 @@ async function decide(
   );
   const normalizedAt = deps.now().toISOString();
 
+  // Sin páginas (un correo sin adjunto) no hay factura que leer: no se llama al modelo.
   const read = await inStage("read", () =>
-    deps.reader
-      ? deps.reader.read(doc, { organizationId: organization.id, invoiceId: invoice.id, traceId })
-      : readWithoutModel(doc, LECTOR_OFF),
+    doc.pages.length === 0
+      ? readWithoutModel(doc, NO_DOCUMENT)
+      : deps.reader
+        ? deps.reader.read(doc, { organizationId: organization.id, invoiceId: invoice.id, traceId })
+        : readWithoutModel(doc, LECTOR_OFF),
   );
   const extractedAt = deps.now().toISOString();
 

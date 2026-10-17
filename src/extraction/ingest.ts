@@ -4,7 +4,13 @@ import { documentHash, type Sha256, type SourceKind } from "@/src/domain";
 
 import { IngestError } from "./errors";
 import { readPageLayout, type PageLayout } from "./layout";
-import { MIME_BY_TYPE, parseChannelPayload, sniffType, type ChannelPayload } from "./sniff";
+import {
+  MIME_BY_TYPE,
+  parseChannelPayload,
+  sniffType,
+  type ChannelPayload,
+  type SniffedType,
+} from "./sniff";
 import type { FileStorage } from "./storage";
 
 /**
@@ -243,7 +249,7 @@ function channelMeta(payload: ChannelPayload): { meta: Record<string, string>; t
         from: payload.from,
         sent_at: payload.sent_at,
         subject: payload.subject ?? "",
-        attachment: payload.attachment.filename,
+        attachment: payload.attachment?.filename ?? "",
       },
       text: [payload.subject ?? "", payload.body].filter((t) => t.length > 0).join("\n"),
     };
@@ -270,27 +276,32 @@ export function receiveDocument(input: IngestInput, limits: IngestLimits): Recei
   }
 
   let documentBytes = input.bytes;
+  let documentType: SniffedType = type;
   let sourceKind: SourceKind = type === "pdf" ? "pdf" : "image";
   let meta: Record<string, string> = {};
   let channelText: string | null = null;
 
   if (type === "json") {
     const payload = parseChannelPayload(input.bytes);
-    documentBytes = new Uint8Array(Buffer.from(payload.attachment.data_base64, "base64"));
-    assertSize(documentBytes, limits);
-    if (sniffType(documentBytes) !== "pdf") {
-      throw new IngestError(
-        "unsupported_type",
-        "El adjunto no es un PDF",
-        "Adjunta la factura en PDF",
-      );
-    }
     sourceKind = payload.kind;
     ({ meta, text: channelText } = channelMeta(payload));
+    // Con adjunto, el documento es el PDF adjunto. Sin adjunto (un correo que solo trae
+    // texto), el documento es el mensaje mismo: no tiene páginas y se escala como ilegible.
+    if (payload.attachment) {
+      documentBytes = new Uint8Array(Buffer.from(payload.attachment.data_base64, "base64"));
+      assertSize(documentBytes, limits);
+      if (sniffType(documentBytes) !== "pdf") {
+        throw new IngestError(
+          "unsupported_type",
+          "El adjunto no es un PDF",
+          "Adjunta la factura en PDF",
+        );
+      }
+      documentType = "pdf";
+    }
   }
 
   const hash = documentHash(documentBytes);
-  const documentType = documentTypeOf(type);
   const extension = documentType === "jpeg" ? "jpg" : documentType;
   return {
     source_kind: sourceKind,
@@ -302,11 +313,6 @@ export function receiveDocument(input: IngestInput, limits: IngestLimits): Recei
     channel_meta: meta,
     channel_text: channelText,
   };
-}
-
-/** El correo y el chat llevan un PDF adjunto: su documento es un PDF. */
-function documentTypeOf(type: "pdf" | "png" | "jpeg" | "json"): "pdf" | "png" | "jpeg" {
-  return type === "json" ? "pdf" : type;
 }
 
 /** Guarda el original bajo su hash. Escribir dos veces la misma llave deja el mismo contenido. */
@@ -321,6 +327,11 @@ export async function normalizeDocument(
   storage: FileStorage,
   limits: IngestLimits,
 ): Promise<IngestedDocument> {
+  // Un mensaje sin adjunto no tiene páginas: su texto es el del propio mensaje.
+  if (doc.mime_type === MIME_BY_TYPE.json) {
+    const { bytes: _bytes, ...rest } = doc;
+    return { ...rest, pages: [], text: doc.channel_text ?? "", has_text_layer: true };
+  }
   const content =
     doc.mime_type === MIME_BY_TYPE.pdf
       ? await ingestPdf(doc.bytes, doc.document_hash, storagePrefix, storage, limits)

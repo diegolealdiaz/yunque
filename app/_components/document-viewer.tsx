@@ -112,6 +112,11 @@ export function DocumentViewer({
 
   return (
     <div className="space-y-4">
+      {pages.length === 0 ? (
+        <p className="rounded-[var(--radius-card)] border border-dashed border-line-strong bg-surface px-4 py-6 text-center text-[13px] text-ink-2">
+          El mensaje no trae un documento adjunto. Abajo está su texto, tal como llegó.
+        </p>
+      ) : null}
       {pages.map((page, index) => (
         <figure
           key={page.src}

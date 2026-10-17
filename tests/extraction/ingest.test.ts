@@ -173,6 +173,47 @@ describe("ingesta (P-52 a P-56)", () => {
     ).rejects.toMatchObject({ code: "unsupported_type" });
   });
 
+  it("un correo sin adjunto se recibe: su documento es el mensaje, sin páginas", async () => {
+    const storage = new MemoryFileStorage();
+    const bytes = new TextEncoder().encode(
+      JSON.stringify({
+        kind: "email",
+        from: "camila.rojas@ejemplo.co",
+        sent_at: "2026-10-16T20:10:00.000Z",
+        subject: "¿Recibieron mi cuenta de cobro?",
+        body: "Quería confirmar si les llegó.",
+        attachment: null,
+      }),
+    );
+    const doc = await ingestDocument(
+      { bytes, originalName: "m.json", storagePrefix: prefix },
+      storage,
+      limits,
+    );
+    expect(doc.source_kind).toBe("email");
+    expect(doc.mime_type).toBe("application/json");
+    expect(doc.pages).toEqual([]);
+    expect(doc.text).toContain("Quería confirmar");
+    expect(doc.channel_meta).toMatchObject({ attachment: "" });
+    // Un chat sigue exigiendo adjunto.
+    const chat = new TextEncoder().encode(
+      JSON.stringify({
+        kind: "chat",
+        from: "x",
+        sent_at: "2026-10-17T00:00:00.000Z",
+        text: "hola",
+        attachment: null,
+      }),
+    );
+    await expect(
+      ingestDocument(
+        { bytes: chat, originalName: "c.json", storagePrefix: prefix },
+        storage,
+        limits,
+      ),
+    ).rejects.toMatchObject({ code: "invalid_channel_payload" });
+  });
+
   it("las llaves de almacenamiento nunca aceptan rutas del cliente", () => {
     expect(() => assertSafeKey("org/hash/original.pdf")).not.toThrow();
     for (const bad of ["../x", "/abs", "a//b", "a/../b", "a b", ""])
