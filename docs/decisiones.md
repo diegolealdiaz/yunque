@@ -129,6 +129,14 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 
 **Consecuencia.** Cambiar la política no reescribe la autonomía pasada, y bajar la autonomía exige que el agente decida peor, no que una persona corrija. El tiempo de decisión se mide de la recepción a la decisión guardada, así que difiere en milisegundos del que mide `eval` alrededor del proceso; por eso P-91 no compara latencias.
 
+## D20. Una sola lectura de salud, con tres niveles
+
+**Contexto.** La salud aparece en tres lugares: `/api/health` para un monitor, la pantalla de Salud y el punto de la barra lateral. Si cada uno la calculara a su manera, podrían decir cosas distintas. Además, en la demo cada visita sin cookie siembra una empresa, y un monitor que consulta cada minuto no debe crear una empresa por consulta.
+
+**Decisión.** Los tres leen `checkHealth`. Son críticos la base, la política vigente y el proveedor del modelo, que cuenta como caído si no hay clave o si su última llamada falló hace menos de media hora: si uno falla, el estado es `falla` y la API responde 503. Las escaladas con la espera vencida y los avisos sin entregar no detienen al agente, pero alguien tiene que mirarlos: el estado es `degradada` y la API responde 200. La API usa la empresa de la cookie si ya existe y nunca siembra una; sin empresa, revisa solo lo del sistema. Nunca expone secretos ni el mensaje del driver de la base, solo estados y conteos.
+
+**Consecuencia.** Sin la clave del modelo, la salud está en rojo aunque la demo funcione, porque toda factura se escala como ilegible: es exactamente lo que hay que ver.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

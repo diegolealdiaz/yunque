@@ -80,3 +80,17 @@ export const appContext = cache(async (): Promise<AppContext> => {
   }
   return { config, db, organization };
 });
+
+/**
+ * La empresa de quien pregunta, si ya existe, sin sembrar una nueva. La usa `/api/health`:
+ * un monitor que consulta sin cookie no debe crear una empresa por cada consulta.
+ */
+export async function existingOrganization(
+  db: Database,
+  config: Config,
+): Promise<Organization | null> {
+  if (!config.demo.enabled) return findBaseOrganization(db);
+  const jar = await cookies();
+  const visitorId = verifyVisitor(jar.get(VISITOR_COOKIE)?.value, config.secrets.session);
+  return visitorId === null ? null : findOrganizationByVisitor(db, visitorId);
+}

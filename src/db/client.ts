@@ -50,6 +50,11 @@ export async function runMigrations(db: Database): Promise<void> {
 }
 
 /** Cierra la conexión y olvida la instancia compartida si era esta. */
+/** Comprueba que la base responde: una consulta trivial. Lanza si no hay conexión. */
+export async function pingDatabase(db: Database): Promise<void> {
+  await db.$client.execute("select 1");
+}
+
 export function closeDatabase(db: Database): void {
   db.$client.close();
   if (sharedInstance === db) {

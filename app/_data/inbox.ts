@@ -1,11 +1,18 @@
 import { cache } from "react";
 
 import { getCurrentPolicy } from "@/src/db/repositories";
-import { currentBusinessDate, loadInbox, startOfBusinessDay, type Inbox } from "@/src/usecases";
+import {
+  currentBusinessDate,
+  loadInbox,
+  startOfBusinessDay,
+  type HealthStatus,
+  type Inbox,
+} from "@/src/usecases";
 
-import type { ShellState } from "../_components/sidebar";
+import type { HealthLevel, ShellState } from "../_components/sidebar";
 
 import { appContext } from "./context";
+import { healthReport } from "./health";
 
 /**
  * Datos de la bandeja y de la barra lateral, una vez por petición: el contador de la barra
@@ -33,9 +40,20 @@ export const inboxView = cache(async (): Promise<InboxView> => {
   };
 });
 
+/** El estado de salud como lo nombra la barra lateral. */
+const HEALTH_LEVEL: Readonly<Record<HealthStatus, HealthLevel>> = {
+  ok: "ok",
+  degradada: "degradada",
+  falla: "caida",
+};
+
 export const shellState = cache(async (): Promise<ShellState> => {
-  const { config, db, organization } = await appContext();
-  const [inbox, policy] = await Promise.all([inboxView(), getCurrentPolicy(db, organization.id)]);
+  const { db, organization } = await appContext();
+  const [inbox, policy, health] = await Promise.all([
+    inboxView(),
+    getCurrentPolicy(db, organization.id),
+    healthReport(() => Promise.resolve(organization.id)),
+  ]);
   return {
     organizationName: organization.name,
     pendingCount: inbox.waiting.length,
@@ -45,6 +63,6 @@ export const shellState = cache(async (): Promise<ShellState> => {
       dry_run: false,
       autonomy: "recomendar",
     },
-    health: policy === null ? "caida" : config.model === null ? "degradada" : "ok",
+    health: HEALTH_LEVEL[health.status],
   };
 });
