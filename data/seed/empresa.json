@@ -1,0 +1,26 @@
+{
+  "name": "Forja Labs Inc.",
+  "reference_prefix": "YQ",
+  "source_account_id": "acct_usd_delaware_0001",
+  "approvers": ["Diego Leal"],
+  "fx": {
+    "base": "USD",
+    "asOf": "2026-10-01",
+    "perUsd": {
+      "USD": 1000000,
+      "EUR": 920000,
+      "COP": 4150250000,
+      "BRL": 5320000,
+      "MXN": 18250000,
+      "ARS": 1450000000
+    }
+  },
+  "balances": {
+    "USD": 12000000,
+    "EUR": 800000,
+    "COP": 2500000000,
+    "BRL": 2000000,
+    "MXN": 9000000,
+    "ARS": 150000000
+  }
+}

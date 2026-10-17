@@ -1,0 +1,180 @@
+[
+  {
+    "key": "nube_andina",
+    "name": "Nube Andina SAS",
+    "aliases": ["Nube Andina", "NUBE ANDINA S.A.S."],
+    "tax_id": "901234567-8",
+    "country": "CO",
+    "account": {
+      "country": "CO",
+      "currency": "COP",
+      "rail": "bre_b",
+      "account_number": "31245679023",
+      "bank_code": "007",
+      "holder_name": "Nube Andina SAS",
+      "holder_tax_id": "901234567-8"
+    },
+    "verification": {
+      "status": "verificado",
+      "by": "Diego Leal",
+      "at": "2026-08-02T14:00:00.000Z"
+    },
+    "agreement": {
+      "kind": "recurring",
+      "expected": { "amount": 480000000, "currency": "COP" },
+      "period": "month"
+    }
+  },
+  {
+    "key": "camila_rojas",
+    "name": "Camila Rojas",
+    "aliases": ["C. Rojas", "Camila Rojas Diseño"],
+    "tax_id": "1032456789",
+    "country": "CO",
+    "account": {
+      "country": "CO",
+      "currency": "COP",
+      "rail": "transferencia_co",
+      "account_number": "40098812345",
+      "bank_code": "051",
+      "holder_name": "Camila Rojas"
+    },
+    "verification": {
+      "status": "verificado",
+      "by": "Diego Leal",
+      "at": "2026-08-02T14:05:00.000Z"
+    },
+    "agreement": {
+      "kind": "hourly",
+      "rate": { "amount": 9500000, "currency": "COP" },
+      "hours_per_period": 80,
+      "period": "month"
+    }
+  },
+  {
+    "key": "mateo_hernandez",
+    "name": "Mateo Hernández",
+    "aliases": ["Mateo Hernandez", "M. Hernández Dev"],
+    "tax_id": "HEMM900101AB1",
+    "country": "MX",
+    "account": {
+      "country": "MX",
+      "currency": "MXN",
+      "rail": "spei",
+      "account_number": "012180001234567891",
+      "holder_name": "Mateo Hernández Martínez"
+    },
+    "verification": {
+      "status": "verificado",
+      "by": "Diego Leal",
+      "at": "2026-08-03T16:00:00.000Z"
+    },
+    "agreement": {
+      "kind": "hourly",
+      "rate": { "amount": 65000, "currency": "MXN" },
+      "hours_per_period": 120,
+      "period": "month"
+    }
+  },
+  {
+    "key": "lucia_ferreyra",
+    "name": "Lucía Ferreyra",
+    "aliases": ["Lucia Ferreyra", "L. Ferreyra"],
+    "tax_id": "27345678901",
+    "country": "AR",
+    "account": {
+      "country": "AR",
+      "currency": "ARS",
+      "rail": "cbu",
+      "account_number": "0170099220000012345678",
+      "holder_name": "Lucía Ferreyra"
+    },
+    "verification": {
+      "status": "verificado",
+      "by": "Diego Leal",
+      "at": "2026-08-03T16:10:00.000Z"
+    },
+    "agreement": {
+      "kind": "hourly",
+      "rate": { "amount": 4500000, "currency": "ARS" },
+      "hours_per_period": 100,
+      "period": "month"
+    }
+  },
+  {
+    "key": "joao_lima",
+    "name": "João Lima Consultoria ME",
+    "aliases": ["Joao Lima", "João Lima"],
+    "tax_id": "12345678000199",
+    "country": "BR",
+    "account": {
+      "country": "BR",
+      "currency": "BRL",
+      "rail": "pix",
+      "account_number": "12345678000199",
+      "holder_name": "João Lima Consultoria ME",
+      "holder_tax_id": "12345678000199"
+    },
+    "verification": {
+      "status": "verificado",
+      "by": "Diego Leal",
+      "at": "2026-08-05T13:00:00.000Z"
+    },
+    "agreement": {
+      "kind": "recurring",
+      "expected": { "amount": 850000, "currency": "BRL" },
+      "period": "month"
+    }
+  },
+  {
+    "key": "stackline",
+    "name": "Stackline Cloud Inc.",
+    "aliases": ["Stackline", "Stackline Cloud"],
+    "tax_id": "84-1234567",
+    "country": "US",
+    "account": {
+      "country": "US",
+      "currency": "USD",
+      "rail": "ach",
+      "account_number": "000123456789",
+      "bank_code": "021000021",
+      "holder_name": "Stackline Cloud Inc."
+    },
+    "verification": {
+      "status": "verificado",
+      "by": "Diego Leal",
+      "at": "2026-08-01T10:00:00.000Z"
+    },
+    "agreement": {
+      "kind": "recurring",
+      "expected": { "amount": 249000, "currency": "USD" },
+      "period": "month"
+    }
+  },
+  {
+    "key": "datenwerk",
+    "name": "Datenwerk GmbH",
+    "aliases": ["Datenwerk"],
+    "tax_id": "DE123456789",
+    "country": "EU",
+    "account": {
+      "country": "EU",
+      "currency": "EUR",
+      "rail": "sepa",
+      "account_number": "DE89370400440532013000",
+      "bank_code": "COBADEFFXXX",
+      "holder_name": "Datenwerk GmbH"
+    },
+    "verification": { "status": "pendiente" },
+    "agreement": {
+      "kind": "purchase_orders",
+      "orders": [
+        {
+          "number": "PO-2026-031",
+          "amount": { "amount": 1200000, "currency": "EUR" },
+          "open": true
+        }
+      ]
+    }
+  }
+]
