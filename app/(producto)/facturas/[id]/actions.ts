@@ -3,13 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-import { getCurrentPolicy } from "@/src/db/repositories";
-import {
-  APPROVER_COOKIE,
-  VISITOR_COOKIE_MAX_AGE_S,
-  signApprover,
-  verifyApprover,
-} from "@/src/session";
+import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
 import {
   ExtractedFieldNameSchema,
   createUlidGenerator,
@@ -99,22 +93,6 @@ function failure(error: unknown): ResolutionState {
 function outcome(decision: Decision): string {
   const rule = decidingFinding(decision);
   return `Ahora: ${VERDICT_LABEL[decision.verdict]}${rule ? ` · ${RULE_SHORT_LABEL[rule.code]}` : ""}.`;
-}
-
-/** Elige quién aprueba en esta demo, de la lista de aprobadores de la política vigente. */
-export async function chooseApprover(form: FormData): Promise<void> {
-  const { config, db, organization } = await appContext();
-  const name = field(form, "approver");
-  const policy = await getCurrentPolicy(db, organization.id);
-  if (!policy?.content.protected.approvers.includes(name)) return;
-  (await cookies()).set(APPROVER_COOKIE, signApprover(name, config.secrets.session), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: config.env === "production",
-    path: "/",
-    maxAge: VISITOR_COOKIE_MAX_AGE_S,
-  });
-  revalidatePath(`/facturas/${field(form, "invoiceId")}`);
 }
 
 export async function approveAction(

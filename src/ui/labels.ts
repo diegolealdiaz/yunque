@@ -1,12 +1,13 @@
-import {
-  RULES,
-  RuleCodeSchema,
-  type Channel,
-  type ExtractedFieldName,
-  type FindingCode,
-  type InvoiceStatus,
-  type Verdict,
+// Solo el catálogo de reglas y tipos: estas etiquetas también viajan al navegador, y el
+// índice del dominio arrastra `node:crypto`.
+import type {
+  Channel,
+  ExtractedFieldName,
+  FindingCode,
+  InvoiceStatus,
+  Verdict,
 } from "@/src/domain";
+import { RULES, RuleCodeSchema } from "@/src/domain/rules";
 
 /**
  * Textos cortos de pantalla (docs/interfaz.md §7). El tipo exige una etiqueta por cada

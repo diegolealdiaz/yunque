@@ -113,6 +113,14 @@ En la demo, quién aprueba es una persona elegida de la lista de aprobadores de 
 
 **Consecuencia.** La semilla trae dos aprobadores ficticios para mostrar los cuatro ojos. Corregir y reevaluar comparten con `processInvoice` el mismo tramo de evaluar y registrar (`src/usecases/decide.ts`).
 
+## D18. Ver qué cambiaría es exacto, y guardar reevalúa solo lo abierto
+
+**Contexto.** El momento que muestra que las reglas mandan es cambiar la política y ver su efecto. Si la vista previa evaluara cada factura por separado, prometería pagos que al guardar no cabrían en el presupuesto, porque el replay los procesa en orden y cada pago consume.
+
+**Decisión.** La vista previa reevalúa en memoria, sin escribir nada, las facturas abiertas (escaladas que esperan a una persona y frenadas) en el mismo orden que el replay, y acumula lo que cada `pagar` comprometería de presupuesto y saldo. Guardar exige un aprobador de la lista, crea la versión v+1 firmada, aplica el límite del presupuesto del periodo y reevalúa esas mismas facturas; la bitácora registra `policy.saved` y `policy.replayed` con lo que cambió. Las pagadas nunca se reevalúan. Los interruptores (pagos, modo de prueba, autonomía) crean su propia versión con `controls.changed` y no reevalúan: cada factura afectada se reevalúa desde su detalle.
+
+**Consecuencia.** Lo que la vista previa anuncia es lo que el replay hace: un pago nuevo puede dejar sin presupuesto a la siguiente y la vista previa ya lo muestra. El formulario y el YAML editan el mismo documento en el navegador; el servidor valida con el esquema estricto y nunca toma del editor las claves protegidas ni los controles.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

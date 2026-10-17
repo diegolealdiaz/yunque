@@ -5,9 +5,10 @@ import { useActionState } from "react";
 import type { ChecklistItem } from "@/src/domain";
 
 import { ApprovalChecklist } from "../../../_components/approval-checklist";
+import { ApproverPicker } from "../../../_components/approver-picker";
 
 import { ActionOutcome } from "./action-outcome";
-import { approveAction, chooseApprover, rejectAction } from "./actions";
+import { approveAction, rejectAction } from "./actions";
 import { CorrectionForm, ReevaluateButton, type EditableField } from "./correction-form";
 
 /**
@@ -48,34 +49,7 @@ export function ResolutionPanel({
 
   return (
     <div className="space-y-4">
-      <form action={chooseApprover} className="flex items-end gap-2 text-[13px]">
-        <input type="hidden" name="invoiceId" value={invoiceId} />
-        <label className="flex-1">
-          <span className="block text-[12px] text-ink-3">Resuelves como</span>
-          <select
-            // Se vuelve a montar al cambiar el aprobador para mostrar el elegido.
-            key={approver ?? "ninguno"}
-            name="approver"
-            defaultValue={approver ?? ""}
-            className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-control bg-surface px-2 text-ink"
-          >
-            <option value="" disabled>
-              Elige un aprobador
-            </option>
-            {approvers.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="submit"
-          className="h-8 rounded-[var(--radius-control)] border border-control px-3 font-medium text-ink"
-        >
-          Usar
-        </button>
-      </form>
+      <ApproverPicker approvers={approvers} approver={approver} path={`/facturas/${invoiceId}`} />
 
       <div className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
         <ApprovalChecklist
