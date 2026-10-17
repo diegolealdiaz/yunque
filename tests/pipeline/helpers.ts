@@ -1,6 +1,11 @@
-import { loadDatasetSources, loadGroundTruth, type DatasetCase } from "@/src/dataset";
+import {
+  idealExtraction,
+  loadDatasetSources,
+  loadGroundTruth,
+  type DatasetCase,
+} from "@/src/dataset";
 import { loadSeedData, seedDatasetOrganization } from "@/src/db/seed";
-import type { Extraction, PolicyVersion, ReceiptKey } from "@/src/domain";
+import type { PolicyVersion, ReceiptKey } from "@/src/domain";
 import { MemoryFileStorage, type ModelClient, type ModelRequest } from "@/src/extraction";
 import {
   createModelReader,
@@ -10,7 +15,7 @@ import {
 } from "@/src/usecases";
 
 import { openTestDatabase, type TestDatabase } from "../db/helpers";
-import { generatedFile, idealExtraction } from "../extraction/helpers";
+import { generatedFile } from "../extraction/helpers";
 
 /**
  * Banco de pruebas del caso de uso: base temporal sembrada como el dataset (empresa,
@@ -142,10 +147,7 @@ export async function datasetCases(): Promise<CaseFixture[]> {
     const template = src.templates.get(c.template);
     const generated = truth.cases.find((g) => g.id === c.id);
     if (!template || !generated) throw new Error(`caso ${c.id} incompleto`);
-    const extraction: Extraction =
-      c.format === "not_invoice"
-        ? { kind: "not_invoice", reason: "comprobante de nómina, no una factura", suspicions: [] }
-        : idealExtraction(c, template);
+    const extraction = idealExtraction(c, template);
     out.push({
       case: c,
       bytes: await generatedFile(generated.file),

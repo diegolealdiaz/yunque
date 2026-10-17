@@ -6,7 +6,7 @@
 
 1. **La decisión se prueba sin red.** El motor es puro: se prueba con miles de casos generados en milisegundos. Nada del modelo, de la base ni de Vercel entra en esas pruebas.
 2. **Lo que puede causar un pago indebido se prueba por propiedad, no por ejemplo.** Las once invariantes de seguridad se verifican con generadores de casos aleatorios, porque un ejemplo escrito a mano solo prueba lo que ya imaginamos.
-3. **El modelo se prueba con sus salidas grabadas.** CI nunca llama al modelo. Las salidas reales se graban como fixtures con el hash del documento y la versión del prompt; una corrida en vivo se lanza a mano con `EVAL_LIVE=1` y regraba.
+3. **El modelo se prueba con sus salidas grabadas.** CI nunca llama al modelo. Las salidas reales se graban como fixtures con el hash de la petición y la versión del prompt; una corrida en vivo se lanza a mano con `EVAL_LIVE=1` y regraba. Mientras no haya fixtures, `EVAL_SOURCE=ideal` corre el set con un Lector perfecto derivado del manifiesto: no mide al modelo, mide todo lo que viene después de él.
 4. **Un falso "pagar" bloquea todo.** Es el único criterio descalificante del reto, así que es la única prueba que impide desplegar sin excepción.
 5. **Cada regla tiene sus fronteras escritas.** Igual, uno más, uno menos, parámetro ausente, moneda distinta. Las reglas fallan en las fronteras, no en el medio.
 6. **Las pruebas de interfaz son pocas y de flujo completo.** Seis recorridos que cubren el pitch. Lo demás lo cubren las pruebas de abajo.
@@ -106,7 +106,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-62 | Caché: segunda llamada con el mismo hash de documento, versión de prompt, esquema, modelo y hash del prompt construido no toca el cliente; cambiar cualquiera sí, incluido el cuerpo del correo que acompaña al mismo PDF; una lectura con canario filtrado no se cachea | unitario |
 | P-63 | `llm_calls`: cada llamada registra modelo, versión de prompt, hash de prompt, tokens, costo, latencia y salida cruda; el costo calculado coincide con los precios configurados | unitario |
 | P-64 | El prompt nunca contiene nombres de vendors, cuentas ni saldos; test que inspecciona el prompt construido | unitario, `@seguridad` |
-| P-65 | Fixtures: las salidas grabadas cubren todo el dataset; una factura sin fixture hace fallar `npm run eval` sin `EVAL_LIVE` | regresión |
+| P-65 | Fixtures: las salidas grabadas cubren todo el dataset; una petición sin fixture hace fallar `npm run eval` sin `EVAL_LIVE`; el canario se graba como marcador y se repone al reproducir, así una fuga grabada se sigue detectando | regresión |
 | P-66 | Verificador: una cita que no está en el texto produce `evidence_missing`; una cita con espacios o saltos distintos pero mismo contenido normalizado pasa | unitario |
 | P-67 | Verificador: valor normalizado distinto del que se deriva de la cita produce hallazgo; monto en letras distinto del numérico produce `field_ambiguous` | unitario |
 | P-68 | Totales: subtotal más impuestos distinto del total fuera de tolerancia produce `totals_mismatch` | unitario |
@@ -136,10 +136,10 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 
 | Id | Verifica | Tipo |
 |---|---|---|
-| P-90 | `npm run eval` imprime autonomía, falsos "pagar", exactitud por campo, tasa de escalado, costo total y por factura, latencia media y máxima | regresión |
+| P-90 | `npm run eval` imprime autonomía (total y por grupo), falsos "pagar", regla esperada, tasa de escalado (total y sobre normales), explicabilidad, exactitud por campo, matriz de confusión, costo total y por factura, latencia media y máxima, y el resultado de la puerta | regresión |
 | P-91 | Las métricas calculadas por `eval` coinciden con las que muestra la pantalla de métricas sobre la misma base | regresión + API |
-| P-92 | Umbrales: falsos "pagar" = 0; exactitud por campo ≥ 99 por ciento; escalado sobre normales ≤ el valor calibrado en el paso 18 | regresión |
-| P-93 | Puerta de CI: un cambio que relaja una regla, baja un umbral de confianza o rompe un fixture pone `npm run eval` en rojo | regresión |
+| P-92 | Umbrales (`src/eval/gate.ts`): falsos "pagar" = 0; exactitud de beneficiario, monto, moneda y número ≥ 99 por ciento; escalado sobre normales ≤ el valor calibrado en el paso 18 (cero con el Lector ideal) | regresión |
+| P-93 | Puerta de CI: un cambio que relaja una regla, o una fixture rota o ausente, pone `npm run eval` en rojo. Bajar un umbral de confianza se prueba en el paso 18, sobre las lecturas reales del modelo | regresión |
 
 ### Interfaz
 

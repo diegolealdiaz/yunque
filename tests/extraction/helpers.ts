@@ -1,9 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { fieldLiteral, formatAmount, type DatasetCase, type DocumentTemplate } from "@/src/dataset";
 import { loadSeedData } from "@/src/db/seed";
-import type { Evidence, Extraction, ExtractionRecord, Vendor } from "@/src/domain";
+import type { ExtractionRecord, Vendor } from "@/src/domain";
 import type {
   ExtractionCache,
   LlmCallLog,
@@ -39,51 +38,8 @@ export async function generatedFile(name: string): Promise<Uint8Array> {
   return new Uint8Array(await readFile(path.join(GENERATED_DIR, name)));
 }
 
-/** Extracción "perfecta" de un caso del manifiesto, como la daría un Lector ideal. */
-export function idealExtraction(c: DatasetCase, template: DocumentTemplate): Extraction {
-  const doc = c.document;
-  const ev = (literal: string): Evidence => ({ literal, quote: literal, page: 1 });
-  const present = <T>(value: T, literal: string) => ({
-    value,
-    evidence: ev(literal),
-    confidence: 0.96,
-    source: "modelo" as const,
-  });
-  const missing = { value: null, reason: "no aparece en el documento" };
-  const lit = (name: Parameters<typeof fieldLiteral>[1]) =>
-    fieldLiteral(doc, name, template.locale);
-  const amountField = (value: number | null) =>
-    value === null ? missing : present(value, formatAmount(value, template.locale));
-  return {
-    kind: "invoice",
-    language: template.locale.startsWith("en")
-      ? "en"
-      : template.locale.startsWith("de")
-        ? "de"
-        : "es",
-    fields: {
-      payee_name: present(doc.payee_name, doc.payee_name),
-      payee_tax_id:
-        doc.payee_tax_id === null ? missing : present(doc.payee_tax_id, doc.payee_tax_id),
-      invoice_number: present(doc.invoice_number, doc.invoice_number),
-      issue_date: present(doc.issue_date, lit("issue_date") ?? ""),
-      due_date: doc.due_date === null ? missing : present(doc.due_date, lit("due_date") ?? ""),
-      currency: present(doc.currency, doc.currency),
-      subtotal: amountField(doc.subtotal),
-      taxes: amountField(doc.taxes),
-      total: present(doc.total, formatAmount(doc.total, template.locale)),
-      bank_account:
-        doc.bank_account === null ? missing : present(doc.bank_account, doc.bank_account),
-      bank_holder: doc.bank_holder === null ? missing : present(doc.bank_holder, doc.bank_holder),
-      hours: doc.hours === null ? missing : present(doc.hours, String(doc.hours)),
-      purchase_order:
-        doc.purchase_order === null ? missing : present(doc.purchase_order, doc.purchase_order),
-      description: present(doc.description, doc.description),
-    },
-    ambiguities: [],
-    suspicions: [],
-  };
-}
+/** La lectura ideal vive en el dataset: la comparten las pruebas y `npm run eval`. */
+export { idealExtraction } from "@/src/dataset";
 
 /** Cliente simulado: devuelve respuestas en orden y registra cada petición. */
 export function fakeClient(

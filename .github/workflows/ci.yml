@@ -35,3 +35,8 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npm run check
+      # Set de regresión. Hasta grabar las respuestas del modelo (paso 18) corre con el Lector
+      # ideal; después corre sobre las fixtures de tests/fixtures/lector, sin red.
+      - run: npm run eval
+        env:
+          EVAL_SOURCE: ideal

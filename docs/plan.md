@@ -109,6 +109,7 @@
 - **Prueba:** P-90 a P-93.
 
 ### Paso 18. Calibración [núcleo]
+- **Cuándo:** se hace al final, junto con el paso 0, cuando esté la clave del modelo. Hasta entonces CI corre el set con el Lector ideal y la Fase 5 avanza sin depender de él.
 - **Construye:** ajuste de umbrales de confianza y tolerancias sobre el dataset hasta el punto de cero falsos "pagar" con el mínimo de escalados. Grabación de las salidas del modelo como fixtures para CI.
 - **Hecho cuando:** la tasa de escalado sobre las facturas normales es la mínima que mantiene cero falsos "pagar", y CI corre `npm run eval` sin red.
 - **Prueba:** P-92, P-93.

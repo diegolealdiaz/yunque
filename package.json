@@ -22,7 +22,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
-    "dataset": "tsx scripts/generate-dataset.ts"
+    "dataset": "tsx scripts/generate-dataset.ts",
+    "eval": "tsx scripts/eval.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

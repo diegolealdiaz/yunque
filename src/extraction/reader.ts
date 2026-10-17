@@ -102,6 +102,9 @@ export function remainingMs(deadlineAt: number | undefined, now: number): number
   return deadlineAt === undefined ? Number.POSITIVE_INFINITY : deadlineAt - now;
 }
 
+/** Forma del canario por proceso. Las fixtures lo reemplazan por un marcador al grabar. */
+export const CANARY_PATTERN = /YQ-[0-9a-f]{24}/g;
+
 let processCanary: string | undefined;
 function defaultCanary(): string {
   processCanary ??= `YQ-${randomBytes(12).toString("hex")}`;
