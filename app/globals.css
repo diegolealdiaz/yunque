@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #f8f7f3;
+  --surface: #ffffff;
+  --ink: #1a2233;
+  --ink-muted: #5b6474;
+  --line: #e2e1dc;
+  --verdict-pay: #1f7a4d;
+  --verdict-escalate: #b4690e;
+  --verdict-hold: #b42318;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-verdict-pay: var(--verdict-pay);
+  --color-verdict-escalate: var(--verdict-escalate);
+  --color-verdict-hold: var(--verdict-hold);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
