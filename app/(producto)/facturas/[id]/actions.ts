@@ -24,6 +24,7 @@ import {
 } from "@/src/usecases";
 
 import { appContext } from "../../../_data/context";
+import { deliverNotificationsAfterResponse } from "../../../_data/notify";
 
 /**
  * Acciones de la persona sobre una escalada. Todo lo que llega del formulario se trata como
@@ -38,6 +39,13 @@ export type ResolutionState = {
 } | null;
 
 const newId = createUlidGenerator();
+
+/** Tras una decisión nueva: refrescar las pantallas que la muestran y entregar sus avisos. */
+function afterDecision(organizationId: string, invoiceId: string): void {
+  revalidatePath(`/facturas/${invoiceId}`);
+  revalidatePath("/pendientes");
+  deliverNotificationsAfterResponse(organizationId);
+}
 
 async function resolutionDeps(): Promise<{
   deps: ResolutionDeps;
@@ -113,8 +121,7 @@ export async function approveAction(
   } catch (error) {
     return failure(error);
   }
-  revalidatePath(`/facturas/${invoiceId}`);
-  revalidatePath("/pendientes");
+  afterDecision(organizationId, invoiceId);
   return { ok: true, message: "Aprobada. La orden quedó preparada, no ejecutada.", action: null };
 }
 
@@ -136,8 +143,7 @@ export async function rejectAction(
   } catch (error) {
     return failure(error);
   }
-  revalidatePath(`/facturas/${invoiceId}`);
-  revalidatePath("/pendientes");
+  afterDecision(organizationId, invoiceId);
   return { ok: true, message: "Rechazada. No se pagará.", action: null };
 }
 
@@ -166,8 +172,7 @@ export async function correctAction(
       submitted,
       confirmed,
     });
-    revalidatePath(`/facturas/${invoiceId}`);
-    revalidatePath("/pendientes");
+    afterDecision(organizationId, invoiceId);
     return {
       ok: true,
       message: `Corregida y reevaluada. ${outcome(result.decision)}`,
@@ -190,8 +195,7 @@ export async function reevaluateAction(
       invoiceId,
       actor: approver,
     });
-    revalidatePath(`/facturas/${invoiceId}`);
-    revalidatePath("/pendientes");
+    afterDecision(organizationId, invoiceId);
     return {
       ok: true,
       message: `Reevaluada con la política vigente. ${outcome(result.decision)}`,

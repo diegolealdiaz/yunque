@@ -12,6 +12,7 @@ export * from "./inbox";
 export * from "./invoice-detail";
 export * from "./invoice-list";
 export * from "./metrics";
+export * from "./notifications";
 export * from "./payment-order";
 export * from "./invoice-reader";
 export * from "./policy";

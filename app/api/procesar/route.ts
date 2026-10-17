@@ -2,6 +2,7 @@ import { ReceiptKeySchema } from "@/src/domain";
 import { assertWithinDailyLimits, processInvoice, startOfBusinessDay } from "@/src/usecases";
 
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
+import { deliverNotificationsAfterResponse } from "../../_data/notify";
 import { processingContext } from "../../_data/process";
 
 /**
@@ -67,6 +68,7 @@ export async function POST(request: Request): Promise<Response> {
       bytes: new Uint8Array(await file.arrayBuffer()),
       originalName: file.name,
     });
+    deliverNotificationsAfterResponse(organization.id);
     return Response.json({
       kind: result.kind,
       invoiceId: result.invoice.id,

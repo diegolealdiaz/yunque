@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, lte } from "drizzle-orm";
 
 import { NotificationSchema, type Notification, type Ulid } from "@/src/domain";
 
@@ -35,6 +35,26 @@ export async function enqueueNotification(
     .onConflictDoNothing({ target: [notifications.organizationId, notifications.idempotencyKey] });
 }
 
+function toNotification(row: typeof notifications.$inferSelect): Notification {
+  return parseRow(
+    NotificationSchema,
+    {
+      id: row.id,
+      organization_id: row.organizationId,
+      channel: row.channel,
+      idempotency_key: row.idempotencyKey,
+      payload: row.payload,
+      status: row.status,
+      attempts: row.attempts,
+      next_attempt_at: row.nextAttemptAt,
+      last_error: row.lastError,
+      created_at: row.createdAt,
+      updated_at: row.updatedAt,
+    },
+    "notifications",
+  );
+}
+
 /** Avisos de la organización, los más viejos primero, con filtro opcional por estado. */
 export async function listNotifications(
   exec: Executor,
@@ -49,23 +69,82 @@ export async function listNotifications(
     orderBy: [asc(notifications.createdAt), asc(notifications.id)],
     limit: filter.limit ?? 200,
   });
-  return rows.map((row) =>
-    parseRow(
-      NotificationSchema,
-      {
-        id: row.id,
-        organization_id: row.organizationId,
-        channel: row.channel,
-        idempotency_key: row.idempotencyKey,
-        payload: row.payload,
-        status: row.status,
-        attempts: row.attempts,
-        next_attempt_at: row.nextAttemptAt,
-        last_error: row.lastError,
-        created_at: row.createdAt,
-        updated_at: row.updatedAt,
-      },
-      "notifications",
+  return rows.map(toNotification);
+}
+
+/** Avisos pendientes cuyo próximo intento ya llegó, los más viejos primero. */
+export async function listDueNotifications(
+  exec: Executor,
+  organizationId: Ulid,
+  nowIso: string,
+  limit = 50,
+): Promise<Notification[]> {
+  const rows = await exec.query.notifications.findMany({
+    where: and(
+      eq(notifications.organizationId, organizationId),
+      eq(notifications.status, "pendiente"),
+      lte(notifications.nextAttemptAt, nowIso),
     ),
-  );
+    orderBy: [asc(notifications.nextAttemptAt), asc(notifications.id)],
+    limit,
+  });
+  return rows.map(toNotification);
+}
+
+/**
+ * Reclama un aviso para entregarlo: suma el intento y corre el próximo intento hasta
+ * `leaseUntil`, solo si sigue pendiente con los intentos que se leyeron (comparación y
+ * cambio). Si otro proceso lo reclamó antes, devuelve false y no se entrega dos veces.
+ */
+export async function claimNotification(
+  exec: Executor,
+  organizationId: Ulid,
+  id: Ulid,
+  expectedAttempts: number,
+  leaseUntil: string,
+  nowIso: string,
+): Promise<boolean> {
+  const result = await exec
+    .update(notifications)
+    .set({ attempts: expectedAttempts + 1, nextAttemptAt: leaseUntil, updatedAt: nowIso })
+    .where(
+      and(
+        eq(notifications.organizationId, organizationId),
+        eq(notifications.id, id),
+        eq(notifications.status, "pendiente"),
+        eq(notifications.attempts, expectedAttempts),
+      ),
+    );
+  return result.rowsAffected === 1;
+}
+
+/** Cierra un intento ya reclamado: enviada, fallida, o pendiente con su próximo intento. */
+export async function settleNotification(
+  exec: Executor,
+  organizationId: Ulid,
+  id: Ulid,
+  claimedAttempts: number,
+  outcome: {
+    readonly status: Notification["status"];
+    readonly nextAttemptAt: string | null;
+    readonly lastError: string | null;
+    readonly nowIso: string;
+  },
+): Promise<void> {
+  await exec
+    .update(notifications)
+    .set({
+      status: outcome.status,
+      nextAttemptAt: outcome.nextAttemptAt,
+      lastError: outcome.lastError,
+      updatedAt: outcome.nowIso,
+    })
+    .where(
+      and(
+        eq(notifications.organizationId, organizationId),
+        eq(notifications.id, id),
+        eq(notifications.status, "pendiente"),
+        eq(notifications.attempts, claimedAttempts),
+      ),
+    );
 }

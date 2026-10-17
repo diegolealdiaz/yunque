@@ -14,6 +14,7 @@ import {
   savePolicy,
 } from "@/src/usecases";
 
+import { deliverNotificationsAfterResponse } from "../../_data/notify";
 import { processingContext } from "../../_data/process";
 
 /**
@@ -85,6 +86,8 @@ export async function saveAction(_previous: SaveState, form: FormData): Promise<
       note: text(form, "nota").trim() || null,
     });
     for (const path of ["/reglas", "/pendientes", "/facturas"]) revalidatePath(path);
+    // El replay decide de nuevo las abiertas: sus avisos se entregan al responder.
+    deliverNotificationsAfterResponse(organization.id);
     return {
       ok: true,
       message: `Guardada como v${String(result.version.version)}. Se reevaluaron ${String(result.evaluated - result.skipped)} facturas abiertas y cambiaron ${String(result.changed)}.`,
