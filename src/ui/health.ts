@@ -48,7 +48,7 @@ export function healthRows(report: HealthReport, now: Date): HealthRow[] {
     },
     {
       key: "proveedor",
-      label: "Proveedor del modelo",
+      label: "Proveedor de lectura",
       ok: model.ok,
       detail: modelDetail(report, now),
     },

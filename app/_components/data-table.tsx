@@ -48,6 +48,8 @@ export function DataTable({
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
 
   if (rows.length === 0 && empty) return <>{empty}</>;
+  // Si un filtro dejó menos filas que el índice activo, la última sigue siendo tabulable.
+  const current = Math.min(active, rows.length - 1);
 
   const focusRow = (index: number) => {
     const next = Math.max(0, Math.min(rows.length - 1, index));
@@ -110,7 +112,7 @@ export function DataTable({
               ref={(element) => {
                 rowRefs.current[index] = element;
               }}
-              tabIndex={index === active ? 0 : -1}
+              tabIndex={index === current ? 0 : -1}
               onFocus={() => setActive(index)}
               onKeyDown={(event) => onKeyDown(event, index)}
               onClick={(event) => {

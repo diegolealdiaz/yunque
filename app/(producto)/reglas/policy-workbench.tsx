@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { parseDocument } from "yaml";
 
 import { CONFIGURABLE_RULES, RULES, type RuleCode } from "@/src/domain/rules";
 import { RULE_SHORT_LABEL } from "@/src/ui/labels";
 
+import { ActionOutcome } from "../../_components/action-outcome";
 import { PolicyEditor, type ProtectedKey } from "../../_components/policy-editor";
 import { VerdictChip } from "../../_components/verdict-chip";
 
@@ -162,6 +163,18 @@ export function PolicyWorkbench({
 }) {
   const [yaml, setYaml] = useState(initialYaml);
   const [preview, runPreview, previewing] = useActionState(previewAction, null);
+  // El YAML con el que se calculó la vista previa: si se edita después, queda desactualizada.
+  const [previewedYaml, setPreviewedYaml] = useState<string | null>(null);
+  const previewHeading = useRef<HTMLHeadingElement>(null);
+  const stale = preview !== null && previewedYaml !== yaml;
+  // El resultado aparece debajo del editor: se lleva a la vista y recibe el foco, así se ve
+  // y el lector de pantalla lo lee sin buscarlo.
+  useEffect(() => {
+    if (preview?.ok) {
+      previewHeading.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      previewHeading.current?.focus({ preventScroll: true });
+    }
+  }, [preview]);
   const [saved, runSave, saving] = useActionState(saveAction, null);
   const dialog = useRef<HTMLDialogElement>(null);
   const parsed = useMemo(() => read(yaml), [yaml]);
@@ -220,8 +233,8 @@ export function PolicyWorkbench({
               onChange={(e) => setYaml(write(yaml, ["rules", code, "on_fail"], e.target.value))}
               className="h-8 rounded-[var(--radius-control)] border border-control bg-surface px-2 text-ink"
             >
-              <option value="escalar">escalar</option>
-              <option value="frenar">frenar</option>
+              <option value="escalar">ESCALAR</option>
+              <option value="frenar">FRENAR</option>
             </select>
           </label>
         ))}
@@ -259,7 +272,7 @@ export function PolicyWorkbench({
 
   const actions = (
     <div className="flex w-full flex-wrap items-center gap-2">
-      <form action={runPreview}>
+      <form action={runPreview} onSubmit={() => setPreviewedYaml(yaml)}>
         <input type="hidden" name="yaml" value={yaml} />
         <button
           type="submit"
@@ -322,7 +335,16 @@ export function PolicyWorkbench({
           aria-label="Qué cambiaría"
           className="rounded-[var(--radius-card)] border border-line bg-surface p-4"
         >
-          <h2 className="text-[13px] font-medium text-ink">
+          {stale ? (
+            <p className="mb-2 text-[12px] font-medium text-ink">
+              Editaste la política después de calcular: vuelve a ver qué cambiaría.
+            </p>
+          ) : null}
+          <h2
+            ref={previewHeading}
+            tabIndex={-1}
+            className={`text-[13px] font-medium text-ink outline-none ${stale ? "opacity-60" : ""}`}
+          >
             {preview.changes.length === 0
               ? `Ninguna de las ${String(preview.evaluated - preview.skipped)} facturas abiertas cambiaría de veredicto.`
               : `${String(preview.changes.length)} de ${String(preview.evaluated - preview.skipped)} facturas abiertas cambiarían de veredicto:`}
@@ -361,15 +383,7 @@ export function PolicyWorkbench({
         </section>
       ) : null}
 
-      {saved ? (
-        <div
-          role={saved.ok ? "status" : "alert"}
-          className={`rounded-[var(--radius-control)] px-3 py-2 text-[13px] ${saved.ok ? "bg-pay-tint text-pay" : "bg-hold-tint text-hold"}`}
-        >
-          <p className="font-medium">{saved.message}</p>
-          {saved.action ? <p className="mt-0.5 text-ink">{saved.action}</p> : null}
-        </div>
-      ) : null}
+      <ActionOutcome state={saved} />
 
       <dialog
         ref={dialog}

@@ -4,7 +4,8 @@ import { useActionState } from "react";
 
 import type { ExtractedFieldName } from "@/src/domain";
 
-import { ActionOutcome } from "./action-outcome";
+import { ActionOutcome } from "../../../_components/action-outcome";
+
 import { correctAction, reevaluateAction } from "./actions";
 
 /**
@@ -59,6 +60,7 @@ export function CorrectionForm({
               <input
                 type="checkbox"
                 name="confirmar"
+                aria-label={`Confirmar ${field.label} sin cambiarlo`}
                 value={field.name}
                 disabled={field.value === ""}
                 className="accent-[var(--ink)]"

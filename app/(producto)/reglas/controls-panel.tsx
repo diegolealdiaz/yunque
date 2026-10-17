@@ -1,9 +1,10 @@
 "use client";
 
-import { startTransition, useActionState } from "react";
+import { useActionState, useTransition } from "react";
 
 import type { Controls } from "@/src/domain";
 
+import { ActionOutcome } from "../../_components/action-outcome";
 import { ControlSwitch } from "../../_components/control-switch";
 
 import { controlsAction } from "./actions";
@@ -21,6 +22,8 @@ export function ControlsPanel({
   readonly canSign: boolean;
 }) {
   const [state, run] = useActionState(controlsAction, null);
+  const [pending, startTransition] = useTransition();
+  const disabled = !canSign || pending;
   const change = (control: "payments_enabled" | "dry_run" | "autonomy") => (next: boolean) => {
     const form = new FormData();
     form.set("control", control);
@@ -38,6 +41,7 @@ export function ControlsPanel({
           confirmOn="El agente vuelve a pagar lo que cumple las reglas."
           confirmOff="Ninguna factura se pagará: lo que pagaría queda escalado para una persona."
           onChange={change("payments_enabled")}
+          disabled={disabled}
         />
         <ControlSwitch
           key={`prueba-${String(controls.dry_run)}`}
@@ -47,6 +51,7 @@ export function ControlsPanel({
           confirmOn="Las decisiones se registran pero no comprometen presupuesto ni saldo."
           confirmOff="Las decisiones de pago vuelven a preparar órdenes y comprometer presupuesto."
           onChange={change("dry_run")}
+          disabled={disabled}
         />
         <ControlSwitch
           key={`autonomia-${controls.autonomy}`}
@@ -58,6 +63,7 @@ export function ControlsPanel({
           confirmOn="El agente paga y frena solo dentro de las reglas y escala lo demás."
           confirmOff="Toda decisión pasa por una persona; el agente solo recomienda."
           onChange={change("autonomy")}
+          disabled={disabled}
         />
       </div>
       {!canSign ? (
@@ -65,15 +71,7 @@ export function ControlsPanel({
           Elige quién firma para poder cambiar un interruptor.
         </p>
       ) : null}
-      {state ? (
-        <p
-          role={state.ok ? "status" : "alert"}
-          className={`text-[13px] ${state.ok ? "text-pay" : "text-hold"}`}
-        >
-          {state.message}
-          {state.action ? ` ${state.action}.` : ""}
-        </p>
-      ) : null}
+      <ActionOutcome state={state} />
     </section>
   );
 }

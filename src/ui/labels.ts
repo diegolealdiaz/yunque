@@ -138,6 +138,6 @@ export const EVENT_LABEL: Readonly<Record<EventType, string>> = {
   "vendor.account_changed": "Cuenta de beneficiario cambiada",
   "notification.sent": "Aviso enviado",
   "notification.failed": "Aviso fallido",
-  "llm.called": "Llamada al modelo",
-  "llm.failed": "Llamada al modelo fallida",
+  "llm.called": "Lectura del documento",
+  "llm.failed": "Lectura del documento fallida",
 };

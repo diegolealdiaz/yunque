@@ -110,7 +110,8 @@ export async function controlsAction(_previous: SaveState, form: FormData): Prom
   const { deps, organization, approver } = await context();
   const name = CONTROL_NAMES.find((n) => n === text(form, "control"));
   const on = text(form, "value") === "on";
-  if (!name) return { ok: false, message: "Interruptor desconocido", action: "Recarga la página" };
+  if (!name)
+    return { ok: false, message: "Ese interruptor no existe.", action: "Recarga la página." };
   const patch: Partial<Controls> =
     name === "autonomy" ? { autonomy: on ? "decidir" : "recomendar" } : { [name]: on };
   try {

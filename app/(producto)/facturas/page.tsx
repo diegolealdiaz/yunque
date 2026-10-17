@@ -119,7 +119,8 @@ export default async function FacturasPage({
         title="Facturas"
         meta={
           <span>
-            {rows.length === LIST_LIMIT ? `${String(LIST_LIMIT)}+` : rows.length} facturas
+            {rows.length === LIST_LIMIT ? `${String(LIST_LIMIT)}+` : rows.length}{" "}
+            {rows.length === 1 ? "factura" : "facturas"}
           </span>
         }
         actions={

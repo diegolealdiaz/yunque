@@ -97,7 +97,7 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
         {state.controls.dry_run ? (
           <div className="flex justify-between">
             <dt className="text-ink-3">Prueba</dt>
-            <dd className="font-medium text-escalate">Sin órdenes reales</dd>
+            <dd className="font-medium text-ink">Sin órdenes reales</dd>
           </div>
         ) : null}
         <div className="pt-1">

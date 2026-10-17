@@ -26,7 +26,7 @@ import {
   EvidenceProvider,
   EvidenceTarget,
 } from "../../../_components/document-viewer";
-import { CheckIcon, StopIcon } from "../../../_components/icons";
+import { AlertIcon, CheckIcon, StopIcon } from "../../../_components/icons";
 import { Timeline } from "../../../_components/timeline";
 import { VerdictChip } from "../../../_components/verdict-chip";
 import { appContext } from "../../../_data/context";
@@ -61,9 +61,18 @@ function displayValue(field: DetailField, currency: string | null): string {
   return String(field.value);
 }
 
-function Column({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+function Column({
+  title,
+  className = "",
+  children,
+}: {
+  readonly title: string;
+  /** Posición en la rejilla según el ancho de pantalla. */
+  readonly className?: string;
+  readonly children: ReactNode;
+}) {
   return (
-    <section aria-label={title} className="min-w-0 space-y-4">
+    <section aria-label={title} className={`min-w-0 space-y-4 ${className}`}>
       <h2 className="text-[12px] font-semibold tracking-wide text-ink-2 uppercase">{title}</h2>
       {children}
     </section>
@@ -74,17 +83,27 @@ function SubTitle({ children }: { readonly children: ReactNode }) {
   return <h3 className="text-[12px] font-medium tracking-wide text-ink-3 uppercase">{children}</h3>;
 }
 
+/** Cómo se ve una regla que falló, según lo que hace: frenar o escalar. Siempre con texto. */
+const FAILED_STYLE = {
+  frenar: { Icon: StopIcon, className: "text-hold-solid", label: "falló · frena" },
+  escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "falló · escala" },
+} as const;
+
 function RuleRow({ rule }: { readonly rule: RuleTrace }) {
   const failed = rule.outcome === "fail" || rule.outcome === "error";
+  // Una regla que no se pudo evaluar frena (rule_error): es lo más estricto.
+  const style = failed ? FAILED_STYLE[rule.finding?.action ?? "frenar"] : null;
+  const Icon = style?.Icon ?? CheckIcon;
+  const status = style?.label ?? (rule.outcome === "skipped" ? "no aplicó" : "pasó");
   return (
     <li className="grid grid-cols-[1.25rem_1fr] gap-x-2 py-1 text-[13px]">
-      <span aria-hidden="true" className={failed ? "text-hold-solid" : "text-ink-3"}>
-        {failed ? <StopIcon /> : <CheckIcon />}
+      <span aria-hidden="true" className={style?.className ?? "text-ink-3"}>
+        <Icon />
       </span>
       <span>
         <span className="font-mono text-[12px] text-ink">{rule.code}</span>{" "}
         <span className="text-ink-2">· {ruleTitle(rule.code)}</span>
-        {rule.outcome === "skipped" ? <span className="text-ink-3"> · no aplicó</span> : null}
+        <span className={style ? `font-medium ${style.className}` : "text-ink-3"}> · {status}</span>
         {rule.finding ? (
           <span className="block text-[12px] text-ink-2">
             observado {rule.finding.observed} · umbral {rule.finding.threshold}
@@ -274,6 +293,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         </div>
         {decision ? (
           <VerdictChip
+            focusable
             verdict={decision.verdict}
             rule={
               deciding
@@ -292,8 +312,16 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       </div>
 
       <EvidenceProvider>
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_19rem]">
-          <Column title="Documento">
+        {/*
+          Tres columnas en pantallas grandes. Entre 1024 y 1280 px, dos: el documento a la
+          izquierda y, a la derecha, la decisión arriba y lo leído debajo, así "Tu decisión"
+          se ve sin desplazarse en un portátil o un proyector.
+        */}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_19rem]">
+          <Column
+            title="Documento"
+            className="lg:col-start-1 lg:row-span-2 lg:row-start-1 xl:row-span-1"
+          >
             <DocumentViewer
               pages={detail.pages.map((p) => ({
                 src: `/facturas/${invoice.id}/pagina/${String(p.number)}`,
@@ -311,7 +339,10 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             />
           </Column>
 
-          <Column title="Lo que leyó y decidió">
+          <Column
+            title="Lo que leyó y decidió"
+            className="lg:col-start-2 lg:row-start-2 xl:row-start-1"
+          >
             <div className="space-y-1">
               <SubTitle>Campos</SubTitle>
               {detail.fields.length === 0 ? (
@@ -326,7 +357,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                       <span className="truncate font-mono text-ink">
                         {displayValue(field, currency)}
                         {field.source === "humano" ? (
-                          <span className="ml-1.5 font-sans text-[11px] text-escalate">a mano</span>
+                          <span className="ml-1.5 rounded-sm border border-line-strong px-1 font-sans text-[11px] text-ink-2">
+                            a mano
+                          </span>
                         ) : null}
                       </span>
                       <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
@@ -376,7 +409,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             ) : null}
           </Column>
 
-          <Column title="Tu decisión">
+          <Column title="Tu decisión" className="lg:col-start-2 lg:row-start-1 xl:col-start-3">
             <DecisionPanel detail={detail} resolution={resolution} approver={approver} />
             <div>
               <SubTitle>Línea de tiempo</SubTitle>

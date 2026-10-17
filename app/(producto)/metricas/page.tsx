@@ -167,7 +167,7 @@ function extraColumns(
             return [
               VERDICT_LABEL[m.row.expected.verdict],
               VERDICT_LABEL[m.row.actual.verdict],
-              <span key="h" className={hit ? "text-pay" : "font-medium text-hold"}>
+              <span key="h" className={hit ? "text-ink-2" : "font-medium text-hold"}>
                 {hit ? "Acierto" : "Error"}
               </span>,
             ];

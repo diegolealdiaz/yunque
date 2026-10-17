@@ -43,18 +43,32 @@ describe("componentes base (P-100, P-110)", () => {
   });
 
   it("el chip de veredicto lleva icono, texto y la regla; el detalle es accesible por foco", () => {
+    const rule = {
+      code: "bank_account_mismatch",
+      observed: "****4471",
+      threshold: "****9023",
+    } as const;
     const html = renderToStaticMarkup(
-      <VerdictChip
-        verdict="escalar"
-        rule={{ code: "bank_account_mismatch", observed: "****4471", threshold: "****9023" }}
-        policyVersion={4}
-      />,
+      <VerdictChip verdict="escalar" rule={rule} policyVersion={4} focusable />,
     );
     expect(html).toContain("ESCALAR");
     expect(html).toContain("cuenta no coincide");
     expect(html).toContain('role="tooltip"');
     expect(html).toContain('tabindex="0"');
     expect(html).toMatch(/política v(<!-- -->)?4/);
+  });
+
+  it("dentro de una tabla el chip no es parada de tabulación y el detalle va como texto", () => {
+    const rule = {
+      code: "bank_account_mismatch",
+      observed: "****4471",
+      threshold: "****9023",
+    } as const;
+    const html = renderToStaticMarkup(<VerdictChip verdict="escalar" rule={rule} />);
+    expect(html).not.toContain("tabindex");
+    expect(html).not.toContain('role="tooltip"');
+    expect(html).toContain('class="sr-only"');
+    expect(html).toMatch(/observado (<!-- -->)?\*{4}4471/);
   });
 
   it("todo código de hallazgo tiene etiqueta corta", () => {

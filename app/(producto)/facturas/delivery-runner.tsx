@@ -71,14 +71,14 @@ export function DeliveryRunner({
           primary ? "bg-ink text-surface" : "border border-control text-ink"
         }`}
       >
-        {running ? `${String(done)} de ${String(ids.length)}…` : label}
+        {running ? "Procesando…" : label}
       </button>
-      {!running && done > 0 ? (
-        <span role="status" className="text-[13px] text-ink-2">
-          {done} de {ids.length} {noun}
-          {failures.length > 0 ? ` · ${String(failures.length)} con error` : ""}
-        </span>
-      ) : null}
+      {/* Siempre presente, así el lector de pantalla anuncia cada avance, no solo el final. */}
+      <span role="status" className="text-[13px] text-ink-2">
+        {running || done > 0
+          ? `${String(done)} de ${String(ids.length)} ${noun}${running ? "…" : ""}${failures.length > 0 ? ` · ${String(failures.length)} con error` : ""}`
+          : ""}
+      </span>
       {failures.length > 0 ? (
         <details className="text-[12px] text-hold">
           <summary className="cursor-pointer">Ver errores</summary>

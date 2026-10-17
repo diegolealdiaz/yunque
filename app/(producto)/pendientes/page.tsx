@@ -77,7 +77,7 @@ export default async function PendientesPage() {
               <span key="a" className="font-mono">
                 {row.amount ? formatMoney(row.amount) : "sin monto"}
               </span>,
-              <span key="d" className={row.expired ? "text-hold" : "text-ink-2"}>
+              <span key="d" className={row.expired ? "font-medium text-ink" : "text-ink-2"}>
                 {row.expired ? "espera vencida" : dueRelative(row.dueDate, inbox.today)}
               </span>,
               <VerdictChip

@@ -30,10 +30,17 @@ export function VerdictChip({
   verdict,
   rule = null,
   policyVersion = null,
+  focusable = false,
 }: {
   readonly verdict: ChipVerdict;
   readonly rule?: ChipRule | null;
   readonly policyVersion?: number | null;
+  /**
+   * Solo donde el chip está solo (el encabezado del detalle). Dentro de una tabla o de un
+   * enlace no es una parada de tabulación: la fila ya lo es, y el detalle de la regla va
+   * como texto para lectores de pantalla.
+   */
+  readonly focusable?: boolean;
 }) {
   const tooltipId = useId();
   const { className, Icon } = STYLE[verdict];
@@ -48,6 +55,31 @@ export function VerdictChip({
     </span>
   );
   if (!rule) return chip;
+  const detail = (
+    <>
+      <span className="block font-mono text-ink">{rule.code}</span>
+      <span className="block">observado: {rule.observed}</span>
+      <span className="block">umbral: {rule.threshold}</span>
+      {policyVersion !== null ? <span className="block">política v{policyVersion}</span> : null}
+    </>
+  );
+  if (!focusable) {
+    return (
+      <span className="group relative inline-flex">
+        {chip}
+        <span className="sr-only">
+          {" "}
+          · observado {rule.observed}, umbral {rule.threshold}
+        </span>
+        <span
+          aria-hidden="true"
+          className="absolute top-full left-0 z-20 mt-1 hidden w-max max-w-xs rounded-[var(--radius-control)] border border-line bg-surface p-2 text-[12px] text-ink-2 shadow-sm group-hover:block"
+        >
+          {detail}
+        </span>
+      </span>
+    );
+  }
   return (
     <span className="group relative inline-flex">
       <span
@@ -60,12 +92,9 @@ export function VerdictChip({
       <span
         role="tooltip"
         id={tooltipId}
-        className="absolute top-full left-0 z-20 hidden mt-1 w-max max-w-xs rounded-[var(--radius-control)] border border-line bg-surface p-2 text-[12px] text-ink-2 shadow-sm group-focus-within:block group-hover:block"
+        className="absolute top-full left-0 z-20 mt-1 hidden w-max max-w-xs rounded-[var(--radius-control)] border border-line bg-surface p-2 text-[12px] text-ink-2 shadow-sm group-focus-within:block group-hover:block"
       >
-        <span className="block font-mono text-ink">{rule.code}</span>
-        <span className="block">observado: {rule.observed}</span>
-        <span className="block">umbral: {rule.threshold}</span>
-        {policyVersion !== null ? <span className="block">política v{policyVersion}</span> : null}
+        {detail}
       </span>
     </span>
   );

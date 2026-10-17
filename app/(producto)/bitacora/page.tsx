@@ -67,7 +67,8 @@ export default async function BitacoraPage({
         meta={
           <span>
             {log.entries.length}
-            {log.hasMore ? "+" : ""} eventos
+            {log.hasMore ? "+" : ""}{" "}
+            {log.entries.length === 1 && !log.hasMore ? "evento" : "eventos"}
           </span>
         }
       />

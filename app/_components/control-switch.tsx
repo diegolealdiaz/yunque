@@ -1,11 +1,14 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useRef } from "react";
 
 /**
  * Interruptor de control: pagos habilitados, modo de prueba, autonomía. No son política
  * sino control, y cambiarlos exige confirmar en un diálogo que dice qué va a pasar
  * (docs/interfaz.md §5.4). El cambio real lo registra el servidor en la bitácora.
+ *
+ * Muestra siempre el valor que confirmó el servidor (`checked`), nunca uno supuesto: si el
+ * servidor rechaza el cambio, el interruptor no miente sobre el estado de los pagos.
  */
 export function ControlSwitch({
   label,
@@ -16,6 +19,7 @@ export function ControlSwitch({
   confirmOn,
   confirmOff,
   onChange = null,
+  disabled = false,
 }: {
   readonly label: string;
   readonly description: string;
@@ -27,10 +31,12 @@ export function ControlSwitch({
   /** Qué pasa al apagar, en una frase. */
   readonly confirmOff: string;
   readonly onChange?: ((next: boolean) => void) | null;
+  /** Sin quien firme, o con un cambio en curso, no se puede cambiar. */
+  readonly disabled?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const [value, setValue] = useState(checked);
+  const value = checked;
   const next = !value;
 
   return (
@@ -44,8 +50,9 @@ export function ControlSwitch({
         role="switch"
         aria-checked={value}
         aria-label={label}
+        disabled={disabled}
         onClick={() => dialog.current?.showModal()}
-        className="inline-flex h-7 items-center gap-2 rounded-full border border-control px-1 pr-3 text-[12px] font-medium text-ink"
+        className="inline-flex h-7 items-center gap-2 rounded-full border border-control px-1 pr-3 text-[12px] font-medium text-ink disabled:cursor-not-allowed disabled:opacity-60"
       >
         <span
           aria-hidden="true"
@@ -69,7 +76,6 @@ export function ControlSwitch({
           <button
             type="button"
             onClick={() => {
-              setValue(next);
               onChange?.(next);
               dialog.current?.close();
             }}

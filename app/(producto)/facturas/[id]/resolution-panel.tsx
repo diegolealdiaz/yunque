@@ -4,10 +4,10 @@ import { useActionState } from "react";
 
 import type { ChecklistItem } from "@/src/domain";
 
+import { ActionOutcome } from "../../../_components/action-outcome";
 import { ApprovalChecklist } from "../../../_components/approval-checklist";
 import { ApproverPicker } from "../../../_components/approver-picker";
 
-import { ActionOutcome } from "./action-outcome";
 import { approveAction, rejectAction } from "./actions";
 import { CorrectionForm, ReevaluateButton, type EditableField } from "./correction-form";
 

@@ -65,7 +65,7 @@ export function EvidenceTarget({
       type="button"
       aria-pressed={active}
       onClick={() => select(active ? null : id)}
-      className={`w-full rounded-[var(--radius-control)] px-2 py-1 text-left ${active ? "bg-escalate-tint" : "hover:bg-surface-hover"}`}
+      className={`w-full rounded-[var(--radius-control)] px-2 py-1 text-left ${active ? "bg-surface-sunken font-medium" : "hover:bg-surface-hover"}`}
     >
       {children}
     </button>
@@ -136,7 +136,7 @@ export function DocumentViewer({
               <span
                 key={h.id}
                 aria-hidden="true"
-                className={`absolute rounded-sm border-2 ${selected === h.id ? "border-escalate-solid bg-escalate-tint/40" : "border-transparent"}`}
+                className={`absolute rounded-sm border-2 ${selected === h.id ? "border-ink bg-ink/10" : "border-transparent"}`}
                 style={
                   h.box
                     ? {
@@ -170,7 +170,7 @@ export function DocumentViewer({
                       marks.current.set(segment.highlight.id, element);
                   }}
                   title={segment.highlight.label}
-                  className={`rounded-sm px-0.5 text-ink ${selected === segment.highlight.id ? "bg-escalate-tint outline-2 outline-escalate-solid" : "bg-pending-tint"}`}
+                  className={`rounded-sm px-0.5 text-ink ${selected === segment.highlight.id ? "bg-surface outline-2 outline-ink" : "bg-pending-tint"}`}
                 >
                   {segment.text}
                 </mark>

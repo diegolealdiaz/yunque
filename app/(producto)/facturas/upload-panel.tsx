@@ -88,7 +88,7 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
         }}
         onDragLeave={() => setDragging(false)}
         onDrop={onDrop}
-        className={`block cursor-pointer rounded-[var(--radius-card)] border border-dashed px-6 py-6 text-center text-[13px] ${dragging ? "border-ink bg-surface-hover" : "border-line-strong bg-surface"}`}
+        className={`block cursor-pointer rounded-[var(--radius-card)] border border-dashed px-6 py-6 text-center text-[13px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus)] ${dragging ? "border-ink bg-surface-hover" : "border-line-strong bg-surface"}`}
       >
         <span className="block font-medium text-ink">Arrastra facturas aquí o elige archivos</span>
         <span className="mt-1 block text-ink-2">
