@@ -1,14 +1,11 @@
-# Contexto de Blinka
+# Blinka: encaje de producto
 
-> Qué es Blinka, qué sabemos de su producto y cómo usamos eso en Yunque. Solo lo que cambia decisiones de diseño. Información pública a octubre de 2026.
+> Qué hace el producto de Blinka y cómo Yunque se sienta encima. Solo lo que cambia decisiones de diseño. Información pública a octubre de 2026.
 
 ## 1. Qué es Blinka
 
-- **Blinka Tech Corp**, corporación de Delaware. Es una fintech, no un banco: los servicios bancarios los prestan bancos aliados (Portage Bank y Erebor Bank, N.A. según distintas fuentes) y la infraestructura de stablecoins la provee Mural Pay, Inc.
-- Fundada por colombianos (Juan Pablo Linares, CEO, y Sebastián Linares). Entró al batch Fall 2026 de Y Combinator. Procesó más de USD 10 millones en sus primeros dos meses.
 - **Posicionamiento:** "Banking, without borders. The banking platform for global companies." Cuentas en USD, pagos globales, tarjetas y tesorería en una sola plataforma.
-- **Cliente objetivo:** startups latinoamericanas constituidas en EE. UU., empresas tecnológicas con equipos distribuidos y plataformas que manejan múltiples entidades y volumen. Clientes públicos: Didit, Braven, Lazo, Bricksave, Dapta, Creditop, Zolvo.
-- Entre sus clientes está **Dapta**, la otra empresa del hackathon.
+- **Cliente objetivo:** empresas constituidas en EE. UU. con equipos, contratistas y proveedores en Latinoamérica, que manejan varias entidades y decenas de pagos al mes.
 
 ## 2. Qué hace su producto
 
@@ -97,10 +94,3 @@ Usar los términos de Blinka en la interfaz, el registro de decisiones y el READ
 ### 4.4 Lo que NO hacemos
 Por el alcance del reto y por respeto al producto de Blinka: no replicamos su app, no abrimos cuentas, no verificamos identidad de empresas, no decidimos cumplimiento ni fraude, no movemos dinero.
 
-## Fuentes
-
-- Sitio de Blinka: <https://blinka.co/>
-- Centro legal y términos de servicio: <https://docs.blinka.co/legal/terms-of-service>
-- La República, "Colombianos crearon una fintech en EE. UU. que ya procesó más de US$10 millones": <https://www.larepublica.co/finanzas/colombianos-crearon-una-fintech-en-ee-uu-que-ya-proceso-mas-de-us-10-millones-4500136>
-- Valora Analitik sobre Blinka: <https://www.valoraanalitik.com/?p=616519>
-- Enter.co, "Blinka entra a Y Combinator": <https://www.enter.co/?p=587603>
