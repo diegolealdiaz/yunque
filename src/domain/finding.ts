@@ -38,3 +38,27 @@ export type Finding = Readonly<z.infer<typeof FindingSchema>>;
 export function hasBlocking(findings: readonly Finding[]): boolean {
   return findings.some((f) => f.severity === "block");
 }
+
+/**
+ * El valor observado de `extraction_unreadable` dice si el documento no es una factura o no
+ * se pudo leer, seguido del motivo. El motor lo arma y la pantalla lo lee con estas dos
+ * funciones: el formato vive en un solo lugar y los hallazgos guardados no cambian.
+ */
+const UNREADABLE_PREFIX = { not_invoice: "no es una factura", unreadable: "ilegible" } as const;
+export type UnreadableKind = keyof typeof UNREADABLE_PREFIX;
+
+export function unreadableObserved(kind: UnreadableKind, reason: string): string {
+  return `${UNREADABLE_PREFIX[kind]}: ${reason}`;
+}
+
+export function parseUnreadableObserved(observed: string): {
+  readonly kind: UnreadableKind;
+  readonly reason: string;
+} {
+  const kind: UnreadableKind = observed.startsWith(UNREADABLE_PREFIX.not_invoice)
+    ? "not_invoice"
+    : "unreadable";
+  const prefix = `${UNREADABLE_PREFIX[kind]}:`;
+  const reason = observed.startsWith(prefix) ? observed.slice(prefix.length).trim() : observed;
+  return { kind, reason };
+}

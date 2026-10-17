@@ -7,6 +7,11 @@ import { DbError } from "../errors";
 import { parseRow } from "../rows";
 import { vendors } from "../schema";
 
+/**
+ * Vendors: los beneficiarios permitidos de cada empresa. Son la única fuente de los datos de
+ * pago de una orden: la cuenta sale de aquí, nunca del texto de la factura.
+ */
+
 /** Da de alta un vendor. */
 export async function insertVendor(exec: Executor, vendor: Vendor): Promise<void> {
   const v = VendorSchema.parse(vendor);

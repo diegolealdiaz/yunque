@@ -1,4 +1,11 @@
-import { formatMoney, isPresent, money, type Currency, type Suspicion } from "@/src/domain";
+import {
+  formatMoney,
+  isPresent,
+  money,
+  unreadableObserved,
+  type Currency,
+  type Suspicion,
+} from "@/src/domain";
 
 import { fail, pass, skipped, type Rule } from "./types";
 import { currencyOf, evidenceOf, fieldsOf } from "./shared";
@@ -19,7 +26,10 @@ export const extractionUnreadable: Rule = {
     return fail({
       code: "extraction_unreadable",
       action: "escalar",
-      observed: `${notInvoice ? "no es una factura" : "ilegible"}: ${ctx.extraction.reason}`,
+      observed: unreadableObserved(
+        notInvoice ? "not_invoice" : "unreadable",
+        ctx.extraction.reason,
+      ),
       threshold: "factura legible",
       message: notInvoice ? "El documento no parece una factura" : "No se pudo leer el documento",
     });

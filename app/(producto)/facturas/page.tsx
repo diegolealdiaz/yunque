@@ -23,7 +23,7 @@ import {
 
 import { DataTable } from "../../_components/data-table";
 import { PageHeader } from "../../_components/page-header";
-import { UploadDialog } from "../../_components/upload-dialog";
+import { ActionDialog } from "../../_components/action-dialog";
 import { StatusBadge } from "../../_components/status-badge";
 import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
@@ -136,11 +136,11 @@ export default async function FacturasPage({
         }
         actions={
           <>
-            <UploadDialog>
+            <ActionDialog label="Subir factura">
               <UploadPanel maxBytes={config.demo.maxUploadBytes} />
-            </UploadDialog>
+            </ActionDialog>
             {inbound ? (
-              <UploadDialog label="Recibir por correo">
+              <ActionDialog label="Recibir por correo">
                 <EmailPanel
                   address={emailAddress?.address ?? null}
                   expires={
@@ -148,7 +148,7 @@ export default async function FacturasPage({
                   }
                   maxPerDay={inbound.maxPerAddressPerDay}
                 />
-              </UploadDialog>
+              </ActionDialog>
             ) : null}
             {config.demo.enabled ? (
               <>

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import type { Controls } from "@/src/domain";
 
@@ -59,6 +59,41 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
   // El menú se abre para la ruta actual: al navegar a otra, queda cerrado sin un efecto.
   const [openOn, setOpenOn] = useState<string | null>(null);
   const open = openOn === pathname;
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const drawer = useRef<HTMLElement>(null);
+
+  // Menú abierto en el teléfono: el foco entra al menú, Esc lo cierra desde donde esté el
+  // foco, y al cerrar el foco vuelve al botón "Menú".
+  useEffect(() => {
+    if (!open) return;
+    closeButton.current?.focus();
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") setOpenOn(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const button = menuButton.current;
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      button?.focus();
+    };
+  }, [open]);
+
+  // Tab no sale del menú abierto: del último elemento vuelve al primero y al revés.
+  const trapFocus = (event: KeyboardEvent<HTMLElement>) => {
+    if (!open || event.key !== "Tab" || !drawer.current) return;
+    const focusable = drawer.current.querySelectorAll<HTMLElement>("a[href], button");
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  };
+
   return (
     <>
       <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 lg:hidden">
@@ -70,6 +105,7 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
             </Link>
           ) : null}
           <button
+            ref={menuButton}
             type="button"
             aria-expanded={open}
             aria-controls="menu-principal"
@@ -90,9 +126,11 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
       ) : null}
       <aside
         id="menu-principal"
-        onKeyDown={(e) => {
-          if (e.key === "Escape") setOpenOn(null);
-        }}
+        ref={drawer}
+        aria-modal={open ? true : undefined}
+        role={open ? "dialog" : undefined}
+        aria-label={open ? "Menú principal" : undefined}
+        onKeyDown={trapFocus}
         className={`${open ? "fixed inset-y-0 left-0 z-40 flex w-64 shadow-lg" : "hidden"} shrink-0 flex-col border-r border-line bg-surface lg:static lg:flex lg:w-56 lg:shadow-none`}
       >
         <div className="flex items-start justify-between gap-2 px-4 pt-5 pb-4">
@@ -101,6 +139,7 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
             <p className="mt-0.5 truncate text-[12px] text-ink-3">{state.organizationName}</p>
           </div>
           <button
+            ref={closeButton}
             type="button"
             aria-label="Cerrar menú"
             onClick={() => setOpenOn(null)}

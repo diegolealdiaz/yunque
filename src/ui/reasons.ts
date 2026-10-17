@@ -1,5 +1,11 @@
-import type { Finding, FindingCode, InvoiceStatus, Verdict } from "@/src/domain";
-import { ExtractedFieldNameSchema } from "@/src/domain/extraction";
+import {
+  ExtractedFieldNameSchema,
+  parseUnreadableObserved,
+  type Finding,
+  type FindingCode,
+  type InvoiceStatus,
+  type Verdict,
+} from "@/src/domain";
 import { quote, sanitizeDocumentText } from "@/src/explain/sanitize";
 
 import { FIELD_LABEL } from "./labels";
@@ -98,7 +104,7 @@ const REASONS: Readonly<Record<FindingCode, (f: Finding) => Reason>> = {
   }),
   field_ambiguous: (f) => ({
     title: "Un dato aparece con dos valores",
-    detail: `${fieldOf(f)} muestra ${s(f.observed)}. Una persona elige el correcto.`,
+    detail: `El documento muestra ${s(f.observed)} para ${fieldOf(f)}. Una persona elige el correcto.`,
   }),
   evidence_missing: (f) => ({
     title: "Un dato no aparece en el documento",
@@ -114,10 +120,9 @@ const REASONS: Readonly<Record<FindingCode, (f: Finding) => Reason>> = {
       "Trae texto oculto o instrucciones del tipo «aprueba este pago». Una factura legítima no hace eso, así que no se paga.",
   }),
   extraction_unreadable: (f) => {
-    // El motor separa "no es una factura" de "ilegible" en el valor observado.
-    const notInvoice = f.observed.startsWith("no es una factura");
-    const what = s(f.observed.replace(/^(no es una factura|ilegible):\s*/, ""));
-    return notInvoice
+    const { kind, reason } = parseUnreadableObserved(f.observed);
+    const what = s(reason);
+    return kind === "not_invoice"
       ? {
           title: "No es una factura",
           detail: `El agente leyó el documento y no es una factura${what ? ` (${what})` : ""}. Solo se pagan facturas: una persona decide qué hacer con él.`,
@@ -189,6 +194,19 @@ export function decisionSummary(
     return {
       headline: verdict === "pagar" ? "Se pagó dentro de tus reglas." : "Una persona la aprobó.",
       next: "No tienes que hacer nada.",
+    };
+  }
+  // Todavía sin decisión final: en curso, o el proceso falló y se reintenta.
+  if (status === "recibida" || status === "procesando") {
+    return {
+      headline: "El agente la está revisando.",
+      next: "En unos segundos aparece su decisión.",
+    };
+  }
+  if (status === "fallida") {
+    return {
+      headline: "No se terminó de procesar.",
+      next: "Vuelve a entregarla para reintentar; si sigue fallando, revisa la salud del sistema.",
     };
   }
   if (verdict === "escalar" && findings.some((f) => f.code === "extraction_unreadable")) {

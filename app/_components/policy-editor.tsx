@@ -74,14 +74,25 @@ export function PolicyEditor({
       : []),
     ...extraTabs,
   ];
-  const [selected, setSelected] = useState(0);
+  // La pestaña elegida se guarda por su id: si cambian las pestañas, la selección no salta a
+  // otra. Una pestaña que ya no existe vuelve a la primera.
+  const [selectedId, setSelectedId] = useState("politica");
+  const found = tabs.findIndex((tab) => tab.id === selectedId);
+  const selected = found < 0 ? 0 : found;
 
-  // Flechas izquierda y derecha recorren las pestañas (patrón de pestañas de ARIA).
+  // Teclado del patrón de pestañas de ARIA: flechas recorren, Inicio y Fin saltan.
   const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    const last = tabs.length - 1;
+    const targets: Readonly<Record<string, number>> = {
+      ArrowRight: (selected + 1) % tabs.length,
+      ArrowLeft: (selected + last) % tabs.length,
+      Home: 0,
+      End: last,
+    };
+    const next = targets[event.key] ?? null;
+    if (next === null) return;
     event.preventDefault();
-    const next = (selected + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
-    setSelected(next);
+    setSelectedId(tabs[next]?.id ?? "politica");
     document.getElementById(`${baseId}-tab-${String(next)}`)?.focus();
   };
 
@@ -98,7 +109,7 @@ export function PolicyEditor({
               aria-selected={index === selected}
               aria-controls={`${baseId}-panel-${String(index)}`}
               tabIndex={index === selected ? 0 : -1}
-              onClick={() => setSelected(index)}
+              onClick={() => setSelectedId(tab.id)}
               onKeyDown={onKeyDown}
               className={`-mb-px h-9 border-b-2 px-3 text-[13px] font-medium ${
                 index === selected

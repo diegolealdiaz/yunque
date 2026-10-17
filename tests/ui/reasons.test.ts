@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { FindingCodeSchema, type Finding } from "@/src/domain";
+import {
+  FindingCodeSchema,
+  parseUnreadableObserved,
+  unreadableObserved,
+  type Finding,
+} from "@/src/domain";
 import { decisionSummary, reasonFor } from "@/src/ui/reasons";
 
 /**
@@ -46,15 +51,26 @@ describe("razones para el cliente", () => {
   it("separa un documento que no es factura de uno ilegible", () => {
     const notInvoice = reasonFor(
       finding("extraction_unreadable", {
-        observed: "no es una factura: comprobante de nómina, no una factura",
+        observed: unreadableObserved("not_invoice", "comprobante de nómina, no una factura"),
       }),
     );
     expect(notInvoice.title).toBe("No es una factura");
     expect(notInvoice.detail).toContain("comprobante de nómina");
     const blurry = reasonFor(
-      finding("extraction_unreadable", { observed: "ilegible: la imagen está borrosa" }),
+      finding("extraction_unreadable", {
+        observed: unreadableObserved("unreadable", "la imagen está borrosa"),
+      }),
     );
     expect(blurry.title).toBe("No se pudo leer el documento");
+    // Sin motivo, la frase no deja paréntesis vacíos.
+    const bare = reasonFor(
+      finding("extraction_unreadable", { observed: unreadableObserved("unreadable", "") }),
+    );
+    expect(bare.detail).not.toContain("()");
+    expect(parseUnreadableObserved(unreadableObserved("not_invoice", "x"))).toEqual({
+      kind: "not_invoice",
+      reason: "x",
+    });
     // A un documento que no es factura no se le sugiere aprobarlo.
     const next = decisionSummary("escalar", "esperando_aprobacion", [
       finding("extraction_unreadable"),
@@ -76,5 +92,16 @@ describe("razones para el cliente", () => {
     expect(decisionSummary("pagar", "decidida").headline).toBe("Se pagó dentro de tus reglas.");
     expect(decisionSummary("escalar", "aprobada").headline).toBe("Una persona la aprobó.");
     expect(decisionSummary("escalar", "rechazada").headline).toBe("Una persona la rechazó.");
+    expect(decisionSummary("escalar", "procesando").headline).toBe("El agente la está revisando.");
+    expect(decisionSummary("escalar", "fallida").headline).toBe("No se terminó de procesar.");
+  });
+
+  it("sin campo conocido, la frase nombra «un dato» y sigue siendo legible", () => {
+    const reason = reasonFor(
+      finding("field_ambiguous", { field: null, observed: "1.200 USD y 1.250 USD" }),
+    );
+    expect(reason.detail).toBe(
+      "El documento muestra 1.200 USD y 1.250 USD para un dato. Una persona elige el correcto.",
+    );
   });
 });

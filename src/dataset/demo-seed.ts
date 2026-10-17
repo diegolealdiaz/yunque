@@ -75,7 +75,7 @@ export const GENERATED_DIR = path.join(process.cwd(), "data", "dataset", "genera
 
 /**
  * Casos del lote en el orden del dataset, leídos de `verdad.json`. Es la lista cerrada de lo
- * que "Procesar periodo" puede pedir: el cliente nombra un caso, nunca una ruta.
+ * que "Procesar facturas de ejemplo" puede pedir: el cliente nombra un caso, nunca una ruta.
  */
 export async function loadBatchCases(dir: string = GENERATED_DIR): Promise<BatchCase[]> {
   const truth = GroundTruthSchema.parse(

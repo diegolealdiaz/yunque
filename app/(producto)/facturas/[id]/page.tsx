@@ -152,7 +152,8 @@ function WhyCard({ detail, fx }: { readonly detail: InvoiceDetail; readonly fx: 
   // Primero lo que frena, luego lo que escala: así la razón de más peso va arriba.
   const reasons = [...findings]
     .sort((a, b) => (a.action === b.action ? 0 : a.action === "frenar" ? -1 : 1))
-    .map(reasonFor);
+    // La llave es el hallazgo, no el título: dos campos con la misma regla dan el mismo título.
+    .map((f, i) => ({ key: `${f.code}:${f.field ?? String(i)}`, ...reasonFor(f) }));
   const passed = detail.rules.filter((rule) => rule.outcome === "pass").length;
   const { Icon } = tone;
   return (
@@ -167,7 +168,7 @@ function WhyCard({ detail, fx }: { readonly detail: InvoiceDetail; readonly fx: 
       {reasons.length > 0 ? (
         <ul className="mt-3 space-y-2">
           {reasons.map((reason) => (
-            <li key={reason.title} className="text-[14px] leading-relaxed">
+            <li key={reason.key} className="text-[14px] leading-relaxed">
               <span className="font-semibold text-ink">{reason.title}.</span>{" "}
               <span className="text-ink-2">{reason.detail}</span>
             </li>

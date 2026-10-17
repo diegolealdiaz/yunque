@@ -57,6 +57,7 @@ export function EmailPanel({
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }

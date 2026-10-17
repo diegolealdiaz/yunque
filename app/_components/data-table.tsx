@@ -41,6 +41,17 @@ export type Column = {
   readonly card?: "title" | "aside" | "line" | "hidden";
 };
 
+/**
+ * Clases de cada ancho mínimo. Escritas completas para que Tailwind las encuentre al
+ * compilar; `3xl` no existe en Tailwind y se define aquí como 1800 px.
+ */
+const VISIBLE_FROM: Readonly<Record<NonNullable<Column["from"]>, string>> = {
+  lg: "hidden lg:table-cell",
+  xl: "hidden xl:table-cell",
+  "2xl": "hidden 2xl:table-cell",
+  "3xl": "hidden min-[1800px]:table-cell",
+};
+
 export type Row = {
   readonly key: string;
   /** A dónde lleva abrir la fila; sin él, la fila no se abre. */
@@ -82,8 +93,11 @@ export function DataTable({
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, index: number) => {
+    // Solo la fila misma: Enter sobre un enlace o botón de la fila hace lo suyo, no abre la fila.
+    if (event.target !== event.currentTarget) return;
     if (event.metaKey || event.ctrlKey || event.altKey) return;
-    switch (event.key) {
+    // `J` y `K` con mayúsculas activadas también navegan.
+    switch (event.key.length === 1 ? event.key.toLowerCase() : event.key) {
       case "j":
       case "ArrowDown":
         event.preventDefault();
@@ -111,15 +125,7 @@ export function DataTable({
   };
 
   const visibility = (column: Column | undefined) =>
-    column?.from === "lg"
-      ? "hidden lg:table-cell"
-      : column?.from === "xl"
-        ? "hidden xl:table-cell"
-        : column?.from === "2xl"
-          ? "hidden 2xl:table-cell"
-          : column?.from === "3xl"
-            ? "hidden min-[1800px]:table-cell"
-            : "";
+    column?.from ? VISIBLE_FROM[column.from] : "";
 
   return (
     <>
