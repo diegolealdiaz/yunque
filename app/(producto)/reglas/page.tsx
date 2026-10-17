@@ -2,8 +2,8 @@ import { cookies } from "next/headers";
 
 import { CURRENCIES, formatMoney, money, policyEditToYaml, type FxTable } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
-import { loadPolicyHistory } from "@/src/usecases";
-import { calendarDate, instant, rateText } from "@/src/ui/format";
+import { loadPayeeOptions, loadPolicyHistory } from "@/src/usecases";
+import { calendarDate, instant, rateText, relativeInstant } from "@/src/ui/format";
 
 import { ApproverPicker } from "../../_components/approver-picker";
 import { PageHeader } from "../../_components/page-header";
@@ -70,7 +70,11 @@ function RatesTable({ fx }: { readonly fx: FxTable }) {
 
 export default async function ReglasPage() {
   const { config, db, organization } = await appContext();
-  const { current, versions, lastReplay: replayed } = await loadPolicyHistory(db, organization.id);
+  const now = new Date();
+  const [{ current, versions, lastReplay: replayed }, payees] = await Promise.all([
+    loadPolicyHistory(db, organization.id),
+    loadPayeeOptions(db, organization.id),
+  ]);
   if (!current) {
     return (
       <EmptyState
@@ -129,6 +133,7 @@ export default async function ReglasPage() {
         version={current.version}
         signedBy={current.signed_by}
         canSign={signer !== null}
+        payees={payees}
         protectedKeys={[
           {
             label: "Tope absoluto del sistema",
@@ -149,7 +154,13 @@ export default async function ReglasPage() {
                 <li key={v.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
                   <span className="w-10 font-medium text-ink">v{v.version}</span>
                   <span className="text-ink-2">{v.signed_by}</span>
-                  <span className="text-ink-3">{instant(v.signed_at, config.displayTimeZone)}</span>
+                  <time
+                    dateTime={v.signed_at}
+                    title={instant(v.signed_at, config.displayTimeZone)}
+                    className="text-ink-3"
+                  >
+                    {relativeInstant(v.signed_at, now, config.displayTimeZone)}
+                  </time>
                   <span className="font-mono text-[12px] text-ink-3">
                     {v.content_hash.slice(0, 10)}…
                   </span>

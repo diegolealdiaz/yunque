@@ -3,7 +3,9 @@
 import { useActionState, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { CONFIGURABLE_RULES, RULES, type RuleCode } from "@/src/domain/rules";
+import type { PayeeOption } from "@/src/usecases";
 import {
+  ALLOWED_PAYEES_PATH,
   BUDGET_PERIOD_PATH,
   LIMIT_FIELDS,
   PARAMETER_FIELDS,
@@ -11,6 +13,8 @@ import {
   displayValue,
   parseFieldInput,
   readPolicyYaml,
+  readStringList,
+  toggleListItem,
   unitOf,
   writePolicyYaml,
   type FieldSpec,
@@ -168,6 +172,64 @@ function RuleChoice({
   );
 }
 
+/**
+ * A quién puede pagar el agente sin preguntar: los beneficiarios registrados, cada uno con
+ * su casilla. Uno fuera de la lista se escala o se frena según la regla de la derecha.
+ */
+function AllowedPayees({
+  payees,
+  allowed,
+  onToggle,
+  disabled,
+}: {
+  readonly payees: readonly PayeeOption[];
+  readonly allowed: readonly string[];
+  readonly onToggle: (id: string, on: boolean) => void;
+  readonly disabled: boolean;
+}) {
+  const known = new Set(payees.map((p) => p.id));
+  const orphans = allowed.filter((id) => !known.has(id)).length;
+  if (payees.length === 0) {
+    return (
+      <p className="py-2 text-[13px] text-ink-3">La empresa no tiene beneficiarios registrados.</p>
+    );
+  }
+  return (
+    <div className="py-1">
+      <p className="py-1 text-[12px] text-ink-3">
+        {allowed.length - orphans} de {payees.length} permitidos
+        {orphans > 0 ? ` · ${String(orphans)} en la lista ya no están registrados` : ""}
+      </p>
+      <ul className="max-h-56 overflow-y-auto">
+        {payees.map((payee) => (
+          <li key={payee.id}>
+            <label
+              className={`flex items-center gap-3 rounded-[var(--radius-control)] px-1 py-1.5 text-[13px] hover:bg-surface-hover ${
+                disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={allowed.includes(payee.id)}
+                disabled={disabled}
+                onChange={(e) => onToggle(payee.id, e.target.checked)}
+                className="size-4 shrink-0 accent-[var(--brand)]"
+              />
+              <span className="min-w-0 flex-1 truncate text-ink">{payee.name}</span>
+              <span className="font-mono text-[11px] text-ink-3">{payee.country}</span>
+              <span
+                className={`w-20 text-right text-[12px] ${payee.verified ? "text-ink-2" : "text-ink-3"}`}
+              >
+                {payee.verified ? "verificado" : "sin verificar"}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function PolicyWorkbench({
   initialYaml,
   version,
@@ -175,6 +237,7 @@ export function PolicyWorkbench({
   protectedKeys,
   canSign,
   versions,
+  payees,
   extraTabs = [],
 }: {
   readonly initialYaml: string;
@@ -185,6 +248,8 @@ export function PolicyWorkbench({
   readonly canSign: boolean;
   /** Historial de versiones, ya armado por la pantalla. */
   readonly versions: { readonly count: number; readonly content: ReactNode };
+  /** Beneficiarios registrados, para la lista de permitidos. */
+  readonly payees: readonly PayeeOption[];
   /** Pestañas de solo lectura después de las versiones. */
   readonly extraTabs?: readonly PolicyTab[];
 }) {
@@ -201,6 +266,7 @@ export function PolicyWorkbench({
   const [saved, runSave, saving] = useActionState(saveAction, null);
   const dialog = useRef<HTMLDialogElement>(null);
   const parsed = useMemo(() => readPolicyYaml(yaml), [yaml]);
+  const allowed = useMemo(() => readStringList(yaml, ALLOWED_PAYEES_PATH), [yaml]);
   const setAt = (path: readonly (string | number)[], value: unknown) =>
     setYaml(writePolicyYaml(yaml, path, value));
   const dirty = yaml !== initialYaml;
@@ -265,6 +331,17 @@ export function PolicyWorkbench({
                 disabled={!parsed.ok}
               />
             ))}
+          </Group>
+          <Group
+            title="A quién se puede pagar"
+            hint="Beneficiarios a los que el agente paga sin preguntar. Uno fuera de la lista sigue la regla «Beneficiario fuera de la lista»."
+          >
+            <AllowedPayees
+              payees={payees}
+              allowed={allowed}
+              disabled={!parsed.ok}
+              onToggle={(id, on) => setYaml(toggleListItem(yaml, ALLOWED_PAYEES_PATH, id, on))}
+            />
           </Group>
         </div>
         <Group

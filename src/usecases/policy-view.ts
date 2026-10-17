@@ -1,5 +1,10 @@
 import type { Database } from "@/src/db/client";
-import { getCurrentPolicy, listEvents, listPolicyVersions } from "@/src/db/repositories";
+import {
+  getCurrentPolicy,
+  listEvents,
+  listPolicyVersions,
+  listVendors,
+} from "@/src/db/repositories";
 import type { PolicyVersion, Ulid } from "@/src/domain";
 
 /**
@@ -13,6 +18,28 @@ export function loadCurrentPolicy(
   organizationId: Ulid,
 ): Promise<PolicyVersion | null> {
   return getCurrentPolicy(db, organizationId);
+}
+
+/** Un beneficiario registrado, como opción de la lista de permitidos en Reglas. */
+export type PayeeOption = {
+  readonly id: Ulid;
+  readonly name: string;
+  readonly country: string;
+  /** Una persona confirmó sus datos. */
+  readonly verified: boolean;
+};
+
+/** Beneficiarios registrados de la empresa, por nombre, para elegir a quién se puede pagar. */
+export async function loadPayeeOptions(db: Database, organizationId: Ulid): Promise<PayeeOption[]> {
+  const vendors = await listVendors(db, organizationId);
+  return vendors
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      country: v.country,
+      verified: v.verification.status === "verificado",
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }
 
 /** Lo que pasó la última vez que se guardó una política y se reevaluaron las abiertas. */

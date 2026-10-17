@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { defaultPolicy, policyEditToYaml } from "@/src/domain/policy";
 import { CONFIGURABLE_RULES } from "@/src/domain/rules";
 import {
+  ALLOWED_PAYEES_PATH,
   BUDGET_PERIOD_PATH,
   LIMIT_FIELDS,
   PARAMETER_FIELDS,
@@ -10,6 +11,8 @@ import {
   displayValue,
   parseFieldInput,
   readPolicyYaml,
+  readStringList,
+  toggleListItem,
   writePolicyYaml,
 } from "@/src/ui/policy-form";
 
@@ -79,5 +82,24 @@ describe("formulario de la política", () => {
     expect(get(["limits", "per_payment", "amount"])).toBe(
       readPolicyYaml(yaml).get(["limits", "per_payment", "amount"]),
     );
+  });
+});
+
+describe("lista de beneficiarios permitidos", () => {
+  const base = "allowed_payees:\n  - a\n  - b\nlimits:\n  approval_threshold_usd_cents: 500000\n";
+
+  it("lee la lista y la deja vacía si falta o el YAML está roto", () => {
+    expect(readStringList(base, ALLOWED_PAYEES_PATH)).toEqual(["a", "b"]);
+    expect(readStringList("limits: {}\n", ALLOWED_PAYEES_PATH)).toEqual([]);
+    expect(readStringList("allowed_payees: [\n", ALLOWED_PAYEES_PATH)).toEqual([]);
+  });
+
+  it("agrega sin duplicar y quita, sin tocar el resto del documento", () => {
+    const added = toggleListItem(base, ALLOWED_PAYEES_PATH, "c", true);
+    expect(readStringList(added, ALLOWED_PAYEES_PATH)).toEqual(["a", "b", "c"]);
+    expect(toggleListItem(added, ALLOWED_PAYEES_PATH, "c", true)).toBe(added);
+    const removed = toggleListItem(added, ALLOWED_PAYEES_PATH, "a", false);
+    expect(readStringList(removed, ALLOWED_PAYEES_PATH)).toEqual(["b", "c"]);
+    expect(removed).toContain("approval_threshold_usd_cents: 500000");
   });
 });

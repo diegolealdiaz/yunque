@@ -1,4 +1,4 @@
-import { parseDocument } from "yaml";
+import { isScalar, isSeq, parseDocument } from "yaml";
 
 import type { RuleCode } from "@/src/domain/rules";
 
@@ -155,6 +155,30 @@ export const RULE_COPY: Readonly<Partial<Record<RuleCode, RuleCopy>>> = {
 export function readPolicyYaml(yaml: string): { readonly ok: boolean; readonly get: PolicyGetter } {
   const doc = parseDocument(yaml);
   return { ok: doc.errors.length === 0, get: (path) => doc.getIn(path) };
+}
+
+/** Ruta de la lista de beneficiarios permitidos (ids de vendors) en la política. */
+export const ALLOWED_PAYEES_PATH = ["allowed_payees"] as const;
+
+/** Los textos de una lista del YAML; lo que no sea texto se ignora. Sin lista, vacía. */
+export function readStringList(yaml: string, path: Path): string[] {
+  const doc = parseDocument(yaml);
+  if (doc.errors.length > 0) return [];
+  const node: unknown = doc.getIn(path);
+  if (!isSeq(node)) return [];
+  return node.items.flatMap((item) => {
+    const value: unknown = isScalar(item) ? item.value : item;
+    return typeof value === "string" ? [value] : [];
+  });
+}
+
+/** Agrega o quita un texto de una lista del YAML, sin duplicados y conservando el orden. */
+export function toggleListItem(yaml: string, path: Path, item: string, on: boolean): string {
+  const current = readStringList(yaml, path);
+  // Sin cambio, el documento queda igual: ni el formato de la lista se toca.
+  if (current.includes(item) === on) return yaml;
+  const next = on ? [...current, item] : current.filter((value) => value !== item);
+  return writePolicyYaml(yaml, path, next);
 }
 
 /** El YAML con una clave cambiada, conservando el resto del documento y sus comentarios. */
