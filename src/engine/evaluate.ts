@@ -63,12 +63,21 @@ function runRule(rule: (typeof RULES_IN_ORDER)[number], ctx: EvaluationContext):
  */
 export function scheduleFor(ctx: EvaluationContext): string {
   const fields = fieldsOf(ctx);
-  const today = isoDate(ctx.now);
-  if (!fields || !isPresent(fields.due_date)) return today;
-  const { schedule_days_before } = ctx.policy.rules.due_date_window;
-  const target = addDays(parseIsoDate(fields.due_date.value), -schedule_days_before);
-  const targetIso = isoDate(target);
-  return targetIso < today ? today : targetIso;
+  return scheduledDate(
+    fields && isPresent(fields.due_date) ? fields.due_date.value : null,
+    isoDate(ctx.now),
+    ctx.policy.rules.due_date_window.schedule_days_before,
+  );
+}
+
+/**
+ * La misma regla de fecha programada, para quien no tiene un contexto de evaluación (una
+ * aprobación humana): `vencimiento - días antes`, nunca antes de hoy; sin vencimiento, hoy.
+ */
+export function scheduledDate(dueDate: string | null, today: string, daysBefore: number): string {
+  if (dueDate === null) return today;
+  const target = isoDate(addDays(parseIsoDate(dueDate), -daysBefore));
+  return target < today ? today : target;
 }
 
 function verdictFrom(findings: readonly Finding[]): Verdict {
