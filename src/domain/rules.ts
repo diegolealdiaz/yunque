@@ -40,6 +40,8 @@ export type RuleCode = z.infer<typeof RuleCodeSchema>;
  * - `rule_error`: una regla lanzó; el veredicto por defecto es frenar (invariante 11).
  * - `processing_error`: una etapa del caso de uso falló antes de decidir (normalización,
  *   lectura, resolución); la factura escala con el error como motivo, nunca se paga.
+ * - `human_correction`: una persona corrigió campos a mano. Lo que pagaría queda para que
+ *   otra persona lo apruebe: quien corrige no libera su propia corrección (cuatro ojos).
  */
 export const SYSTEM_FINDING_CODES = [
   "payments_disabled",
@@ -49,6 +51,7 @@ export const SYSTEM_FINDING_CODES = [
   "ledger_missing",
   "rule_error",
   "processing_error",
+  "human_correction",
 ] as const;
 export const SystemFindingCodeSchema = z.enum(SYSTEM_FINDING_CODES);
 

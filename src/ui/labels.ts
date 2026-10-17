@@ -56,6 +56,7 @@ export const RULE_SHORT_LABEL: Readonly<Record<FindingCode, string>> = {
   ledger_missing: "sin presupuesto registrado",
   rule_error: "error de regla",
   processing_error: "error de proceso",
+  human_correction: "corregida a mano",
 };
 
 /** Nombre de cada campo leído, como lo ve la persona. */
@@ -94,6 +95,7 @@ const SYSTEM_TITLE: Readonly<Record<string, string>> = {
   ledger_missing: "Sin presupuesto del periodo",
   rule_error: "Una regla no pudo evaluarse",
   processing_error: "Error de procesamiento",
+  human_correction: "Campos corregidos a mano",
 };
 
 /** Título de cada regla o hallazgo de sistema para la traza del detalle. */

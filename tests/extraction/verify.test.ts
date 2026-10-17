@@ -260,3 +260,33 @@ describe("ayudas de parseo", () => {
     expect(Date.now() - started).toBeLessThan(2000);
   });
 });
+
+describe("campos corregidos a mano", () => {
+  it("un valor escrito por una persona no se exige como cita, y un total fijado a mano no es ambiguo", async () => {
+    const src = await loadDatasetSources();
+    const c = src.manifest.cases.find((x) => x.id === "adv_dos_totales");
+    const t = c && src.templates.get(c.template);
+    if (!c || !t) throw new Error("caso ausente");
+    const text = await pdfText(await generatedFile("adv_dos_totales.pdf"));
+    const read = idealExtraction(c, t);
+    if (read.kind !== "invoice") throw new Error("se esperaba factura");
+    expect(verifyExtraction(read, text).report.ambiguities.some((a) => a.field === "total")).toBe(
+      true,
+    );
+
+    const human = {
+      ...read,
+      fields: {
+        ...read.fields,
+        total: {
+          ...read.fields.total,
+          evidence: { literal: "valor escrito a mano", quote: "valor escrito a mano", page: null },
+          source: "humano" as const,
+        },
+      },
+    };
+    const verified = verifyExtraction(human, text);
+    expect(verified.report.evidence_missing).not.toContain("total");
+    expect(verified.report.ambiguities.some((a) => a.field === "total")).toBe(false);
+  });
+});

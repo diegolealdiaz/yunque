@@ -244,3 +244,39 @@ describe("Juez: invariantes (P-22 a P-33)", () => {
     );
   });
 });
+
+describe("Juez: corrección humana (cuatro ojos)", () => {
+  /** El mismo contexto con el total escrito por una persona. */
+  function humanTotal(ctx: EvaluationContext): EvaluationContext {
+    if (ctx.extraction.kind !== "invoice") return ctx;
+    const { fields } = ctx.extraction;
+    return {
+      ...ctx,
+      extraction: {
+        ...ctx.extraction,
+        fields: { ...fields, total: { ...fields.total, source: "humano", confidence: 1 } },
+      },
+    };
+  }
+
+  it("propiedad: un campo corregido a mano nunca vuelve más permisivo el veredicto, y lo que pagaría escala", () => {
+    const rank: Record<Verdict, number> = { pagar: 0, escalar: 1, frenar: 2 };
+    fc.assert(
+      fc.property(arbContext, (ctx) => {
+        const machine = evaluate(ctx);
+        const human = evaluate(humanTotal(ctx));
+        if (ctx.extraction.kind !== "invoice") return;
+        expect(human.verdict).not.toBe("pagar");
+        if (machine.verdict === "pagar") {
+          expect(human.verdict).toBe("escalar");
+          expect(human.findings.map((f) => f.code)).toContain("human_correction");
+        } else {
+          // Si ya no pagaba, la corrección no cambia el motivo ni ablanda.
+          expect(rank[human.verdict]).toBeGreaterThanOrEqual(rank[machine.verdict]);
+          expect(human.findings.some((f) => f.code === "human_correction")).toBe(false);
+        }
+      }),
+      { numRuns: 1000 },
+    );
+  });
+});

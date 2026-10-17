@@ -1,4 +1,12 @@
-import { hasBlocking, isPresent, type Finding, type FindingCode, type Verdict } from "@/src/domain";
+import {
+  EXTRACTED_FIELD_NAMES,
+  hasBlocking,
+  isPresent,
+  type ExtractedFieldName,
+  type Finding,
+  type FindingCode,
+  type Verdict,
+} from "@/src/domain";
 
 import type { EvaluationContext } from "./context";
 import { RULES_IN_ORDER, assertRegistryComplete } from "./rules/registry";
@@ -80,6 +88,16 @@ export function scheduledDate(dueDate: string | null, today: string, daysBefore:
   return target < today ? today : target;
 }
 
+/** Campos que una persona escribió a mano en la extracción que se evalúa. */
+export function humanCorrectedFields(ctx: EvaluationContext): ExtractedFieldName[] {
+  const fields = fieldsOf(ctx);
+  if (!fields) return [];
+  return EXTRACTED_FIELD_NAMES.filter((name) => {
+    const field = fields[name];
+    return isPresent(field) && field.source === "humano";
+  });
+}
+
 function verdictFrom(findings: readonly Finding[]): Verdict {
   if (findings.some((f) => f.severity === "block" && f.action === "frenar")) return "frenar";
   if (findings.some((f) => f.severity === "block" && f.action === "escalar")) return "escalar";
@@ -151,6 +169,22 @@ export function evaluate(ctx: EvaluationContext): Evaluation {
       field: null,
       message:
         "La empresa pidió que toda decisión pase por una persona; el agente recomienda pagar",
+    });
+    verdict = "escalar";
+  }
+
+  // Cuatro ojos: lo que una persona corrigió a mano no se paga solo; lo aprueba otra persona.
+  const corrected = humanCorrectedFields(ctx);
+  if (verdict === "pagar" && corrected.length > 0) {
+    findings.push({
+      code: "human_correction",
+      severity: "block",
+      action: "escalar",
+      observed: corrected.join(", "),
+      threshold: "la aprobación de otra persona",
+      evidence: null,
+      field: null,
+      message: "Una persona corrigió campos a mano; otra persona debe aprobar el pago",
     });
     verdict = "escalar";
   }

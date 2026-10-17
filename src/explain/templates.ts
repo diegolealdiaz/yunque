@@ -138,6 +138,11 @@ export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
     explain: (f) => `Una regla no pudo evaluarse (${s(f.observed)}); se exige ${s(f.threshold)}.`,
     check: null,
   },
+  human_correction: {
+    explain: (f) =>
+      `Una persona corrigió a mano ${s(f.observed)}; para pagar se necesita ${s(f.threshold)}.`,
+    check: () => "Revisé contra el documento los campos que otra persona corrigió a mano",
+  },
   processing_error: {
     explain: (f) =>
       `El procesamiento se interrumpió en ${s(f.observed)}; se necesita ${s(f.threshold)}.`,

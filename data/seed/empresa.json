@@ -2,7 +2,7 @@
   "name": "Forja Labs Inc.",
   "reference_prefix": "YQ",
   "source_account_id": "acct_usd_delaware_0001",
-  "approvers": ["Diego Leal"],
+  "approvers": ["Diego Leal", "Ana Torres"],
   "fx": {
     "base": "USD",
     "asOf": "2026-10-01",

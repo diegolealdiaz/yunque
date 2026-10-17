@@ -292,6 +292,9 @@ export function verifyExtraction(extraction: Extraction, text: string | null): V
   for (const name of EXTRACTED_FIELD_NAMES) {
     const field = fields[name];
     if (!isPresent(field)) continue;
+    // Un valor que escribió una persona no es una cita del documento: la evidencia es quién
+    // lo corrigió, y eso queda en la decisión. El motor exige otra persona para pagarlo.
+    if (field.source === "humano") continue;
     if (text !== null && text.length > 0 && !evidenceInText(field.evidence.literal, text)) {
       issues.push({ kind: "evidence_missing", field: name });
       continue;
@@ -305,7 +308,8 @@ export function verifyExtraction(extraction: Extraction, text: string | null): V
     totals = diff <= TOTALS_TOLERANCE ? "ok" : "mismatch";
   }
 
-  if (text !== null) {
+  // Si una persona fijó el total, eligió entre los candidatos del documento: no es ambiguo.
+  if (text !== null && fields.total.source !== "humano") {
     const seen = totalsInText(text).filter((t) => t !== fields.total.value);
     if (seen.length > 0) {
       ambiguities.push({
