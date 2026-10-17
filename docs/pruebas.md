@@ -27,7 +27,7 @@
 | Seguridad | escape, inyección, archivos, cookie, topes | mezcla de niveles anteriores, marcados `@seguridad` | CI |
 | Manual | lista previa al pitch | persona | antes del pitch |
 
-Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run test:api`, `npm run test:e2e`, `npm run check` (typecheck, lint, test, eval, build). CI corre `check` y después `test:api` y `test:e2e`.
+Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` con `EVAL_SOURCE=ideal`. Planeados: `test:api`, `test:e2e` y `test:seguridad`; `tests/api` y `tests/e2e` siguen vacías.
 
 ## 3. Catálogo de pruebas
 
@@ -130,7 +130,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-85 | Nivel `recomendar`: ninguna factura recibe `pagar`; todas las que lo harían quedan `escalar` con `autonomy_recomendar`. Con los pagos apagados, igual con `payments_disabled` | pipeline |
 | P-86 | Eventos: toda transición escribe un evento con quién, cuándo y qué, con un mismo id de traza por factura; la bitácora reconstruye el estado final de cada factura; cada decisión encola un aviso | base |
 | P-87 | Notificaciones: cada decisión encola un aviso en pantalla (y por Telegram si llegó por ahí); una fallida se reintenta con espera creciente (1, 2, 4, 8 minutos) y no antes; dos entregas a la vez no mandan el mismo aviso dos veces; tras cinco intentos queda fallida, con su evento, y visible en salud | pipeline |
-| P-88 | Bandeja simulada: cada correo se procesa una vez aunque se lea dos veces o llegue también por "Procesar periodo" (la llave sale del Message-ID); un correo sin adjunto ni cuerpo de factura produce `extraction_unreadable` sin llamar al modelo | pipeline |
+| P-88 | Bandeja simulada: cada correo se procesa una vez aunque se lea dos veces o llegue también por "Procesar facturas de ejemplo" (la llave sale del Message-ID); un correo sin adjunto ni cuerpo de factura produce `extraction_unreadable` sin llamar al modelo | pipeline |
 
 ### Regresión y métricas
 
@@ -150,7 +150,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-102 | Detalle: seleccionar un campo resalta la cita en imagen y texto; las posiciones salen de PDFium al ingerir y caen dentro de la casilla del campo en todas las plantillas del dataset; un valor repetido se ubica dentro de su cita; las reglas falladas aparecen primero con valor y umbral; la imagen de la página se sirve solo a su empresa, nunca el PDF | pipeline + e2e |
 | P-103 | Aprobación: el botón está inactivo hasta marcar todo el checklist y elegir aprobador; aprobar crea una decisión `pagar` con la persona y la hora, con orden desde el vendor, y la factura desaparece de pendientes; un beneficiario fuera de la lista solo se rechaza; rechazar exige motivo y es final | pipeline + e2e |
 | P-104 | Subida: archivo inválido muestra error con causa, sin exponer el esquema interno; válido aparece en la tabla con estado y luego veredicto; la lista filtra por veredicto, estado, canal y texto; las escrituras de otro origen reciben 403; los topes del día por visitante y global responden 429 con mensaje claro | pipeline + e2e |
-| P-105 | Procesar periodo: todas las facturas del dataset cambian de estado en vivo y el total de tiempo es menor a tres minutos; el lote es exactamente el dataset en orden y el servidor solo acepta casos de esa lista, nunca una ruta; las rutas que leen con el modelo duran más que el plazo global de lectura | pipeline + e2e |
+| P-105 | Procesar facturas de ejemplo: todas las facturas del dataset cambian de estado en vivo y el total de tiempo es menor a tres minutos; el lote es exactamente el dataset en orden y el servidor solo acepta casos de esa lista, nunca una ruta; las rutas que leen con el modelo duran más que el plazo global de lectura | pipeline + e2e |
 | P-106 | Reglas: editar el formulario actualiza el YAML y viceversa; un YAML roto desactiva el formulario con aviso; claves protegidas y controles no se cambian desde el YAML; solo firma un aprobador de la lista; guardar crea versión nueva con firma; un interruptor crea su versión y su evento sin tocar el resto | pipeline + e2e |
 | P-107 | Replay: cambiar el umbral muestra el diff exacto de decisiones que cambiarían, sin escribir nada y acumulando el presupuesto que consumen los pagos nuevos; guardar cambia exactamente lo anunciado, nunca toca las pagadas, y la bitácora lo registra | pipeline + e2e |
 | P-108 | Métricas: cada tarjeta y cada barra enlaza a las facturas que la componen y el conteo coincide; cada factura de una barra de regla tiene esa regla en su decisión vigente; lo pagado por moneda más lo comprometido antes suma lo comprometido del periodo | pipeline + e2e |
@@ -174,10 +174,10 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-128 | `/api/decide`: petición mal formada responde 400 con detalle de zod; nunca 500 | API |
 | P-129 | Telegram: el webhook rechaza peticiones sin el secreto; el mismo `update_id` dos veces procesa una vez | API, `@seguridad` |
 | P-130 | Telegram: la respuesta escapa HTML del contenido del documento; un archivo que no es factura responde "no pude leerla" sin excepción | API, `@seguridad` |
-| P-131 | Correo real (D23): un código de acceso equivocado no crea dirección; el correcto da una dirección con token de 60 bits que vence a las horas configuradas, y pedirla otra vez devuelve la misma; el webhook solo vale con la contraseña exacta; la configuración exige dirección, secreto y código al encenderlo, y no serializa el secreto ni el código | pipeline + unidad, `@seguridad` |
-| P-132 | Correo real: un token desconocido o mal formado se ignora sin escribir nada | pipeline, `@seguridad` |
-| P-133 | Correo real: una dirección vencida no procesa y deja "Correo no procesado" en la bitácora, sin remitente ni asunto | pipeline |
-| P-134 | Correo real: el primer adjunto que por contenido es PDF o imagen entra por el canal Correo; un reintento del proveedor no duplica la factura; superado el tope por dirección el correo no se procesa; sin adjunto válido el correo entra como mensaje sin factura | pipeline |
+| P-131 | Correo real (D23): un código de acceso equivocado no crea dirección; el correcto da una dirección con token de 60 bits que vence a las horas configuradas, y pedirla otra vez, incluso a la vez, devuelve la misma; el webhook solo vale con la contraseña exacta, sin importar mayúsculas en el esquema; la configuración exige dirección, secreto y código al encenderlo, y no serializa el secreto ni el código | pipeline + unidad, `@seguridad` |
+| P-132 | Correo real: un token desconocido o mal formado se ignora sin escribir nada; un token real en mayúsculas se reconoce | pipeline, `@seguridad` |
+| P-133 | Correo real: una dirección vencida no procesa y deja "Correo no procesado" en la bitácora una sola vez, sin remitente ni asunto; el reintento del proveedor recibe la misma respuesta; pasado el máximo de rechazos del día no se escribe nada | pipeline, `@seguridad` |
+| P-134 | Correo real: una ráfaga de correos no pasa del tope por dirección ni del tope de la demo; el primer adjunto que por contenido es PDF o imagen entra por el canal Correo, aunque otro adjunto se llame .pdf; un reintento del proveedor no duplica la factura; superado el tope de facturas, el correo admitido queda en la bitácora sin procesarse; sin adjunto válido entra como mensaje sin factura; una fecha ilegible toma la hora de llegada | pipeline |
 
 ## 4. Matriz de fronteras por regla (P-20)
 
@@ -236,7 +236,7 @@ Complementan `practicas.md` desde el punto de vista de pruebas.
 5. **Toda escritura va por un caso de uso.** Las rutas y las acciones de servidor no tocan repositorios directamente. Así cada escritura tiene transacción, evento y prueba.
 6. **Fixtures por hash, no por nombre.** El fixture del modelo se busca por hash de documento más versión de prompt; renombrar un archivo no reutiliza una salida vieja.
 7. **Un test por bug.** Cada corrección trae el caso que la reproduce; va en la tabla de la regla o en el catálogo con su id.
-8. **Los tests de seguridad se marcan.** Etiqueta `@seguridad` en la descripción; `npm run test:seguridad` los corre solos antes de desplegar.
+8. **Los tests de seguridad se marcan.** Etiqueta `@seguridad` en la descripción; `npm run test:seguridad` (planeado) los correrá solos antes de desplegar.
 9. **Nada se mockea en el motor.** Si una prueba del motor necesita un mock, el motor tiene una dependencia que no debería tener.
 10. **Snapshot solo para explicaciones.** Texto de plantilla con snapshot revisado a mano; nunca snapshot de objetos de dominio.
 
@@ -277,7 +277,7 @@ Cosas que ya sabemos que rompen proyectos como este. Cada una tiene la prueba o 
 | Puerta | Qué exige | Dónde |
 |---|---|---|
 | Commit | `npm run check` en verde | local, antes de cada commit |
-| CI | `check`, `test:api`, `test:e2e` en verde | GitHub Actions |
+| CI | `check` y `eval` en verde (`test:api` y `test:e2e` cuando existan) | GitHub Actions |
 | Despliegue | CI en verde, cero falsos "pagar" en `eval` | Vercel |
 | Cambio de prompt, esquema o modelo | `EVAL_LIVE=1 npm run eval` corrido a mano, fixtures regrabadas y revisadas, costo por factura anotado | manual |
 | Cambio en una regla | tabla de fronteras actualizada, invariantes en verde, explicación actualizada | revisión |

@@ -77,7 +77,7 @@ Barra lateral fija, cinco destinos, en este orden de uso:
 - **Métricas** es para el gerente y el jurado.
 - **Bitácora** es el registro de eventos de todo el sistema, filtrable.
 - El pie de la barra muestra el estado de los tres interruptores de control y la salud del sistema. Están ahí siempre porque son el argumento de seguridad del producto.
-- "Reiniciar demo" vive en el menú de la empresa, visible en modo demo, oculto en producción.
+- "Reiniciar demo" vivirá (paso 29) en el menú de la empresa, visible en modo demo, oculto en producción.
 - El contenido se centra con un ancho máximo común a todas las pantallas, para que en un monitor grande no quede pegado a la izquierda. Los formularios (Reglas, Salud) son más angostos y se alinean al mismo borde izquierdo.
 - Las tablas nunca se desplazan de lado en escritorio. Cada columna tiene prioridad: las secundarias (canal, actualizada, estado, referencia) se ocultan a medida que la pantalla se angosta, y el beneficiario recorta su texto. En el teléfono cada fila es una tarjeta: beneficiario arriba a la izquierda, monto arriba a la derecha y debajo el veredicto, el vencimiento y la referencia; toda la tarjeta abre la factura. En la Bitácora del teléfono no van los datos crudos.
 - En escritorio ninguna pantalla mueve la página entera: las listas (Facturas, Bitácora) ocupan el alto que queda y se desplazan por dentro con el encabezado de la tabla fijo, así filtros y acciones siguen a la vista. "Subir factura" abre un diálogo desde el encabezado.

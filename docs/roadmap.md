@@ -6,7 +6,7 @@
 
 | Funcionalidad | Criterio que mueve | Por qué destaca |
 |---|---|---|
-| Lote del periodo: 25 facturas decididas en vivo sin tocar nada | Autonomía | Es la prueba visible de que el agente decide solo |
+| Lote del periodo: 33 facturas decididas en vivo sin tocar nada | Autonomía | Es la prueba visible de que el agente decide solo |
 | Catálogo de 18 reglas con formulario y vista YAML | Seguridad | Reglas como datos versionados, no como código |
 | Detalle de decisión con traza por regla: valor, umbral, cita del documento | Explicabilidad | Casi nadie en el mercado explica así una decisión de pago |
 | Cola de pendientes con checklist y firma del contenido exacto | Seguridad | Aprobar no es un botón; es verificar cosas concretas |

@@ -34,7 +34,7 @@
 
 ## 3. Motor de reglas y veredicto
 
-25. **El veredicto es una función pura.** [demo] `evaluate(extraction, payeeMatch, policy, ledger) → { verdict, findings[] }`. Sin red, sin reloj implícito, sin modelo. Mismo input, mismo output, siempre.
+25. **El veredicto es una función pura.** [demo] `evaluate(contexto) → { verdict, findings[] }`, donde el contexto trae extracción, coincidencia del beneficiario, política, ledger y saldos. Sin red, sin reloj implícito, sin modelo. Mismo input, mismo output, siempre.
 26. **Pagar exige cero hallazgos de bloqueo.** [demo] Cada regla produce un hallazgo con `code`, `severity` (`block` o `warn`), valor observado, umbral y evidencia. Cualquier `block` impide pagar.
 27. **Si falta un artefacto, se frena.** [demo] Lista de beneficiarios no cargada, política ausente, ledger inaccesible: el resultado es frenar. Nunca "pagar por defecto".
 28. **Reglas como datos versionados.** [demo] Cada regla tiene identificador estable, categoría, parámetros, acción si falla (frenar o escalar) y versión. La versión de política se guarda en cada decisión. Las versiones son append-only.
@@ -76,7 +76,7 @@
 55. **Flags operativos en base o en entorno, nunca en código.** [demo] Mantenimiento, dry-run, modelo, umbrales.
 56. **Alertas, no solo logs.** [después] Cola de notificaciones fallidas, saldo del proveedor, detectores que superan el 5 por ciento de las facturas del día.
 57. **Demo pública acotada.** [demo] Tope de gasto en la clave del proveedor, tope de facturas por visitante y global por día, tamaño y tipo de archivo verificados por contenido, páginas renderizadas acotadas. Superado un tope, mensaje claro y el dataset precargado sigue funcionando.
-58. **Una empresa por visitante en la demo.** [demo] Cookie firmada que apunta a una organización sembrada al primer acceso. Reiniciar demo solo afecta la propia. Ninguna ruta acepta un identificador de empresa desde el cliente sin verificarlo contra la cookie.
+58. **Una empresa por visitante en la demo.** [demo] Cookie firmada que apunta a una organización sembrada al primer acceso. Reiniciar la demo (pendiente, paso 29) solo afectará la propia. Ninguna ruta acepta un identificador de empresa desde el cliente sin verificarlo contra la cookie.
 59. **Plan B ensayado, no supuesto.** [demo] El pitch se ensaya con la clave del modelo inválida: el dataset responde desde la caché por hash y la explicación por plantilla no depende del modelo. El video queda descargado en el equipo del pitch.
 60. **Runtime fijado.** [demo] Node 22 en `engines` y en Vercel desde el scaffold, `maxDuration` por ruta que llame al modelo o renderice PDF. Base en UTC, pantalla en hora de Bogotá.
 

@@ -8,7 +8,38 @@ Yunque revisa las cuentas por pagar de una empresa y decide cuáles pagar, cuál
 
 Proyecto del equipo **Forja** para el reto Blinka.
 
-## Correo real en la demo
+## Cómo funciona
+
+Cada factura entra por un canal (subida, correo o lote de ejemplo) y recorre el mismo camino: se normaliza, un modelo de lenguaje **solo lee** los datos, un motor determinista **decide** con las reglas de la empresa, y la decisión queda registrada con su explicación. El modelo nunca decide: si algo no cuadra, el veredicto solo puede endurecerse. Lo que se sale de las reglas espera a una persona en Pendientes.
+
+El detalle está en [Arquitectura](docs/arquitectura.md); la estructura de carpetas, en su [sección 8](docs/arquitectura.md#8-estructura-del-proyecto).
+
+## Arranque rápido
+
+Requisitos: Node 22 (ver `.nvmrc`).
+
+1. `npm ci`
+2. `cp .env.example .env.local` y completa `APPROVAL_SIGNING_SECRET` y `SESSION_SECRET` con `openssl rand -hex 32` (deben ser distintos). Sin `OPENROUTER_API_KEY` la app arranca, pero el Lector queda apagado y toda factura escala como ilegible.
+3. `npm run db:migrate` crea `data/yunque.db`. `npm run dev` no corre las migraciones.
+4. `npm run dev` y abre http://localhost:3000. En modo demo (`DEMO_MODE=true`, el valor por defecto) cada visitante recibe su propia empresa de ejemplo al primer acceso. Con `DEMO_MODE=false`, siembra la empresa base con `npm run seed`.
+
+Si el navegador recarga en bucle con `npm run dev`, usa `npm run build && npm run start`.
+
+## Comandos
+
+| Comando | Qué hace |
+|---|---|
+| `npm test` | Pruebas unitarias, de propiedad, de base y del pipeline completo, sin red |
+| `npm run eval` | Set de regresión contra la decisión esperada de cada caso. Sin clave: `EVAL_SOURCE=ideal npm run eval` |
+| `npm run check` | Typecheck, lint, formato, pruebas y build. Se corre antes de cada commit |
+| `npm run db:generate` | Genera una migración desde `src/db/schema.ts` |
+| `npm run dataset` | Regenera el dataset de ejemplo desde el manifiesto y las plantillas |
+
+## Despliegue
+
+Pendiente (paso 29 del [plan](docs/plan.md)): Vercel para la app, Turso para la base y Vercel Blob para los archivos (hoy se guardan en `data/files`). Producción exige `OPENROUTER_API_KEY` y `DEMO_MODE=true`: todavía no hay inicio de sesión. Las migraciones se aplican a Turso con `DATABASE_URL` y `DATABASE_AUTH_TOKEN` puestos y `npm run db:migrate`. Ponle a la clave de OpenRouter un límite de gasto.
+
+## Correo real en la demo (opcional)
 
 Los jurados pueden enviar una factura propia por correo y ver cómo la decide el agente. En Facturas, "Recibir por correo" pide un código de acceso y entrega una dirección personal que vence sola. Las protecciones y el porqué están en la decisión D23 de [Decisiones](docs/decisiones.md).
 

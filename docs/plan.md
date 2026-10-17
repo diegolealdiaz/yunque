@@ -38,7 +38,7 @@
 - **Prueba:** P-10 a P-14.
 
 ### Paso 5. Base de datos [núcleo]
-- **Construye:** esquema drizzle con columna de organización en todas las tablas; tablas append-only para política, decisiones, aprobaciones y eventos; `invoices`, `vendors`, `ledger`, `jobs`, `notifications`, `llm_calls`; migraciones; repositorios por agregado; función de transacción. Semilla: empresa, saldos, vendors, política v1.
+- **Construye:** esquema drizzle con columna de organización en todas las tablas; tablas append-only para política, decisiones, aprobaciones y eventos; `invoices`, `vendors`, `ledger`, `jobs` (quitada después, D7), `notifications`, `llm_calls`; migraciones; repositorios por agregado; función de transacción. Semilla: empresa, saldos, vendors, política v1.
 - **Hecho cuando:** migraciones corren en archivo local y en Turso; la semilla deja una empresa lista; ningún módulo fuera de `src/db` importa el driver.
 - **Prueba:** P-40 a P-42.
 
@@ -67,7 +67,7 @@
 ## Fase 3. Documentos y modelo
 
 ### Paso 10. Generador del dataset [núcleo]
-- **Construye:** `scripts/generate-dataset.ts`: cuatro plantillas de factura en JSON con posiciones por campo; manifiesto con 25 facturas, cada una con decisión esperada, regla esperada y motivo; set adversarial; dos meses de historial; saldos calibrados. Genera PDF, PNG (versión escaneada), correos y mensajes. Guarda verdad esperada y coordenadas por campo.
+- **Construye:** `scripts/generate-dataset.ts`: cuatro plantillas de factura en JSON con posiciones por campo; manifiesto con 33 casos, cada una con decisión esperada, regla esperada y motivo; set adversarial; dos meses de historial; saldos calibrados. Genera PDF, PNG (versión escaneada), correos y mensajes. Guarda verdad esperada y coordenadas por campo.
 - **Hecho cuando:** `npm run dataset` regenera todo de forma determinista (mismo manifiesto, mismos bytes) y el manifiesto valida con zod.
 - **Prueba:** P-50, P-51.
 
@@ -137,7 +137,7 @@
 - **Prueba:** P-103, P-44, P-45.
 
 ### Paso 23. Facturas, subida y lote [núcleo]
-- **Construye:** tabla con filtros, subida con validación en cliente y servidor, "Procesar periodo" orquestado por el cliente una factura por petición con progreso en vivo, "Leer bandeja" sobre la bandeja simulada.
+- **Construye:** tabla con filtros, subida con validación en cliente y servidor, "Procesar facturas de ejemplo" orquestado por el cliente una factura por petición con progreso en vivo, "Revisar correo de ejemplo" sobre la bandeja simulada.
 - **Hecho cuando:** procesar el dataset desde la pantalla termina en menos de tres minutos y las filas cambian de estado en vivo.
 - **Prueba:** P-104, P-105.
 
@@ -163,7 +163,7 @@
 
 ### Paso 28. Notificaciones y bandeja simulada [núcleo]
 - **Construye:** tabla de notificaciones como cola con reintentos e idempotencia; bandeja de correo simulada con mensajes del dataset; notificación en pantalla por decisión.
-- **Hecho cuando:** una notificación fallida se reintenta y no se duplica; "Leer bandeja" procesa los correos y ninguno dos veces.
+- **Hecho cuando:** una notificación fallida se reintenta y no se duplica; "Revisar correo de ejemplo" procesa los correos y ninguno dos veces.
 - **Prueba:** P-87, P-88.
 
 ## Fase 6. Despliegue
@@ -208,7 +208,7 @@
 
 1. Problema en 20 segundos: finanzas paga a mano, en otra moneda, y nadie recuerda por qué.
 2. Reglas: mostrar el formulario y el YAML. "Esto es lo único que el agente obedece."
-3. Procesar periodo: 25 facturas en vivo. Pendientes con pagadas, frenadas, escaladas.
+3. Procesar facturas de ejemplo: 33 facturas en vivo. Pendientes con pagadas, frenadas, escaladas.
 4. Abrir un duplicado frenado: traza y explicación.
 5. Abrir la factura con inyección de prompt: frenada, el documento quería saltarse las reglas.
 6. Aprobar una escalada: checklist, firma, queda registrado quién.

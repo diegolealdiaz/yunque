@@ -10,12 +10,12 @@
 | Evaluación | Pitch en vivo con demo | Guion ensayado, datos precargados y botón de reinicio de demo |
 | Stack | Next.js (App Router) + TypeScript, un solo proyecto | UI y API juntos, un solo deploy |
 | Base de datos | SQLite vía libSQL. Local: archivo. Producción: Turso | Mismo driver en local y en producción, sin servidor que mantener |
-| Hosting | Vercel (app) + Turso (datos) + Vercel Blob (archivos subidos) | Deploy automático desde GitHub, URL estable para la entrega |
+| Hosting | Vercel (app) + Turso (datos) + Vercel Blob (archivos subidos; hoy en disco local, Blob entra con el despliegue del paso 29) | Deploy automático desde GitHub, URL estable para la entrega |
 | Modelo | OpenRouter (clave existente) con Vercel AI SDK. Principal: Claude Haiku 5.5 ($0.10 / $0.50 por millón de tokens). Respaldo: Claude Sonnet 5.5 ($2 / $10) solo cuando la confianza de extracción es baja. Ambos configurables por variable de entorno | Costo por factura por debajo de un centavo; el modelo solo extrae y explica, nunca decide |
 | Documentos | Lectura y renderizado de PDF con PDFium en WebAssembly en el servidor (texto con capa, PNG cuando no la hay). El navegador nunca abre el PDF original: ve una imagen. Generación de PDF por plantilla JSON para el dataset y para la orden de pago | Sin binarios nativos, corre en funciones sin estado. Quita del navegador la superficie de ataque del PDF (scripts, enlaces, adjuntos) |
 | Idioma | Español en interfaz y registro | El jurado lee en español |
 | Reglas | Formulario con vista YAML al lado | "Pantalla simple" para finanzas, y muestra que las reglas son datos versionables |
-| Canales de entrada | Subida en pantalla, lote del periodo, bandeja de correo simulada, Telegram | En ese orden de construcción. Telegram se recorta primero si falta tiempo |
+| Canales de entrada | Subida en pantalla, lote del periodo, bandeja de correo simulada, correo real de la demo (D23), Telegram (planeado) | En ese orden de construcción. Telegram se recorta primero si falta tiempo |
 | Aprobación humana | Solo en pantalla, con checklist y firma del contenido exacto | Cero dependencias externas en el momento crítico del pitch |
 | Identificadores | ULID para facturas, decisiones y eventos, más referencia legible `DEC-2026-10-0007` | Únicos, ordenables por tiempo, sin coordinación entre funciones |
 | Dinero | Enteros de unidad mínima (centavos) con moneda obligatoria | Sin flotantes en el camino del dinero |
@@ -84,7 +84,6 @@ Decision       inmutable: veredicto pagar | frenar | escalar, hallazgos (regla, 
 Approval       resolución humana de un escalado: quién, cuándo, checklist marcado, motivo, y la firma
                del contenido aprobado (hash doc, monto, beneficiario, cuenta, versión de política)
 Ledger         compromisos por periodo (mes | semana): se reserva con UPDATE condicional atómico
-Job            cola outbox del lote: factura pendiente de procesar, intentos, estado
 Notification   outbox de notificaciones: canal, llave de idempotencia, intentos, próximo intento, estado
 LlmCall        cada llamada al modelo: factura, modelo, versión del prompt, hash del prompt,
                salida cruda, intentos, tokens, costo, latencia
@@ -150,7 +149,7 @@ canal (subida | lote | bandeja | Telegram)
 4. Resolución     Resolutor, código: empareja beneficiario con la lista de vendors (exacto, alias,
    │              similitud) y compara la cuenta extraída con la registrada. Sin coincidencia → desconocido
    ▼
-5. Evaluación     Juez: evaluate(extraction, payeeMatch, policy, ledger, balances) → hallazgos.
+5. Evaluación     Juez: evaluate(contexto) → hallazgos. El contexto trae extracción, coincidencia del beneficiario, política, ledger y saldos.
    │              Función pura, sin red, sin reloj implícito, con pruebas de propiedad
    ▼
 6. Veredicto      pagar | frenar | escalar. Pagar solo si cero hallazgos de bloqueo y
@@ -167,7 +166,7 @@ canal (subida | lote | bandeja | Telegram)
    │              etiquetada "preparada, no ejecutada". Transiciones con compare-and-swap
    │
    ▼
-9. Notificación   respuesta al canal de origen (pantalla, o mensaje en Telegram)
+9. Notificación   respuesta al canal de origen (pantalla, o mensaje en Telegram: simulado en esta versión, D21)
 ```
 
 ### Invariantes de seguridad (se prueban con tests)
@@ -197,7 +196,7 @@ Yunque no es un sistema multiagente donde varios modelos conversan entre sí. Es
 | Resolutor | Código | Empareja el beneficiario contra la lista permitida: exacto, alias, similitud |
 | Juez | Código, función pura | Evalúa la política y emite pagar, frenar o escalar con hallazgos |
 | Explicador | Plantilla; modelo opcional | Redacta la explicación a partir de los hallazgos. No puede alterar el veredicto |
-| Notificador | Código, tabla outbox | Persiste y entrega a pantalla y Telegram con reintentos e idempotencia |
+| Notificador | Código, tabla outbox | Persiste y entrega a pantalla y Telegram (simulado en esta versión, D21) con reintentos e idempotencia |
 | Analista | Código, fase posterior | Propone cambios de política desde el historial. Una persona decide |
 
 ### Cuando el Lector no entiende la factura
@@ -229,10 +228,10 @@ Antes de escalar por confianza baja, el pipeline hace una sola segunda pasada co
 | Lote del periodo | Botón "Procesar facturas de ejemplo". El cliente envía una factura por petición y muestra progreso. Evita límites de tiempo de funciones serverless | Pipeline completo |
 | Bandeja de correo simulada | Correos ficticios precargados (remitente, asunto, cuerpo, adjunto). Botón "Revisar correo de ejemplo" | Pipeline, con el cuerpo del correo como contexto extra |
 | Correo real (demo, D23) | Botón "Recibir por correo": con el código de acceso, cada visitante recibe su dirección personal, que vence sola. El proveedor de correo entrante llama a `/api/correo/entrante`; se procesa el primer adjunto PDF o imagen, con topes por dirección y de la demo antes de llamar al modelo | Pipeline, con el cuerpo del correo como contexto extra |
-| Telegram | Webhook en `/api/telegram`. Enviar foto o PDF, el bot responde con el veredicto y el enlace al detalle. Cada `update_id` se guarda y se ignora si se repite | Pipeline completo, bot en modo webhook |
-| API de decisión | `POST /api/decide` recibe un archivo o campos ya extraídos y devuelve el veredicto con hallazgos. Documentado en el README como "para tu propio agente" | Pipeline completo |
+| Telegram (planeado, paso 32) | Webhook en `/api/telegram`. Enviar foto o PDF, el bot responde con el veredicto y el enlace al detalle. Cada `update_id` se guarda y se ignora si se repite | Pipeline completo, bot en modo webhook |
+| API de decisión (planeada, paso 31) | `POST /api/decide` recibe un archivo o campos ya extraídos y devuelve el veredicto con hallazgos. Documentado en el README como "para tu propio agente" | Pipeline completo |
 
-Todos los canales terminan en la misma función `processInvoice(source, payload)`. Un canal nuevo es un adaptador de 50 líneas.
+Todos los canales terminan en la misma función `processInvoice(deps, input)`. Un canal nuevo es un adaptador de 50 líneas.
 
 ## 6. Pantallas
 
@@ -240,7 +239,7 @@ Resumen funcional. El diseño de cada pantalla, la navegación y el sistema visu
 
 1. **Reglas**: formulario (límites, umbral, presupuesto y periodo, vendors con cuenta registrada, tolerancias, acción por regla, días antes del vencimiento) con vista YAML al lado e historial de versiones. Las claves protegidas se muestran pero no se editan. Interruptores visibles: `payments_enabled` y `dry_run`.
 2. **Facturas**: lista con canal, beneficiario, monto, moneda, veredicto y estado. Filtros por veredicto. Botones "Subir factura" y, en la demo, "Procesar facturas de ejemplo", "Revisar correo de ejemplo" y "Recibir por correo" (D23).
-3. **Detalle de decisión**: con un control de "¿la explicación fue clara?" (sí o no, con comentario opcional) que alimenta la mejora de las plantillas y, después, las sugerencias. Documento original con las citas resaltadas, campos extraídos con confianza y evidencia, traza regla por regla con valor y umbral, explicación, fecha programada y orden de pago etiquetada "preparada, no ejecutada" si aplica, costo de la llamada al modelo, y decisión anterior si es reevaluación. Nada del documento se renderiza como HTML, markdown, imagen ni enlace.
+3. **Detalle de decisión**: con un control de "¿la explicación fue clara?" (sí o no, con comentario opcional) que alimenta la mejora de las plantillas y, después, las sugerencias (pendiente). Documento original con las citas resaltadas, campos extraídos con confianza y evidencia, traza regla por regla con valor y umbral, explicación, fecha programada y orden de pago etiquetada "preparada, no ejecutada" si aplica, costo de la llamada al modelo, y decisión anterior si es reevaluación. Nada del documento se renderiza como HTML, markdown, imagen ni enlace.
 4. **Pendientes de aprobación**: cola para la persona de finanzas. Los hallazgos de severidad `warn` se muestran y se reconocen uno a uno en el checklist. Aprobar exige marcar un checklist específico ("verifiqué que la cuenta coincide con la registrada", "revisé la evidencia del monto") antes de habilitar el botón. También permite corregir campos a mano y reevaluar, o rechazar con motivo. La primera resolución gana.
 5. **Métricas**: autonomía (decisiones correctas sin persona, con tasa de escalado como contra-métrica), falsos "pagar" (objetivo cero), exactitud por campo, pagado por moneda, presupuesto y saldo consumidos, reglas que más disparan, costo por factura, notificaciones pendientes y fallidas.
 6. **Salud**: `/api/health` verifica base, política cargada y proveedor del modelo; reporta antigüedad del pendiente más viejo y conteo de escaladas.
@@ -249,9 +248,9 @@ Resumen funcional. El diseño de cada pantalla, la navegación y el sistema visu
 ## 7. Dataset
 
 - Empresa ficticia: startup de Delaware con cuenta USD, contratistas en Colombia, México, Argentina y Brasil, proveedores SaaS en EE. UU. y Europa. Presupuesto mensual en USD. Tasas FX fijas en el set.
-- 25 facturas aproximadas generadas por script desde un manifiesto JSON que incluye la **decisión esperada y su razón** (ground truth). Los PDF se generan desde plantillas JSON con posiciones por campo, sobre cuatro diseños distintos (factura colombiana, invoice de contratista en USD, nota de cobro mexicana, factura europea). El mismo manifiesto produce el documento, la verdad esperada y las coordenadas de cada campo, así que agregar un caso trampa es agregar una línea.
+- 33 facturas generadas por script desde un manifiesto JSON que incluye la **decisión esperada y su razón** (ground truth). Los PDF se generan desde plantillas JSON con posiciones por campo, sobre cuatro diseños de factura (factura colombiana, invoice de contratista en USD, nota de cobro mexicana, factura europea) y uno de documento que no es factura. El mismo manifiesto produce el documento, la verdad esperada y las coordenadas de cada campo, así que agregar un caso trampa es agregar una línea.
 - Formatos: PDF con capa de texto, imagen PNG, correo (.eml o JSON), mensaje de chat (JSON).
-- Casos: 15 normales y 10 trampa: duplicado exacto, duplicado con otro formato, beneficiario nuevo, beneficiario parecido a uno permitido, cuenta distinta a la registrada, monto que no cuadra con el acuerdo, monto sobre el umbral de aprobación, monto sobre el límite duro, presupuesto del mes agotado, saldo insuficiente en una moneda, moneda no soportada, factura vencida hace mucho, factura con inyección de prompt.
+- Casos: 15 normales, 13 trampa y 5 adversariales. Trampas: duplicado exacto, duplicado con otro formato, beneficiario nuevo, beneficiario parecido a uno permitido, cuenta distinta a la registrada, monto que no cuadra con el acuerdo, monto sobre el umbral de aprobación, monto sobre el límite duro, presupuesto del mes agotado, saldo insuficiente en una moneda, moneda no soportada, factura vencida hace mucho, factura con inyección de prompt.
 - Set adversarial aparte, con veredicto esperado frenar o escalar: texto blanco sobre blanco, "ya aprobado por el CFO" en el correo, monto en letras distinto del numérico, dos totales en el mismo documento, documento que no es factura.
 - Historial de dos meses anteriores ya decididos, para que las métricas y el ledger tengan base, para que `first_payment_to_vendor` y `amount_unusual_for_vendor` tengan con qué comparar, y para que las sugerencias futuras tengan datos.
 - Saldos iniciales por moneda calibrados para que exactamente una factura del set caiga en saldo insuficiente.
@@ -274,6 +273,7 @@ yunque/
     api/procesar/         procesa una factura subida (una por petición, con su llave de entrega)
     api/lote/             procesa un caso del lote del periodo, elegido de la lista cerrada del dataset
     api/bandeja/          lee un correo de la bandeja simulada (solo en la demo)
+    api/correo/           correo real de la demo (D23): dirección personal y webhook de entrada
     api/health/           salud con frescura
   src/
     config.ts             variables de entorno validadas con zod; la app no arranca si falta algo
@@ -293,12 +293,16 @@ yunque/
   data/
     dataset/              manifiesto, archivos generados y bandeja simulada
     seed/                 empresa, vendors, política inicial
-  scripts/                migrate, seed, generate-dataset, eval
+    files/                archivos subidos y páginas renderizadas en local (ignorado por git)
+  scripts/                migrate, seed, generate-dataset, eval y env (carga .env.local)
   tests/                  una carpeta por módulo de src/, más:
     pipeline/             casos de uso completos con extractor simulado, sin red
     regression/           set completo y set adversarial contra decisión esperada
     fixtures/             salidas grabadas del modelo (se llenan al calibrar con la clave)
-    api/, e2e/            contratos de /api/* y los seis flujos del pitch (pendientes)
+    unit/                 configuración
+    usecases/             día de negocio
+    smoke/                que la app compile y arranque
+    api/, e2e/            contratos de /api/* y los seis flujos del pitch (pendientes, vacías)
   docs/
 ```
 
@@ -313,7 +317,7 @@ Telegram ───┤        │
 Postmark ───┘        │   (correo entrante de la demo, D23)
                      ├─► Turso (libSQL): vendors, políticas, facturas, decisiones,
                      │       ledger, notifications (outbox), audit_events
-                     ├─► Vercel Blob: binarios de facturas subidas
+                     ├─► Vercel Blob: binarios de facturas subidas (hoy disco local; paso 29)
                      ├─► OpenRouter: extracción (Haiku 5.5) y respaldo (Sonnet 5.5)
                      └─► Telegram Bot API: respuestas al canal
 GitHub ──► GitHub Actions (typecheck, lint, test) ──► Vercel (preview por rama, producción desde master)
@@ -327,11 +331,11 @@ La URL de entrega está abierta y tiene un modelo pagado detrás de un formulari
 
 | Medida | Cómo |
 |---|---|
-| Una empresa por visitante | Cookie firmada que apunta a una organización sembrada al primer acceso. Reiniciar demo solo afecta la propia |
+| Una empresa por visitante | Cookie firmada que apunta a una organización sembrada al primer acceso. Reiniciar la demo (pendiente, paso 29) solo afectará la propia |
 | Tope de gasto en el proveedor del modelo | Límite mensual en la clave, por debajo de lo que dolería perder |
 | Tope de trabajo por visitante | Máximo de facturas por visitante y por día, y máximo global diario. Superado el tope, la subida responde con un mensaje claro y el dataset precargado sigue funcionando |
 | Archivos acotados | Tamaño máximo por archivo, tipos permitidos (PDF, PNG, JPG) verificados por contenido y no por extensión, una página renderizada como máximo por encima de un límite de páginas |
-| Caché por hash siempre activa | Las 25 facturas del dataset ya están decididas; procesarlas de nuevo no llama al modelo. Es también el plan B si el proveedor cae durante el pitch |
+| Caché por hash siempre activa | Las 33 facturas del dataset ya están decididas; procesarlas de nuevo no llama al modelo. Es también el plan B si el proveedor cae durante el pitch |
 | Sin datos reales | Todo el contenido es ficticio y se puede borrar en cualquier momento |
 | Correo real solo para jurados | Código de acceso para obtener una dirección, dirección imposible de adivinar que vence sola, topes de correos por dirección y de la demo, interruptor `INBOUND_EMAIL_ENABLED`, y nunca se responde un correo (D23) |
 
@@ -356,11 +360,11 @@ Decirlo explícito es parte del diseño: las omisiones son decisiones, no descui
 | OpenRouter sin soporte de PDF para el modelo elegido | Texto se extrae localmente. Imágenes van como visión. PDF escaneado se trata como imagen |
 | Red o modelo caídos durante el pitch | Resultados del set precargados en la base. El botón de reiniciar deja la demo lista. La explicación por plantilla no depende del modelo |
 | Abuso de la URL pública que agote el crédito del modelo | Tope de gasto en la clave, tope de facturas por visitante y global, archivos acotados, caché por hash. Ver demo pública en §9 |
-| Varios miembros del jurado entran a la vez a la demo | Una empresa por visitante con cookie firmada; reiniciar demo es por empresa |
+| Varios miembros del jurado entran a la vez a la demo | Una empresa por visitante con cookie firmada; reiniciar la demo (pendiente, paso 29) será por empresa |
 | Tiempo máximo de funciones en Vercel con PDF más modelo en la misma petición | `maxDuration` por ruta, medido desde el primer despliegue; renderizado de páginas acotado; el lote va una factura por petición |
 | Zona horaria en vencimientos | Base en UTC, pantalla en hora de Bogotá, `due_date_window` calculado sobre fechas de calendario y no sobre instantes |
 | Telegram falla en vivo | Es el último paso del guion. Si falla, se muestra en el video |
 | Alcance demasiado grande para una persona | Orden de recorte fijado: Telegram, luego bandeja, luego `/api/decide`. Nunca el motor, el registro ni las pantallas de reglas y decisiones |
 | Sobreescalado que hunde la autonomía | Calibrar los umbrales de confianza sobre el set hasta el punto de cero falsos "pagar" con el mínimo de escalados. Tasa de escalado visible como contra-métrica |
-| Un jurado espera un modelo con herramientas al oír "agente" | El agente es el sistema que decide solo dentro de las reglas y pide permiso fuera; el modelo es uno de sus roles. Se demuestra con el lote decidiendo 25 facturas sin tocar nada |
+| Un jurado espera un modelo con herramientas al oír "agente" | El agente es el sistema que decide solo dentro de las reglas y pide permiso fuera; el modelo es uno de sus roles. Se demuestra con el lote decidiendo 33 facturas sin tocar nada |
 

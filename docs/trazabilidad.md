@@ -59,6 +59,6 @@ La forma elegida, modelo que extrae y código que decide, es la única de las co
 
 ## 5. Riesgos de interpretación
 
-- **"Agente" como palabra.** Un jurado puede esperar un bucle de modelo con herramientas. Respuesta en el pitch: el agente es el sistema que decide solo dentro de las reglas y pide permiso fuera de ellas; el modelo es uno de sus roles, no su cerebro. Mostrar el lote decidiendo 25 facturas sin tocar nada.
+- **"Agente" como palabra.** Un jurado puede esperar un bucle de modelo con herramientas. Respuesta en el pitch: el agente es el sistema que decide solo dentro de las reglas y pide permiso fuera de ellas; el modelo es uno de sus roles, no su cerebro. Mostrar el lote decidiendo 33 facturas sin tocar nada.
 - **Sobreescalado.** Si el agente escala demasiado, la autonomía cae. Calibrar los umbrales de confianza sobre el set hasta el punto de cero falsos "pagar" con el mínimo de escalados.
 - **Demo sin red.** Resultados del set precargados y explicación por plantilla que no depende del modelo.
