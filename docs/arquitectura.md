@@ -265,7 +265,8 @@ yunque/
     (producto)/           pantallas con la barra lateral: pendientes, facturas, reglas, métricas,
                           bitácora, salud y la página de componentes
     _components/          los nueve componentes base de interfaz.md §6, estados y atajos
-    api/process/          procesa una factura (usado por subida, lote y bandeja)
+    api/procesar/         procesa una factura subida (una por petición, con su llave de entrega)
+    api/lote/             procesa un caso del lote del periodo, elegido de la lista cerrada del dataset
     api/decide/           API de decisión para otros agentes
     api/telegram/         webhook del bot
     api/health/           salud con frescura

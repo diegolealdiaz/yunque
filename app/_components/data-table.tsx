@@ -127,7 +127,7 @@ export function DataTable({
               {row.cells.map((cell, c) => (
                 <td
                   key={c}
-                  className={`px-3 align-middle text-ink ${columns[c]?.align === "right" ? "num text-right" : ""}`}
+                  className={`px-3 align-middle whitespace-nowrap text-ink ${columns[c]?.align === "right" ? "num text-right" : ""}`}
                 >
                   {cell}
                 </td>
