@@ -1,4 +1,11 @@
-import type { FindingCode, Verdict } from "@/src/domain";
+import {
+  RULES,
+  RuleCodeSchema,
+  type Channel,
+  type ExtractedFieldName,
+  type FindingCode,
+  type Verdict,
+} from "@/src/domain";
 
 /**
  * Textos cortos de pantalla (docs/interfaz.md §7). El tipo exige una etiqueta por cada
@@ -50,3 +57,47 @@ export const RULE_SHORT_LABEL: Readonly<Record<FindingCode, string>> = {
   rule_error: "error de regla",
   processing_error: "error de proceso",
 };
+
+/** Nombre de cada campo leído, como lo ve la persona. */
+export const FIELD_LABEL: Readonly<Record<ExtractedFieldName, string>> = {
+  payee_name: "Beneficiario",
+  payee_tax_id: "Identificación",
+  invoice_number: "Número",
+  issue_date: "Emitida",
+  due_date: "Vence",
+  currency: "Moneda",
+  subtotal: "Subtotal",
+  taxes: "Impuestos",
+  total: "Monto",
+  bank_account: "Cuenta",
+  bank_holder: "Titular",
+  hours: "Horas",
+  purchase_order: "Orden de compra",
+  description: "Concepto",
+};
+
+/** Canal de llegada, en palabras. */
+export const CHANNEL_LABEL: Readonly<Record<Channel, string>> = {
+  upload: "subida en pantalla",
+  batch: "lote del periodo",
+  inbox: "bandeja de correo",
+  telegram: "Telegram",
+  api: "API de decisión",
+};
+
+/** Título de los hallazgos de sistema, que no son reglas del catálogo. */
+const SYSTEM_TITLE: Readonly<Record<string, string>> = {
+  payments_disabled: "Pagos apagados",
+  autonomy_recomendar: "Autonomía en recomendar",
+  policy_missing: "Sin política vigente",
+  vendors_missing: "Sin lista de beneficiarios",
+  ledger_missing: "Sin presupuesto del periodo",
+  rule_error: "Una regla no pudo evaluarse",
+  processing_error: "Error de procesamiento",
+};
+
+/** Título de cada regla o hallazgo de sistema para la traza del detalle. */
+export function ruleTitle(code: FindingCode): string {
+  const rule = RuleCodeSchema.safeParse(code);
+  return rule.success ? RULES[rule.data].title : (SYSTEM_TITLE[code] ?? code);
+}
