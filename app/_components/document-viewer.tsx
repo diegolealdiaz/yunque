@@ -107,7 +107,7 @@ export function DocumentViewer({
 
   useEffect(() => {
     if (selected)
-      marks.current.get(selected)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      marks.current.get(selected)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selected]);
 
   return (
