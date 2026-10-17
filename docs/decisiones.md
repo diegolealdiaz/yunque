@@ -61,6 +61,14 @@
 
 **Consecuencia.** Cero código de parseo de PDF en el navegador, la pantalla de detalle es idéntica para PDF, imagen y correo, y la evidencia se puede resaltar sobre la página. Cuesta una conversión por documento en la ingesta, que se hace una sola vez y se cachea por hash.
 
+## D12. La caché del Lector incluye el prompt construido
+
+**Contexto.** El mismo PDF puede llegar adjunto a dos correos distintos, uno normal y otro que dice "ya aprobado por el CFO". El cuerpo del canal entra al prompt.
+
+**Decisión.** La llave de caché es hash del documento, versión de prompt, versión de esquema, modelo y hash del prompt construido sin el canario. Una lectura ilegible o en la que se filtró el canario no se cachea. Escribir el registro de llamadas o la caché es best-effort: si falla, la lectura sigue.
+
+**Consecuencia.** Dos canales distintos son dos lecturas; la señal del canario se repite en cada reproceso. Cuesta una llamada más cuando el mismo documento llega por dos canales, que es justo el caso que hay que mirar.
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

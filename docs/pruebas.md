@@ -89,12 +89,12 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 
 | Id | Verifica | Tipo |
 |---|---|---|
-| P-50 | Manifiesto valida con zod; cada factura tiene decisión esperada, regla esperada y motivo; ninguna factura normal comparte llave semántica con otra salvo los duplicados declarados | unitario |
+| P-50 | Manifiesto valida con zod; cada factura tiene decisión esperada, regla esperada y motivo; ninguna factura normal comparte llave semántica con otra salvo los duplicados declarados; procesado en orden contra el motor (Lector ideal, Verificador, Detector, Resolutor, política de fábrica, saldo y presupuesto descontados tras cada pago) cada caso da su veredicto y la regla que lo decide es la esperada, con cero falsos pagar y una sola factura en saldo insuficiente | unitario |
 | P-51 | `npm run dataset` es determinista: dos corridas producen los mismos hashes; cada campo del manifiesto aparece literalmente en el texto del PDF generado | unitario |
-| P-52 | Ingesta de PDF con capa: texto por página no vacío, PNG por página, posiciones de texto para cada cita | pipeline |
+| P-52 | Ingesta de PDF con capa: texto por página no vacío, PNG por página, hash del archivo y llave de almacenamiento sin nombre del cliente (las coordenadas de cada cita existen solo para el dataset generado; para documentos ajenos la cita se muestra como texto con su página) | pipeline |
 | P-53 | Ingesta de PDF escaneado: texto vacío, PNG presente, la factura se marca para visión | pipeline |
 | P-54 | Tipo por contenido: un `.pdf` que es ejecutable, un PNG con extensión `.pdf`, un archivo vacío: rechazados con error tipado | pipeline, `@seguridad` |
-| P-55 | Límites: archivo mayor al tope y PDF con más páginas que el tope: rechazados o truncados según configuración, con hallazgo | pipeline, `@seguridad` |
+| P-55 | Límites: archivo mayor al tope y PDF con más páginas que el tope se rechazan con error tipado que dice qué hacer | pipeline, `@seguridad` |
 | P-56 | Correo y chat: remitente, fecha y cuerpo se conservan como metadatos; el adjunto pasa por la misma ingesta | pipeline |
 
 ### Modelo, verificación, resolución y detección
@@ -103,16 +103,16 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 |---|---|---|
 | P-60 | La salida del modelo se valida con zod estricto; una salida con campo extra, tipo incorrecto o JSON roto dispara un reintento y, si repite, `extraction_unreadable` | unitario con cliente simulado |
 | P-61 | Exactamente un reintento; nunca dos | unitario |
-| P-62 | Caché: segunda llamada con el mismo hash, prompt, esquema y modelo no toca el cliente; cambiar cualquiera de los cuatro sí | unitario |
+| P-62 | Caché: segunda llamada con el mismo hash de documento, versión de prompt, esquema, modelo y hash del prompt construido no toca el cliente; cambiar cualquiera sí, incluido el cuerpo del correo que acompaña al mismo PDF; una lectura con canario filtrado no se cachea | unitario |
 | P-63 | `llm_calls`: cada llamada registra modelo, versión de prompt, hash de prompt, tokens, costo, latencia y salida cruda; el costo calculado coincide con los precios configurados | unitario |
 | P-64 | El prompt nunca contiene nombres de vendors, cuentas ni saldos; test que inspecciona el prompt construido | unitario, `@seguridad` |
 | P-65 | Fixtures: las salidas grabadas cubren todo el dataset; una factura sin fixture hace fallar `npm run eval` sin `EVAL_LIVE` | regresión |
 | P-66 | Verificador: una cita que no está en el texto produce `evidence_missing`; una cita con espacios o saltos distintos pero mismo contenido normalizado pasa | unitario |
 | P-67 | Verificador: valor normalizado distinto del que se deriva de la cita produce hallazgo; monto en letras distinto del numérico produce `field_ambiguous` | unitario |
 | P-68 | Totales: subtotal más impuestos distinto del total fuera de tolerancia produce `totals_mismatch` | unitario |
-| P-69 | Respaldo: se invoca una sola vez y solo tras fallo del verificador; si también falla, se continúa con hallazgos; se registra como llamada separada con su costo | unitario |
+| P-69 | Respaldo: se invoca una sola vez y solo tras lectura ilegible o fallo del verificador en citas, valores o totales; "no es factura" no se repasa; el respaldo solo endurece (si dice que no es factura gana esa lectura; si discrepa en un campo crítico queda una ambigüedad); si también falla, se continúa con hallazgos; se registra como llamada separada con su costo | unitario |
 | P-70 | Resolutor: normalización de razón social (S.A.S., SAS, S.A.S, mayúsculas, tildes, puntuación) resuelve al mismo vendor | unitario + propiedad |
-| P-71 | Resolutor: nombre parecido pero distinto resuelve `parecido` con distancia; nombre nuevo resuelve `desconocido`; ambos producen `payee_not_allowed` con el detalle | unitario |
+| P-71 | Resolutor: nombre parecido pero distinto resuelve desconocido con el vendor más cercano y su similitud; nombre nuevo resuelve desconocido sin cercano; ambos producen `payee_not_allowed` con el detalle | unitario |
 | P-72 | Resolutor: cuenta distinta a la registrada produce `bank_account_mismatch`; titular distinto produce `account_holder_mismatch`; coincidencia por identificador fiscal gana sobre nombre | unitario |
 | P-73 | Resolutor: nunca devuelve una cuenta que no esté en la lista de vendors | propiedad, `@seguridad` |
 | P-74 | Detector: cada caso adversarial del dataset produce `suspicious_instructions`; ninguna factura normal lo produce | regresión, `@seguridad` |
@@ -196,8 +196,8 @@ Para cada regla, los casos mínimos. "=" es el valor igual al parámetro. Los pa
 | `unsupported_currency_or_rail` | moneda y riel en la lista | moneda fuera; riel fuera; combinación válida por separado pero no junta |
 | `due_date_window` | vence dentro de la ventana; vence hoy; fecha ausente (se programa hoy y queda registrado) | vencida más del atraso máximo; vence más allá de la ventana (se programa, no dispara); fecha inexistente en el calendario produce `rule_error` y frena |
 | `field_low_confidence` | confianza = mínimo; campo bajo que no está en `critical_fields` | mínimo −0.01 en un campo crítico; un solo campo bajo basta |
-| `field_ambiguous` | un candidato | dos candidatos (monto en letras distinto del numérico va por `suspicious_instructions`, que frena) |
-| `evidence_missing` | todas las citas presentes | una cita ausente (el Verificador decide qué cuenta como ausente, incluida la página equivocada) |
+| `field_ambiguous` | un candidato | dos candidatos: dos totales en el documento, monto en letras distinto del numérico, o dos pasadas del modelo que leen distinto un campo crítico |
+| `evidence_missing` | todas las citas presentes y cada valor derivado de su cita | una cita ausente o un valor que no se deriva de su cita (el Verificador guarda cuál de los dos) |
 | `totals_mismatch` | subtotal + impuestos = total; sin desglose no aplica | diferencia mayor a una unidad mínima, la detecte el motor o el Verificador |
 | `suspicious_instructions` | factura normal con la palabra "aprobado" en contexto normal | instrucción al sistema; "ya aprobado por el CFO"; texto oculto; token canario en la salida |
 | `extraction_unreadable` | factura legible | no es factura; JSON inválido tras reintento; documento vacío |

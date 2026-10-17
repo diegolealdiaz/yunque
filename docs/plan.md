@@ -72,7 +72,7 @@
 - **Prueba:** P-50, P-51.
 
 ### Paso 11. Ingesta y normalización [núcleo]
-- **Construye:** `src/extraction/ingest`: hash SHA-256 del archivo, verificación de tipo por contenido, límite de tamaño y páginas, guardado en almacenamiento, texto por página si hay capa, PNG por página con PDFium en WebAssembly, posiciones de texto. Correo y chat a texto con metadatos. Estado `recibida`.
+- **Construye:** `src/extraction/ingest`: hash SHA-256 del archivo, verificación de tipo por contenido, límite de tamaño y páginas, guardado en almacenamiento, texto por página si hay capa, PNG por página con PDFium en WebAssembly. Correo y chat (JSON con adjunto) a texto con metadatos. Estado `recibida` lo pone el caso de uso del paso 16.
 - **Hecho cuando:** un PDF con texto produce texto y PNG; un PDF escaneado produce PNG y texto vacío; un archivo disfrazado se rechaza; el mismo archivo dos veces produce una sola factura.
 - **Prueba:** P-52 a P-56.
 
@@ -87,8 +87,8 @@
 - **Prueba:** P-66 a P-69.
 
 ### Paso 14. Resolutor de beneficiario [núcleo]
-- **Construye:** `src/resolve`: coincidencia del beneficiario contra la lista de vendors por identificador fiscal, nombre normalizado y alias; comparación de cuenta y titular con la registrada; resultado `exacto | parecido | desconocido` con distancia. La cuenta destino de la orden sale siempre del vendor, nunca del texto.
-- **Hecho cuando:** "Nube Andina S.A.S." y "NUBE ANDINA SAS" resuelven al mismo vendor; "Nube Andina Ltda" resuelve `parecido`; una cuenta distinta produce la señal de cambio.
+- **Construye:** `src/resolve`: coincidencia del beneficiario contra la lista de vendors por identificador fiscal, nombre normalizado y alias; comparación de cuenta y titular con la registrada; resultado emparejado (por identificador fiscal, nombre exacto o alias) o desconocido con el vendor más parecido y su similitud. La cuenta destino de la orden sale siempre del vendor, nunca del texto.
+- **Hecho cuando:** "Nube Andina S.A.S." y "NUBE ANDINA SAS" resuelven al mismo vendor; "Nube Andina Ltda" resuelve desconocido con Nube Andina SAS como el más parecido; una cuenta distinta produce la señal de cambio.
 - **Prueba:** P-70 a P-73.
 
 ### Paso 15. Detector de instrucciones y canario [núcleo]
