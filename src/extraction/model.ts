@@ -48,8 +48,9 @@ export class ModelError extends Error {
   }
 }
 
+/** Solo 429 y 5xx (docs/practicas.md 8). Sin estado es que no hubo respuesta: la red falló. */
 function isRetryableStatus(status: number | undefined): boolean {
-  return status === undefined || status === 408 || status === 429 || status >= 500;
+  return status === undefined || status === 429 || status >= 500;
 }
 
 /** Cliente real sobre OpenRouter. */
@@ -99,11 +100,12 @@ export function createOpenRouterClient(apiKey: string): ModelClient {
           throw new ModelError(
             "provider",
             `${status === undefined ? "sin estado" : String(status)}: ${error.message}`,
-            error.isRetryable || isRetryableStatus(status),
+            isRetryableStatus(status),
           );
         }
+        // Un error que no viene del proveedor es nuestro: repetir la llamada no lo arregla.
         const message = error instanceof Error ? error.message : "error del proveedor";
-        throw new ModelError("provider", message, true);
+        throw new ModelError("provider", message, false);
       } finally {
         clearTimeout(timer);
       }

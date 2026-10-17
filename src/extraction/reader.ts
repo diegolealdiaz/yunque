@@ -162,7 +162,11 @@ export async function readDocument(
 ): Promise<ReadResult> {
   const hash = promptHash(input);
   const key = cacheKeyFor(input.document_hash, options.model, hash);
-  const cached = await deps.cache.get(key).catch(() => null);
+  // La caché solo ahorra: si falla, se lee con el modelo, pero la falla queda en el log.
+  const cached = await deps.cache.get(key).catch((error: unknown) => {
+    console.error("No se pudo leer la caché del Lector", { key, error });
+    return null;
+  });
   if (cached)
     return {
       record: cached,
@@ -255,7 +259,11 @@ export async function readDocument(
         fallback_used: options.fallbackUsed,
       };
       // Con canario filtrado no se cachea: la señal debe repetirse en cada lectura.
-      if (!canaryDetected) await deps.cache.put(key, record).catch(() => undefined);
+      if (!canaryDetected) {
+        await deps.cache.put(key, record).catch((error: unknown) => {
+          console.error("No se pudo guardar en la caché del Lector", { key, error });
+        });
+      }
       return {
         record,
         from_cache: false,

@@ -62,6 +62,10 @@ function withoutCanary(text: string, canary: string | null): string {
 }
 
 /** Fixtures de una versión de prompt en un directorio: un archivo JSON por llave. */
+function isMissingFile(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
 export class FixtureStore {
   constructor(private readonly root: string = FIXTURES_DIR) {}
 
@@ -78,8 +82,10 @@ export class FixtureStore {
     let text: string;
     try {
       text = await readFile(this.file(key), "utf8");
-    } catch {
-      return null;
+    } catch (error) {
+      // Solo "no existe" es una fixture ausente; un permiso o un disco malo debe verse.
+      if (isMissingFile(error)) return null;
+      throw error;
     }
     return FixtureSchema.parse(JSON.parse(text));
   }
@@ -93,8 +99,9 @@ export class FixtureStore {
   async count(): Promise<number> {
     try {
       return (await readdir(this.directory())).filter((n) => n.endsWith(".json")).length;
-    } catch {
-      return 0;
+    } catch (error) {
+      if (isMissingFile(error)) return 0;
+      throw error;
     }
   }
 }
