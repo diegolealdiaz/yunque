@@ -8,6 +8,7 @@ import {
   ApprovalError,
   approvalOffer,
   approveEscalation,
+  changeControls,
   loadInbox,
   processInvoice,
   rejectEscalation,
@@ -204,6 +205,31 @@ describe("lo que el servidor rechaza (P-45)", () => {
     expect(await approve(id).catch(codeOf)).toBe("not_approvable");
   });
 
+  it("con los pagos apagados nadie aprueba un pago, solo se rechaza (invariante 9)", async () => {
+    p = await openPipeline();
+    await changeControls(resolution(), {
+      organizationId: p.organizationId,
+      controls: { payments_enabled: false },
+      signedBy: APPROVER,
+    });
+    const id = await process("sobre_umbral");
+    const offer = await offerFor(id);
+    expect(offer.blocked).toMatch(/pagos están apagados/);
+    expect(offer.needsReevaluation).toBe(false);
+    expect(await approve(id).catch(codeOf)).toBe("not_approvable");
+    const decisions = await repos.listDecisions(p.t.db, p.organizationId, id);
+    expect(decisions.some((d) => d.verdict === "pagar")).toBe(false);
+    const rejected = await rejectEscalation(resolution(), {
+      organizationId: p.organizationId,
+      invoiceId: id,
+      payload: offer.payload,
+      signature: offer.signature,
+      approver: APPROVER,
+      reason: "Pagos detenidos por emergencia",
+    });
+    expect(rejected.invoice.status).toBe("rechazada");
+  });
+
   it("checklist incompleto, aprobador ajeno a la lista o sin aprobador: no se aprueba", async () => {
     p = await openPipeline();
     const id = await process("sobre_umbral");
@@ -248,21 +274,7 @@ describe("lo que el servidor rechaza (P-45)", () => {
 
   it("si el mismo cobro ya se pagó en otra factura, la aprobación no paga dos veces", async () => {
     p = await openPipeline();
-    const current = p.policyVersion.content;
-    await repos.appendPolicyVersion(
-      p.t.db,
-      p.organizationId,
-      {
-        content: PolicySchema.parse({
-          ...current,
-          controls: { ...current.controls, payments_enabled: false },
-        }),
-        signedBy: APPROVER,
-        signedAt: p.t.now().toISOString(),
-      },
-      p.t.newId,
-    );
-    const escalated = await process("camila_oct");
+    const escalated = await process("sobre_umbral");
     // Otra factura, ya pagada, con la misma llave del cobro: el caso que la guarda cubre.
     const paid = await process("nube_oct");
     await p.t.db.run(sql`UPDATE invoices SET status = 'aprobada' WHERE id = ${paid}`);

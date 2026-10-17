@@ -90,6 +90,12 @@ describe("loadConfig (P-02)", () => {
     expect(problems.some((p) => p.includes("OPENROUTER_API_KEY"))).toBe(true);
   });
 
+  it("rechaza apagar la demo en producción mientras no haya inicio de sesión", () => {
+    const problems = problemsOf({ ...valid, NODE_ENV: "production", DEMO_MODE: "false" });
+    expect(problems.some((p) => p.includes("DEMO_MODE"))).toBe(true);
+    expect(loadConfig({ ...valid, NODE_ENV: "production" }).demo.enabled).toBe(true);
+  });
+
   it("rechaza secretos cortos", () => {
     const problems = problemsOf({ ...valid, SESSION_SECRET: "corto" });
     expect(problems.some((p) => p.includes("SESSION_SECRET"))).toBe(true);

@@ -56,7 +56,8 @@ import { notificationsFor } from "./record-decision";
  *    una decisión que él mismo produjo al corregir campos.
  * 3. El checklist completo: cada motivo de la escalada reconocido uno por uno.
  * 4. Antes del efecto se revalida: el mismo cobro no se pagó por otra vía, la política sigue
- *    siendo la de la decisión, y presupuesto y saldo alcanzan (UPDATE condicionales).
+ *    siendo la de la decisión y tiene los pagos encendidos, y presupuesto y saldo alcanzan
+ *    (UPDATE condicionales).
  * 5. Todo en una transacción: la primera resolución gana, la segunda recibe "ya resuelta".
  *
  * Aprobar crea una decisión nueva `pagar` con actor humano que apunta a la escalada; la
@@ -199,6 +200,15 @@ async function approvalBlocker(
     return {
       message: "La política cambió desde esta decisión: hay que reevaluarla con la vigente.",
       reevaluate: true,
+    };
+  }
+  // Invariante 9: con los pagos apagados nadie produce un `pagar`, tampoco una persona. La
+  // transacción de aprobar confirma que esta política sigue vigente, así que basta mirarla.
+  if (!policy.content.controls.payments_enabled) {
+    return {
+      message:
+        "Los pagos están apagados: nadie puede aprobar un pago hasta que se vuelvan a encender. Mientras tanto, solo se puede rechazar.",
+      reevaluate: false,
     };
   }
   return null;

@@ -150,6 +150,12 @@ function crossChecks(env: Env): string[] {
     problems.push("OPENROUTER_API_KEY es requerida en producción");
   }
 
+  // Fuera de la demo, quien firma es solo un nombre elegido de la lista: no hay inicio de
+  // sesión que lo respalde. Hasta que exista, producción solo corre como demo aislada.
+  if (env.NODE_ENV === "production" && !env.DEMO_MODE) {
+    problems.push("DEMO_MODE=false no está permitido en producción: aún no hay inicio de sesión");
+  }
+
   if (env.MAX_INVOICES_PER_VISITOR_PER_DAY > env.MAX_INVOICES_PER_DAY) {
     problems.push("MAX_INVOICES_PER_VISITOR_PER_DAY no puede superar MAX_INVOICES_PER_DAY");
   }
