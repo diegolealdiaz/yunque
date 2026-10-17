@@ -40,20 +40,20 @@ export const PeriodKeySchema = z
     error: "Clave de periodo inválida",
   });
 
-/** Compromisos de presupuesto por periodo. La reserva es un UPDATE condicional atómico. */
-export const LedgerPeriodSchema = z
-  .strictObject({
-    organization_id: UlidSchema,
-    period_key: PeriodKeySchema,
-    currency: CurrencySchema,
-    limit: z.number().int().min(0),
-    committed: z.number().int().min(0),
-    updated_at: z.iso.datetime(),
-  })
-  .refine((l) => l.committed <= l.limit, {
-    path: ["committed"],
-    error: "Lo comprometido no puede superar el límite del periodo",
-  });
+/**
+ * Compromisos de presupuesto por periodo. La reserva es un UPDATE condicional atómico que
+ * nunca deja `committed` por encima de `limit`. Sí puede ocurrir lo contrario: si la
+ * política baja el presupuesto a mitad de periodo, el límite queda por debajo de lo ya
+ * comprometido y simplemente no caben reservas nuevas.
+ */
+export const LedgerPeriodSchema = z.strictObject({
+  organization_id: UlidSchema,
+  period_key: PeriodKeySchema,
+  currency: CurrencySchema,
+  limit: z.number().int().min(0),
+  committed: z.number().int().min(0),
+  updated_at: z.iso.datetime(),
+});
 export type LedgerPeriod = Readonly<z.infer<typeof LedgerPeriodSchema>>;
 
 /** Clave de periodo en UTC. Semana ISO para `week`. Lanza con una fecha inválida. */

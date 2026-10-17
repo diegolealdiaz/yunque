@@ -9,6 +9,8 @@ import { createUlidGenerator, type UlidGenerator } from "@/src/domain";
 /** Base SQLite en un archivo temporal, migrada de cero. Se borra al cerrar. */
 export type TestDatabase = {
   readonly db: Database;
+  /** Ruta del archivo SQLite temporal. */
+  readonly path: string;
   readonly newId: UlidGenerator;
   readonly now: () => Date;
   close(): Promise<void>;
@@ -16,11 +18,13 @@ export type TestDatabase = {
 
 export async function openTestDatabase(): Promise<TestDatabase> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "yunque-test-"));
-  const db = await createDatabase({ url: `file:${path.join(dir, "test.db")}` });
+  const file = path.join(dir, "test.db");
+  const db = await createDatabase({ url: `file:${file}` });
   await runMigrations(db);
   let tick = Date.UTC(2026, 9, 17, 12, 0, 0);
   return {
     db,
+    path: file,
     newId: createUlidGenerator(),
     now: () => new Date((tick += 1000)),
     async close() {

@@ -38,6 +38,7 @@ export function assertRegistryComplete(): void {
   }
 }
 
+/** Regla por código; lanza si no existe en el código. */
 export function ruleByCode(code: RuleCode): Rule {
   const rule = byCode.get(code);
   if (!rule) throw new Error(`La regla ${code} no existe en el código`);

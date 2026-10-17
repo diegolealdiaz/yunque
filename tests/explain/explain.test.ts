@@ -8,6 +8,7 @@ import {
   checklistFor,
   explainDecision,
   explainFinding,
+  mixesScripts,
   sanitizeDocumentText,
 } from "@/src/explain";
 
@@ -62,7 +63,8 @@ describe("explicador (P-34)", () => {
     });
     expect(why).toContain("Se escala a una persona 4.800.000 COP");
     expect(why).toContain("- first_payment_to_vendor:");
-    expect(why).toContain("sin pagos previos");
+    expect(why).toContain("ningún pago previo");
+    expect(why).not.toMatch(/tiene sin|registrada registrada|≤|＿/);
     expect(why).toContain("Queda en pendientes");
   });
 
@@ -95,10 +97,25 @@ describe("escape de contenido del documento (P-35)", () => {
     expect(out).toContain("x y");
   });
 
-  it("acota la longitud y colapsa espacios", () => {
+  it("acota la longitud sin partir un carácter y colapsa espacios", () => {
     const out = sanitizeDocumentText(`${"a".repeat(1000)}   b\n\n c`);
     expect(out.length).toBeLessThanOrEqual(300);
     expect(sanitizeDocumentText("a   b\n\nc")).toBe("a b c");
+    const emoji = sanitizeDocumentText(`${"a".repeat(298)}😀😀`);
+    expect(emoji.isWellFormed()).toBe(true);
+    expect(Array.from(emoji).length).toBeLessThanOrEqual(300);
+  });
+
+  it("rompe dominios sin esquema, normaliza compatibilidad y detecta mezcla de alfabetos", () => {
+    expect(sanitizeDocumentText("pague en evil.example/x o www.evil.example")).not.toMatch(
+      /evil\.example/,
+    );
+    expect(sanitizeDocumentText("Factura F-2291.")).toBe("Factura F-2291.");
+    expect(sanitizeDocumentText("ﬁn ①")).toBe("fin 1");
+    const cyrillicA = String.fromCharCode(0x0430);
+    expect(mixesScripts(`Nube Andina S${cyrillicA}S`)).toBe(true);
+    expect(mixesScripts("Nube Andina SAS")).toBe(false);
+    expect(mixesScripts("ООО Ромашка")).toBe(false);
   });
 
   it("propiedad: ninguna explicación contiene etiquetas ni enlaces, venga lo que venga del documento", () => {

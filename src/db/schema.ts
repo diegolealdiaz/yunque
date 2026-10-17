@@ -21,7 +21,7 @@ import type {
   PaymentOrderDraft,
   Policy,
   Verification,
-} from "../domain";
+} from "../domain"; // relativo: drizzle-kit no resuelve el alias "@/" al generar migraciones
 
 /**
  * Esquema de la base. Reglas:
@@ -199,6 +199,7 @@ export const decisions = sqliteTable(
   (t) => [
     index("decisions_org_invoice_idx").on(t.organizationId, t.invoiceId),
     index("decisions_org_decided_idx").on(t.organizationId, t.decidedAt),
+    index("decisions_org_vendor_idx").on(t.organizationId, t.vendorId, t.decidedAt),
   ],
 );
 
@@ -304,7 +305,11 @@ export const llmCalls = sqliteTable(
   (t) => [index("llm_calls_org_invoice_idx").on(t.organizationId, t.invoiceId)],
 );
 
-/** Tablas que no admiten UPDATE ni DELETE (salvo la excepción documentada en approvals). */
+/**
+ * Tablas que no admiten UPDATE, DELETE ni reemplazo por INSERT OR REPLACE (salvo la
+ * excepción documentada en approvals). Los triggers viven en las migraciones; la prueba
+ * P-42 recorre esta lista.
+ */
 export const APPEND_ONLY_TABLES = [
   "policy_versions",
   "decisions",

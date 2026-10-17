@@ -10,8 +10,8 @@ import type { Evaluation } from "@/src/engine";
 import { quote } from "./sanitize";
 import { checklistItemFor, explainFinding } from "./templates";
 
-export { sanitizeDocumentText, quote } from "./sanitize";
-export { TEMPLATES, checklistItemFor, explainFinding, templateCodes } from "./templates";
+export { mixesScripts, quote, sanitizeDocumentText } from "./sanitize";
+export { TEMPLATES, checklistItemFor, explainFinding } from "./templates";
 
 /**
  * Explicador. Convierte hallazgos en texto para la pantalla y la bitácora. Sin modelo:
@@ -45,7 +45,9 @@ export function explainDecision(input: ExplainInput): string {
   if (failed.length === 0) {
     const passed = evaluation.log.filter((l) => l.outcome === "pass").length;
     lines.push(
-      `Las ${String(passed)} reglas aplicables pasaron con la política v${String(policyVersion)}.`,
+      passed === 1
+        ? `La única regla aplicable pasó con la política v${String(policyVersion)}.`
+        : `Las ${String(passed)} reglas aplicables pasaron con la política v${String(policyVersion)}.`,
     );
     if (evaluation.scheduled_for)
       lines.push(`Pago programado para el ${evaluation.scheduled_for}.`);

@@ -39,6 +39,7 @@ export function amountUsdOf(ctx: EvaluationContext): Money | null {
   return amount ? toUsd(amount, ctx.fx) : null;
 }
 
+/** Evidencia de un campo leído, o null si el campo falta. */
 export function evidenceOf(ctx: EvaluationContext, field: keyof ExtractedFields): Evidence | null {
   const fields = fieldsOf(ctx);
   if (!fields) return null;
@@ -58,11 +59,23 @@ export function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Fecha ISO `YYYY-MM-DD` a instante UTC a medianoche. */
+/** Fecha ISO `YYYY-MM-DD` a instante UTC a medianoche. Lanza si la fecha no existe. */
 export function parseIsoDate(text: string): Date {
-  return new Date(`${text}T00:00:00.000Z`);
+  const date = new Date(`${text}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime()) || isoDate(date) !== text) {
+    throw new RangeError(`Fecha inválida: ${text}`);
+  }
+  return date;
 }
 
+/** Instante de un ISO 8601 en milisegundos, para comparar sin depender del formato del texto. */
+export function instantOf(iso: string): number {
+  const ms = Date.parse(iso);
+  if (Number.isNaN(ms)) throw new RangeError(`Instante inválido: ${iso}`);
+  return ms;
+}
+
+/** Suma días (puede ser negativo) a un instante. */
 export function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 86_400_000);
 }

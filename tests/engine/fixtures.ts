@@ -20,6 +20,7 @@ export const NOW = new Date("2026-10-17T15:00:00.000Z");
 export const ORG_ID = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
 export const VENDOR_ID = "01ARZ3NDEKTSV4RRFFQ69G5FB0";
 export const OTHER_VENDOR_ID = "01ARZ3NDEKTSV4RRFFQ69G5FB1";
+export const INVOICE_ID = "01ARZ3NDEKTSV4RRFFQ69G5FC0";
 export const DOC_HASH = "d".repeat(64);
 export const SEMANTIC_KEY = "NUBE ANDINA SAS|F2291|480000000|COP";
 
@@ -156,7 +157,8 @@ export function baseContext(overrides: Partial<EvaluationContext> = {}): Evaluat
     fx,
     ledger: ledger(),
     balances: balances(),
-    prior: [priorPaid(40), priorPaid(70)],
+    prior: [priorPaid(40), priorPaid(70), priorPaid(100)],
+    invoice_id: INVOICE_ID,
     document_hash: DOC_HASH,
     semantic_key: SEMANTIC_KEY,
     now: NOW,

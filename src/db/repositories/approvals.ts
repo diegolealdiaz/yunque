@@ -4,6 +4,7 @@ import { ApprovalSchema, type Approval, type Ulid } from "@/src/domain";
 
 import type { Executor } from "../client";
 import { DbError, isUniqueViolation } from "../errors";
+import { parseRow } from "../rows";
 import { approvals } from "../schema";
 
 /**
@@ -11,6 +12,7 @@ import { approvals } from "../schema";
  * restricción única: exactamente una gana y la otra recibe `conflict`.
  */
 
+/** Registra la resolución humana de una decisión; la segunda para la misma decisión da `conflict`. */
 export async function insertApproval(exec: Executor, approval: Approval): Promise<void> {
   const a = ApprovalSchema.parse(approval);
   try {
@@ -37,22 +39,27 @@ export async function insertApproval(exec: Executor, approval: Approval): Promis
 }
 
 function toApproval(row: typeof approvals.$inferSelect): Approval {
-  return ApprovalSchema.parse({
-    id: row.id,
-    organization_id: row.organizationId,
-    invoice_id: row.invoiceId,
-    decision_id: row.decisionId,
-    outcome: row.outcome,
-    approver: row.approver,
-    checklist: row.checklist,
-    reason: row.reason,
-    payload: row.payload,
-    signature: row.signature,
-    consumed_at: row.consumedAt,
-    created_at: row.createdAt,
-  });
+  return parseRow(
+    ApprovalSchema,
+    {
+      id: row.id,
+      organization_id: row.organizationId,
+      invoice_id: row.invoiceId,
+      decision_id: row.decisionId,
+      outcome: row.outcome,
+      approver: row.approver,
+      checklist: row.checklist,
+      reason: row.reason,
+      payload: row.payload,
+      signature: row.signature,
+      consumed_at: row.consumedAt,
+      created_at: row.createdAt,
+    },
+    "approvals",
+  );
 }
 
+/** Aprobación de una decisión, o null si nadie la resolvió todavía. */
 export async function findApprovalByDecision(
   exec: Executor,
   organizationId: Ulid,

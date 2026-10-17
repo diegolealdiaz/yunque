@@ -8,7 +8,9 @@ export type DbErrorCode =
   | "stale_state"
   | "append_only"
   | "budget_exceeded"
-  | "insufficient_balance";
+  | "insufficient_balance"
+  | "busy"
+  | "corrupt";
 
 export class DbError extends Error {
   readonly code: DbErrorCode;
@@ -41,4 +43,31 @@ export function isUniqueViolation(error: unknown): boolean {
 /** Verdadero si un trigger de tabla append-only abortó la escritura. */
 export function isAppendOnlyViolation(error: unknown): boolean {
   return messagesOf(error).some((m) => /append_only/.test(m));
+}
+
+/** Verdadero si una clave foránea rechazó la escritura. */
+export function isForeignKeyViolation(error: unknown): boolean {
+  return messagesOf(error).some((m) => /FOREIGN KEY constraint failed/i.test(m));
+}
+
+/** Verdadero si un trigger de invariante numérica abortó la escritura. */
+export function isCheckViolation(error: unknown): boolean {
+  return messagesOf(error).some((m) => /^check:|check: /.test(m));
+}
+
+/** Verdadero si SQLite estaba ocupada o bloqueada por otra transacción: vale reintentar. */
+export function isBusy(error: unknown): boolean {
+  return messagesOf(error).some((m) =>
+    /SQLITE_BUSY|database is locked|TRANSACTION_ACTIVE/i.test(m),
+  );
+}
+
+/** Convierte un error del driver en `DbError` cuando se reconoce; si no, lo devuelve tal cual. */
+export function toDbError(error: unknown): unknown {
+  if (error instanceof DbError) return error;
+  if (isBusy(error)) return new DbError("busy", "La base está ocupada; reintentar", true);
+  if (isAppendOnlyViolation(error)) {
+    return new DbError("append_only", "Esa tabla no admite modificar ni borrar filas");
+  }
+  return error;
 }

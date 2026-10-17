@@ -1,4 +1,4 @@
-import { formatMoney, isPresent, money, type Currency } from "@/src/domain";
+import { formatMoney, isPresent, money, type Currency, type Suspicion } from "@/src/domain";
 
 import { fail, pass, skipped, type Rule } from "./types";
 import { currencyOf, evidenceOf, fieldsOf } from "./shared";
@@ -6,24 +6,31 @@ import { currencyOf, evidenceOf, fieldsOf } from "./shared";
 /**
  * Reglas sobre la lectura: si la factura se entendió, con qué confianza y con qué evidencia.
  * Las banderas del modelo (sospechas, ambigüedades) solo pueden endurecer el veredicto.
+ *
+ * `observed` y `threshold` llevan valores desnudos; los conectores los pone la plantilla.
+ * El texto del documento o del modelo solo viaja en `observed` y `evidence`, que se sanean.
  */
 
 export const extractionUnreadable: Rule = {
   code: "extraction_unreadable",
   evaluate: (ctx) => {
     if (ctx.extraction.kind === "invoice") return pass;
-    const observed = ctx.extraction.kind === "not_invoice" ? "no es una factura" : "ilegible";
+    const notInvoice = ctx.extraction.kind === "not_invoice";
     return fail({
       code: "extraction_unreadable",
       action: "escalar",
-      observed,
+      observed: `${notInvoice ? "no es una factura" : "ilegible"}: ${ctx.extraction.reason}`,
       threshold: "factura legible",
-      message:
-        ctx.extraction.kind === "not_invoice"
-          ? `El documento no parece una factura: ${ctx.extraction.reason}`
-          : `No se pudo leer el documento: ${ctx.extraction.reason}`,
+      message: notInvoice ? "El documento no parece una factura" : "No se pudo leer el documento",
     });
   },
+};
+
+const SUSPICION_LABEL: Record<Suspicion["kind"], string> = {
+  instruction_to_agent: "instrucciones dirigidas al sistema",
+  hidden_text: "texto oculto",
+  canary: "token canario",
+  amount_in_words_differs: "monto en letras distinto del numérico",
 };
 
 export const suspiciousInstructions: Rule = {
@@ -31,17 +38,15 @@ export const suspiciousInstructions: Rule = {
   evaluate: (ctx) => {
     const fromModel = ctx.extraction.kind === "unreadable" ? [] : ctx.extraction.suspicions;
     const all = [...ctx.verification.suspicions, ...fromModel];
-    if (all.length === 0) return pass;
     const first = all[0];
-    const kinds = [...new Set(all.map((s) => s.kind))].join(", ");
+    if (!first) return pass;
+    const kinds = [...new Set(all.map((s) => SUSPICION_LABEL[s.kind]))].join(", ");
     return fail({
       code: "suspicious_instructions",
       action: "frenar",
       observed: kinds,
       threshold: "sin instrucciones ni texto oculto",
-      evidence: first
-        ? { literal: first.quote.slice(0, 500), quote: first.quote, page: null }
-        : null,
+      evidence: { literal: first.quote.slice(0, 500), quote: first.quote, page: null },
       message: "El documento contiene instrucciones dirigidas al sistema o texto oculto",
     });
   },
@@ -52,6 +57,11 @@ const CRITICAL_FIELD_MAP = {
   amount: "total",
   currency: "currency",
   bank_account: "bank_account",
+  bank_holder: "bank_holder",
+  invoice_number: "invoice_number",
+  due_date: "due_date",
+  hours: "hours",
+  purchase_order: "purchase_order",
 } as const;
 
 export const fieldLowConfidence: Rule = {
@@ -68,8 +78,8 @@ export const fieldLowConfidence: Rule = {
         return fail({
           code: "field_low_confidence",
           action: "escalar",
-          observed: `${name}: ${field.confidence.toFixed(2)}`,
-          threshold: `≥ ${min_confidence.toFixed(2)}`,
+          observed: field.confidence.toFixed(2),
+          threshold: min_confidence.toFixed(2),
           field: name,
           evidence: field.evidence,
           message: `La lectura del campo ${name} tiene confianza baja`,
@@ -90,8 +100,8 @@ export const fieldAmbiguous: Rule = {
     return fail({
       code: "field_ambiguous",
       action: "escalar",
-      observed: `${first.field}: ${first.candidates.join(" | ")}`,
-      threshold: "un solo candidato",
+      observed: first.candidates.join(" | "),
+      threshold: "un solo valor",
       field: first.field,
       message: `El campo ${first.field} tiene más de un valor posible en el documento`,
     });
@@ -108,7 +118,7 @@ export const evidenceMissing: Rule = {
       code: "evidence_missing",
       action: "escalar",
       observed: missing.join(", "),
-      threshold: "toda cita presente en el documento",
+      threshold: "cita presente en el documento",
       field: first,
       message: `La cita del campo ${first} no aparece en el documento`,
     });
@@ -118,23 +128,28 @@ export const evidenceMissing: Rule = {
 /** Tolerancia de redondeo entre subtotal más impuestos y total: una unidad mínima. */
 const TOTALS_TOLERANCE = 1;
 
+/**
+ * Cuadre de totales. El motor hace su propia aritmética sobre los campos leídos y además
+ * respeta al Verificador: falla si cualquiera de los dos detecta diferencia.
+ */
 export const totalsMismatch: Rule = {
   code: "totals_mismatch",
   evaluate: (ctx) => {
     const fields = fieldsOf(ctx);
     if (!fields) return skipped("sin lectura");
-    if (ctx.verification.totals === "not_applicable") return skipped("sin desglose de impuestos");
-    if (!isPresent(fields.subtotal) || !isPresent(fields.taxes)) return skipped("sin desglose");
+    if (!isPresent(fields.subtotal) || !isPresent(fields.taxes)) {
+      return skipped("sin desglose de impuestos");
+    }
     const sum = fields.subtotal.value + fields.taxes.value;
     const diff = Math.abs(sum - fields.total.value);
-    if (ctx.verification.totals === "ok" && diff <= TOTALS_TOLERANCE) return pass;
+    if (diff <= TOTALS_TOLERANCE && ctx.verification.totals !== "mismatch") return pass;
     const currency: Currency | null = currencyOf(ctx);
     const fmt = (n: number) => (currency ? formatMoney(money(n, currency)) : String(n));
     return fail({
       code: "totals_mismatch",
       action: "escalar",
       observed: `${fmt(fields.subtotal.value)} + ${fmt(fields.taxes.value)} = ${fmt(sum)}`,
-      threshold: `total ${fmt(fields.total.value)}`,
+      threshold: fmt(fields.total.value),
       field: "total",
       evidence: evidenceOf(ctx, "total"),
       message: "Subtotal más impuestos no cuadra con el total",

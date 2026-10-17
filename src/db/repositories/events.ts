@@ -3,10 +3,12 @@ import { and, desc, eq } from "drizzle-orm";
 import { AuditEventSchema, type AuditEvent, type Ulid } from "@/src/domain";
 
 import type { Executor } from "../client";
+import { parseRow } from "../rows";
 import { auditEvents } from "../schema";
 
 /** Bitácora append-only. */
 
+/** Agrega un evento a la bitácora. Nunca se edita ni se borra. */
 export async function appendEvent(exec: Executor, event: AuditEvent): Promise<void> {
   const e = AuditEventSchema.parse(event);
   await exec.insert(auditEvents).values({
@@ -22,6 +24,7 @@ export async function appendEvent(exec: Executor, event: AuditEvent): Promise<vo
   });
 }
 
+/** Eventos de la organización, más recientes primero, con filtro opcional por factura. */
 export async function listEvents(
   exec: Executor,
   organizationId: Ulid,
@@ -36,16 +39,20 @@ export async function listEvents(
     limit: filter.limit ?? 200,
   });
   return rows.map((row) =>
-    AuditEventSchema.parse({
-      id: row.id,
-      organization_id: row.organizationId,
-      type: row.type,
-      actor: row.actor,
-      invoice_id: row.invoiceId,
-      decision_id: row.decisionId,
-      data: row.data,
-      trace_id: row.traceId,
-      occurred_at: row.occurredAt,
-    }),
+    parseRow(
+      AuditEventSchema,
+      {
+        id: row.id,
+        organization_id: row.organizationId,
+        type: row.type,
+        actor: row.actor,
+        invoice_id: row.invoiceId,
+        decision_id: row.decisionId,
+        data: row.data,
+        trace_id: row.traceId,
+        occurred_at: row.occurredAt,
+      },
+      "audit_events",
+    ),
   );
 }

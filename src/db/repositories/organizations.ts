@@ -13,6 +13,7 @@ import {
 
 import type { Executor } from "../client";
 import { DbError } from "../errors";
+import { parseRow } from "../rows";
 import { balances, organizations, referenceCounters } from "../schema";
 
 /**
@@ -20,6 +21,7 @@ import { balances, organizations, referenceCounters } from "../schema";
  * Toda función recibe el ejecutor (base o transacción) y, salvo al crear, el id de organización.
  */
 
+/** Crea una organización nueva. */
 export async function createOrganization(exec: Executor, org: Organization): Promise<void> {
   const row = OrganizationSchema.parse(org);
   await exec.insert(organizations).values({
@@ -34,17 +36,22 @@ export async function createOrganization(exec: Executor, org: Organization): Pro
 }
 
 function toOrganization(row: typeof organizations.$inferSelect): Organization {
-  return OrganizationSchema.parse({
-    id: row.id,
-    name: row.name,
-    reference_prefix: row.referencePrefix,
-    base_currency: row.baseCurrency,
-    fx: row.fx,
-    demo_visitor_id: row.demoVisitorId,
-    created_at: row.createdAt,
-  });
+  return parseRow(
+    OrganizationSchema,
+    {
+      id: row.id,
+      name: row.name,
+      reference_prefix: row.referencePrefix,
+      base_currency: row.baseCurrency,
+      fx: row.fx,
+      demo_visitor_id: row.demoVisitorId,
+      created_at: row.createdAt,
+    },
+    "organizations",
+  );
 }
 
+/** Organización por id; `not_found` si no existe. */
 export async function getOrganization(exec: Executor, organizationId: Ulid): Promise<Organization> {
   const row = await exec.query.organizations.findFirst({
     where: eq(organizations.id, organizationId),
@@ -53,6 +60,7 @@ export async function getOrganization(exec: Executor, organizationId: Ulid): Pro
   return toOrganization(row);
 }
 
+/** Copia de la demo de un visitante, o null si todavía no tiene. */
 export async function findOrganizationByVisitor(
   exec: Executor,
   visitorId: string,
@@ -63,6 +71,7 @@ export async function findOrganizationByVisitor(
   return row ? toOrganization(row) : null;
 }
 
+/** Fija el saldo de una moneda (alta o reemplazo completo, no un ajuste). */
 export async function setBalance(exec: Executor, balance: Balance): Promise<void> {
   const row = BalanceSchema.parse(balance);
   await exec
@@ -79,17 +88,22 @@ export async function setBalance(exec: Executor, balance: Balance): Promise<void
     });
 }
 
+/** Saldos de la organización por moneda. */
 export async function listBalances(exec: Executor, organizationId: Ulid): Promise<Balance[]> {
   const rows = await exec.query.balances.findMany({
     where: eq(balances.organizationId, organizationId),
   });
   return rows.map((r) =>
-    BalanceSchema.parse({
-      organization_id: r.organizationId,
-      currency: r.currency,
-      available: r.available,
-      updated_at: r.updatedAt,
-    }),
+    parseRow(
+      BalanceSchema,
+      {
+        organization_id: r.organizationId,
+        currency: r.currency,
+        available: r.available,
+        updated_at: r.updatedAt,
+      },
+      "balances",
+    ),
   );
 }
 

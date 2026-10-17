@@ -56,8 +56,22 @@ export const RuleSettingsSchema = z.strictObject({
   }),
   field_low_confidence: z.strictObject({
     min_confidence: Confidence,
-    /** Campos críticos: por debajo del mínimo escalan siempre. */
-    critical_fields: z.array(z.enum(["payee_name", "amount", "currency", "bank_account"])).min(1),
+    /** Campos críticos: por debajo del mínimo escalan siempre. `amount` es el total. */
+    critical_fields: z
+      .array(
+        z.enum([
+          "payee_name",
+          "amount",
+          "currency",
+          "bank_account",
+          "bank_holder",
+          "invoice_number",
+          "due_date",
+          "hours",
+          "purchase_order",
+        ]),
+      )
+      .min(1),
   }),
 });
 export type RuleSettings = z.infer<typeof RuleSettingsSchema>;
@@ -262,11 +276,11 @@ export function defaultPolicy(input: {
     duplicate_invoice: { on_fail: "frenar", window_days: 90 },
     amount_mismatch: { on_fail: "escalar", tolerance_bp: 500 },
     first_payment_to_vendor: { on_fail: "escalar" },
-    amount_unusual_for_vendor: { on_fail: "escalar", deviation_bp: 5000, min_history: 2 },
+    amount_unusual_for_vendor: { on_fail: "escalar", deviation_bp: 5000, min_history: 3 },
     due_date_window: { on_fail: "escalar", schedule_days_before: 3, max_days_overdue: 30 },
     field_low_confidence: {
       min_confidence: 0.85,
-      critical_fields: ["payee_name", "amount", "currency", "bank_account"],
+      critical_fields: ["payee_name", "amount", "currency", "bank_account", "invoice_number"],
     },
   };
   return parsePolicy({

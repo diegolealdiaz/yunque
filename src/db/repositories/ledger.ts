@@ -4,6 +4,7 @@ import { LedgerPeriodSchema, type Currency, type LedgerPeriod, type Ulid } from 
 
 import type { Executor } from "../client";
 import { DbError } from "../errors";
+import { parseRow } from "../rows";
 import { ledgerPeriods } from "../schema";
 
 /**
@@ -12,6 +13,10 @@ import { ledgerPeriods } from "../schema";
  * comprometen como máximo L; las que no caben reciben `budget_exceeded`.
  */
 
+/**
+ * Crea el periodo si no existe y, si existe, actualiza su límite al de la política vigente.
+ * Así un cambio de presupuesto a mitad de mes aplica de inmediato sin perder lo comprometido.
+ */
 export async function ensureLedgerPeriod(
   exec: Executor,
   organizationId: Ulid,
@@ -23,9 +28,14 @@ export async function ensureLedgerPeriod(
   await exec
     .insert(ledgerPeriods)
     .values({ organizationId, periodKey, currency, limit, committed: 0, updatedAt: now })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: [ledgerPeriods.organizationId, ledgerPeriods.periodKey, ledgerPeriods.currency],
+      set: { limit, updatedAt: now },
+      setWhere: sql`${ledgerPeriods.limit} <> ${limit}`,
+    });
 }
 
+/** Periodo de presupuesto, o null si todavía no se creó. */
 export async function getLedgerPeriod(
   exec: Executor,
   organizationId: Ulid,
@@ -40,17 +50,25 @@ export async function getLedgerPeriod(
     ),
   });
   return row
-    ? LedgerPeriodSchema.parse({
-        organization_id: row.organizationId,
-        period_key: row.periodKey,
-        currency: row.currency,
-        limit: row.limit,
-        committed: row.committed,
-        updated_at: row.updatedAt,
-      })
+    ? parseRow(
+        LedgerPeriodSchema,
+        {
+          organization_id: row.organizationId,
+          period_key: row.periodKey,
+          currency: row.currency,
+          limit: row.limit,
+          committed: row.committed,
+          updated_at: row.updatedAt,
+        },
+        "ledger_periods",
+      )
     : null;
 }
 
+/**
+ * Reserva `amount` en el periodo con `UPDATE ... WHERE committed + amount <= limit`.
+ * Sin filas afectadas: `budget_exceeded` si el periodo existe, `not_found` si no.
+ */
 export async function reserveBudget(
   exec: Executor,
   organizationId: Ulid,
@@ -74,6 +92,8 @@ export async function reserveBudget(
       ),
     );
   if (result.rowsAffected === 0) {
+    const period = await getLedgerPeriod(exec, organizationId, periodKey, currency);
+    if (!period) throw new DbError("not_found", `No existe el periodo ${periodKey} en ${currency}`);
     throw new DbError("budget_exceeded", `El presupuesto de ${periodKey} no alcanza`);
   }
 }

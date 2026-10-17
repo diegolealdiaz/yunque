@@ -28,6 +28,7 @@ export type Rule = {
 
 export const pass: RuleOutcome = { outcome: "pass" };
 
+/** La regla no pudo aplicar; el motivo queda en el registro. */
 export function skipped(reason: string): RuleOutcome {
   return { outcome: "skipped", reason };
 }
@@ -43,6 +44,7 @@ export type FindingInput = {
   readonly field?: ExtractedFieldName | null;
 };
 
+/** Construye un hallazgo. Severidad `block` salvo que se indique `warn`. */
 export function fail(input: FindingInput): RuleOutcome {
   return {
     outcome: "fail",

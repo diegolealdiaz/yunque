@@ -1,0 +1,1 @@
+CREATE INDEX `decisions_org_vendor_idx` ON `decisions` (`organization_id`,`vendor_id`,`decided_at`);

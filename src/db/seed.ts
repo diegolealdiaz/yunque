@@ -7,6 +7,7 @@ import {
   AgreementSchema,
   BankAccountSchema,
   CURRENCIES,
+  CountrySchema,
   CurrencySchema,
   FxTableSchema,
   VerificationSchema,
@@ -45,7 +46,7 @@ const VendorSeedSchema = z.strictObject({
   name: z.string().min(1),
   aliases: z.array(z.string().min(1)),
   tax_id: z.string().min(1).optional(),
-  country: z.enum(["US", "EU", "CO", "BR", "MX", "AR"]),
+  country: CountrySchema,
   account: BankAccountSchema,
   verification: VerificationSchema,
   agreement: AgreementSchema,
@@ -91,7 +92,9 @@ export type SeedResult = {
 export async function seedOrganization(db: Database, options: SeedOptions): Promise<SeedResult> {
   const { data, newId, systemHardCapUsdCents, visitorId } = options;
   const nowIso = options.now().toISOString();
-  const signedBy = options.signedBy ?? data.company.approvers[0] ?? "sistema";
+  const [firstApprover] = data.company.approvers;
+  const signedBy = options.signedBy ?? firstApprover;
+  if (signedBy === undefined) throw new Error("La semilla necesita al menos un aprobador");
 
   return db.transaction(async (tx) => {
     const organization: Organization = {

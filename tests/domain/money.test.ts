@@ -2,7 +2,7 @@ import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
 import { CURRENCIES, type Currency } from "@/src/domain/currency";
-import { FxTableSchema, convert, fromUsd, toUsd, type FxTable } from "@/src/domain/fx";
+import { FxTableSchema, convert, exceedsUsd, fromUsd, toUsd, type FxTable } from "@/src/domain/fx";
 import {
   MoneyError,
   add,
@@ -155,6 +155,31 @@ describe("conversión FX (P-10)", () => {
 
   it("lanza si la conversión desborda el rango seguro", () => {
     expect(() => fromUsd(money(Number.MAX_SAFE_INTEGER, "USD"), "COP", fx)).toThrow(MoneyError);
+  });
+
+  it("exceedsUsd compara sin redondear", () => {
+    // 20.000,00 USD = 8.300.500.000 centavos COP exactos
+    expect(exceedsUsd(money(8_300_500_000, "COP"), 2_000_000, fx)).toBe(false);
+    expect(exceedsUsd(money(8_300_500_001, "COP"), 2_000_000, fx)).toBe(true);
+    expect(exceedsUsd(money(2_000_000, "USD"), 2_000_000, fx)).toBe(false);
+    expect(exceedsUsd(money(2_000_001, "USD"), 2_000_000, fx)).toBe(true);
+    expect(() => exceedsUsd(money(1, "USD"), 1.5, fx)).toThrow();
+  });
+
+  it("propiedad: exceedsUsd coincide con la conversión salvo en la franja de redondeo", () => {
+    fc.assert(
+      fc.property(
+        arbCurrency,
+        fc.integer({ min: 0, max: SAFE }),
+        fc.integer({ min: 0, max: SAFE }),
+        (c, a, cap) => {
+          const usd = toUsd(money(a, c), fx).amount;
+          const exceeds = exceedsUsd(money(a, c), cap, fx);
+          if (usd > cap + 1) expect(exceeds).toBe(true);
+          if (usd < cap) expect(exceeds).toBe(false);
+        },
+      ),
+    );
   });
 
   it("convierte desde USD", () => {

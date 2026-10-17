@@ -62,10 +62,16 @@ export type EvaluationContext = {
   readonly balances: readonly Balance[];
   /** Facturas previas relevantes: mismo vendor, misma llave semántica o mismo documento. */
   readonly prior: readonly PriorInvoice[];
+  /** Id de la factura que se evalúa, para excluirla de su propio historial. */
+  readonly invoice_id: string;
   /** Hash del documento que se evalúa; un previo con el mismo hash es el mismo archivo. */
   readonly document_hash: Sha256;
   /** Llave semántica de la factura actual, calculada por el caso de uso tras la lectura. */
   readonly semantic_key: string | null;
+  /**
+   * "Ahora" para ventanas y fechas. Los días se cuentan en UTC, así que el caso de uso debe
+   * pasar la medianoche UTC del día de negocio (America/Bogota), no el instante real.
+   */
   readonly now: Date;
 };
 

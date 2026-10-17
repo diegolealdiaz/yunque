@@ -2,15 +2,23 @@ import { getTableName, is, sql } from "drizzle-orm";
 import { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { DbError, isAppendOnlyViolation } from "@/src/db/errors";
+import { runMigrations } from "@/src/db/client";
+import {
+  DbError,
+  isAppendOnlyViolation,
+  isCheckViolation,
+  isForeignKeyViolation,
+} from "@/src/db/errors";
 import * as schema from "@/src/db/schema";
-import { consumeApproval, insertApproval } from "@/src/db/repositories";
+import * as repos from "@/src/db/repositories";
 
 import { openTestDatabase, seedTestOrganization, type TestDatabase } from "./helpers";
 
 const tableNames = Object.values(schema)
   .filter((v) => is(v, SQLiteTable))
   .map((t) => getTableName(t));
+
+const MIGRATIONS = 4;
 
 describe("migraciones y esquema (P-40, P-41)", () => {
   let t: TestDatabase;
@@ -31,10 +39,9 @@ describe("migraciones y esquema (P-40, P-41)", () => {
   });
 
   it("correr las migraciones dos veces no falla ni duplica", async () => {
-    const { runMigrations } = await import("@/src/db/client");
     await runMigrations(t.db);
     const rows = await t.db.all<{ n: number }>(sql`SELECT count(*) AS n FROM __drizzle_migrations`);
-    expect(rows[0]?.n).toBe(2);
+    expect(rows[0]?.n).toBe(MIGRATIONS);
   });
 
   it("toda tabla tiene columna organization_id", async () => {
@@ -48,8 +55,7 @@ describe("migraciones y esquema (P-40, P-41)", () => {
     }
   });
 
-  it("los repositorios exigen el id de organización en la firma", async () => {
-    const repos = await import("@/src/db/repositories");
+  it("los repositorios exigen el id de organización en la firma", () => {
     // Excepciones: crean o buscan la organización misma, o reciben una entidad con organization_id.
     const exempt = new Set(["createOrganization", "findOrganizationByVisitor", "setBalance"]);
     for (const [name, fn] of Object.entries(repos)) {
@@ -62,39 +68,54 @@ describe("migraciones y esquema (P-40, P-41)", () => {
       expect(takesOrgId || takesEntity, name).toBe(true);
     }
   });
+
+  it("las claves foráneas están activas en cada conexión", async () => {
+    const results = await Promise.all(
+      Array.from({ length: 6 }, () => t.db.all<{ foreign_keys: number }>(sql`PRAGMA foreign_keys`)),
+    );
+    expect(results.map((r) => r[0]?.foreign_keys)).toEqual([1, 1, 1, 1, 1, 1]);
+    await expect(
+      t.db.insert(schema.vendors).values({
+        id: t.newId(),
+        organizationId: "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        name: "x",
+        aliases: [],
+        taxId: null,
+        country: "CO",
+        account: {
+          country: "CO",
+          currency: "COP",
+          rail: "bre_b",
+          account_number: "1234",
+          holder_name: "x",
+        },
+        verification: { status: "pendiente" },
+        agreement: { kind: "none" },
+        createdAt: t.now().toISOString(),
+      }),
+    ).rejects.toSatisfy(isForeignKeyViolation);
+  });
 });
 
 describe("tablas append-only (P-42)", () => {
   let t: TestDatabase;
+  let orgId: string;
+  let policyId: string;
+  let policyHash: string;
+  let invoiceId: string;
+  let decisionId: string;
+  let approvalId: string;
+  const hash = "b".repeat(64);
+
   beforeEach(async () => {
     t = await openTestDatabase();
-    await seedTestOrganization(t);
-  });
-  afterEach(async () => {
-    await t.close();
-  });
-
-  it("policy_versions y audit_events rechazan UPDATE y DELETE por trigger", async () => {
-    for (const table of ["policy_versions", "audit_events"]) {
-      await expect(
-        t.db.run(sql.raw(`UPDATE ${table} SET organization_id = 'x'`)),
-      ).rejects.toSatisfy(isAppendOnlyViolation);
-      await expect(t.db.run(sql.raw(`DELETE FROM ${table}`))).rejects.toSatisfy(
-        isAppendOnlyViolation,
-      );
-    }
-    const [row] = await t.db.all<{ n: number }>(sql`SELECT count(*) AS n FROM policy_versions`);
-    expect(row?.n).toBe(1);
-  });
-
-  it("decisions y approvals rechazan UPDATE y DELETE; approvals solo consume una vez", async () => {
-    const orgId = (await t.db.query.organizations.findFirst())?.id;
-    const policy = await t.db.query.policyVersions.findFirst();
-    expect(orgId && policy).toBeTruthy();
-    if (!orgId || !policy) return;
-    const hash = "b".repeat(64);
-    const invoiceId = t.newId();
-    const decisionId = t.newId();
+    const seeded = await seedTestOrganization(t);
+    orgId = seeded.organization.id;
+    policyId = seeded.policyVersionId;
+    const policy = await repos.getPolicyVersion(t.db, orgId, policyId);
+    policyHash = policy.content_hash;
+    invoiceId = t.newId();
+    decisionId = t.newId();
     const nowIso = t.now().toISOString();
     await t.db.insert(schema.invoices).values({
       id: invoiceId,
@@ -131,8 +152,8 @@ describe("tablas append-only (P-42)", () => {
       amountCurrency: null,
       amountUsd: null,
       vendorId: null,
-      policyVersionId: policy.id,
-      policyHash: policy.contentHash,
+      policyVersionId: policyId,
+      policyHash,
       documentHash: hash,
       extractionHash: null,
       fieldSources: {},
@@ -143,14 +164,16 @@ describe("tablas append-only (P-42)", () => {
       latencyMs: 0,
       decidedAt: nowIso,
     });
-    await expect(t.db.run(sql`UPDATE decisions SET verdict = 'pagar'`)).rejects.toSatisfy(
-      isAppendOnlyViolation,
-    );
-    await expect(t.db.run(sql`DELETE FROM decisions`)).rejects.toSatisfy(isAppendOnlyViolation);
+    approvalId = t.newId();
+    await repos.insertApproval(t.db, approvalFor(approvalId));
+  });
+  afterEach(async () => {
+    await t.close();
+  });
 
-    const approvalId = t.newId();
-    const approval = {
-      id: approvalId,
+  function approvalFor(id: string) {
+    return {
+      id,
       organization_id: orgId,
       invoice_id: invoiceId,
       decision_id: decisionId,
@@ -165,27 +188,93 @@ describe("tablas append-only (P-42)", () => {
         amount: { amount: 100, currency: "USD" as const },
         vendor_id: invoiceId,
         account_masked: "****1234",
-        policy_version_id: policy.id,
-        policy_hash: policy.contentHash,
+        policy_version_id: policyId,
+        policy_hash: policyHash,
       },
       signature: "c".repeat(64),
       consumed_at: null,
-      created_at: nowIso,
+      created_at: t.now().toISOString(),
     };
-    await insertApproval(t.db, approval);
-    await expect(insertApproval(t.db, { ...approval, id: t.newId() })).rejects.toMatchObject({
+  }
+
+  it.each(schema.APPEND_ONLY_TABLES)("%s rechaza UPDATE y DELETE por trigger", async (table) => {
+    await expect(t.db.run(sql.raw(`UPDATE ${table} SET organization_id = 'x'`))).rejects.toSatisfy(
+      isAppendOnlyViolation,
+    );
+    await expect(t.db.run(sql.raw(`DELETE FROM ${table}`))).rejects.toSatisfy(
+      isAppendOnlyViolation,
+    );
+  });
+
+  it("INSERT OR REPLACE sobre un id existente también se rechaza", async () => {
+    const [before] = await t.db.all<{ signed_by: string }>(
+      sql`SELECT signed_by FROM policy_versions WHERE id = ${policyId}`,
+    );
+    await expect(
+      t.db.run(
+        sql`INSERT OR REPLACE INTO policy_versions (id, organization_id, version, content, content_hash, signed_by, signed_at, note)
+            VALUES (${policyId}, ${orgId}, 99, '{"hack":true}', ${policyHash}, 'atacante', '2026-01-01T00:00:00.000Z', NULL)`,
+      ),
+    ).rejects.toSatisfy(isAppendOnlyViolation);
+    await expect(
+      t.db.run(
+        sql`INSERT OR REPLACE INTO decisions SELECT * FROM decisions WHERE id = ${decisionId}`,
+      ),
+    ).rejects.toSatisfy(isAppendOnlyViolation);
+    const [after] = await t.db.all<{ signed_by: string }>(
+      sql`SELECT signed_by FROM policy_versions WHERE id = ${policyId}`,
+    );
+    expect(after?.signed_by).toBe(before?.signed_by);
+  });
+
+  it("el trigger de approvals cubre todas las columnas salvo consumed_at", async () => {
+    const columns = await t.db.all<{ name: string }>(sql`PRAGMA table_info(approvals)`);
+    const [trigger] = await t.db.all<{ sql: string }>(
+      sql`SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'approvals_no_update'`,
+    );
+    const listed = (/UPDATE OF\s+([\s\S]*?)\s+ON approvals/i.exec(trigger?.sql ?? "")?.[1] ?? "")
+      .split(",")
+      .map((c) => c.trim());
+    const expected = columns.map((c) => c.name).filter((c) => c !== "consumed_at");
+    expect(listed.sort()).toEqual(expected.sort());
+  });
+
+  it("approvals: una por decisión, consumida una sola vez, sin volver a NULL", async () => {
+    await expect(repos.insertApproval(t.db, approvalFor(t.newId()))).rejects.toMatchObject({
       code: "conflict",
     });
     await expect(t.db.run(sql`UPDATE approvals SET approver = 'otro'`)).rejects.toSatisfy(
       isAppendOnlyViolation,
     );
-    await consumeApproval(t.db, orgId, approvalId, t.now().toISOString());
-    await expect(
-      consumeApproval(t.db, orgId, approvalId, t.now().toISOString()),
-    ).rejects.toBeInstanceOf(DbError);
+    const consumers = await Promise.all(
+      Array.from({ length: 4 }, () =>
+        repos.consumeApproval(t.db, orgId, approvalId, t.now().toISOString()).then(
+          () => "ok",
+          (e: unknown) => (e instanceof DbError ? e.code : "otro"),
+        ),
+      ),
+    );
+    expect(consumers.filter((r) => r === "ok")).toHaveLength(1);
+    expect(consumers.filter((r) => r === "stale_state")).toHaveLength(3);
     await expect(t.db.run(sql`UPDATE approvals SET consumed_at = NULL`)).rejects.toSatisfy(
       isAppendOnlyViolation,
     );
-    await expect(t.db.run(sql`DELETE FROM approvals`)).rejects.toSatisfy(isAppendOnlyViolation);
+  });
+
+  it("los triggers de invariantes numéricas rechazan saldos negativos y compromisos sobre el límite", async () => {
+    await expect(
+      t.db.run(sql`UPDATE balances SET available = -1 WHERE organization_id = ${orgId}`),
+    ).rejects.toSatisfy(isCheckViolation);
+    await t.db.run(
+      sql`INSERT INTO ledger_periods (organization_id, period_key, currency, "limit", committed, updated_at) VALUES (${orgId}, '2026-10', 'USD', 100, 0, 'x')`,
+    );
+    await expect(
+      t.db.run(sql`UPDATE ledger_periods SET committed = 101 WHERE organization_id = ${orgId}`),
+    ).rejects.toSatisfy(isCheckViolation);
+    await expect(
+      t.db.run(
+        sql`INSERT INTO ledger_periods (organization_id, period_key, currency, "limit", committed, updated_at) VALUES (${orgId}, '2026-11', 'USD', 100, 101, 'x')`,
+      ),
+    ).rejects.toSatisfy(isCheckViolation);
   });
 });

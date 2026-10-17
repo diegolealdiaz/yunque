@@ -61,7 +61,7 @@ export const DecisionSchema = z
     payment_order: PaymentOrderDraftSchema.nullable(),
     /** Monto evaluado en la moneda del documento y su equivalente en USD. */
     amount: MoneySchema.nullable(),
-    amount_usd: MoneySchema.nullable(),
+    amount_usd: MoneySchema.extend({ currency: z.literal("USD") }).nullable(),
     vendor_id: UlidSchema.nullable(),
     policy_version_id: UlidSchema,
     policy_hash: Sha256Schema,

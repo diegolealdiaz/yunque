@@ -58,6 +58,21 @@ export function fromUsd(usd: Money, target: Currency, table: FxTable): Money {
   return money(toSafeNumber(roundDiv(numerator, denominator)), target);
 }
 
+/**
+ * Compara sin redondear: verdadero si `m` supera estrictamente `usdCents` centavos de USD.
+ * Para límites, umbrales y presupuesto no vale la conversión redondeada: medio centavo por
+ * encima del límite es por encima del límite.
+ */
+export function exceedsUsd(m: Money, usdCents: number, table: FxTable): boolean {
+  if (!Number.isSafeInteger(usdCents)) throw new FxError("El límite en USD debe ser entero");
+  if (m.currency === "USD") return m.amount > usdCents;
+  const rate = BigInt(table.perUsd[m.currency]);
+  // m / (minor(m) * rate / SCALE) > usd / minor(USD)
+  const left = BigInt(m.amount) * minorFactor("USD") * RATE_SCALE;
+  const right = BigInt(usdCents) * minorFactor(m.currency) * rate;
+  return left > right;
+}
+
 /** Convierte entre dos monedas cualesquiera pasando por USD, con dos redondeos como máximo. */
 export function convert(m: Money, target: Currency, table: FxTable): Money {
   if (m.currency === target) return m;

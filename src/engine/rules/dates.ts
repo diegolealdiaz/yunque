@@ -20,7 +20,7 @@ export const dueDateWindow: Rule = {
       code: "due_date_window",
       action: onFailOf(ctx.policy, "due_date_window"),
       observed: `vencida hace ${String(overdue)} días`,
-      threshold: `atraso ≤ ${String(max_days_overdue)} días`,
+      threshold: `${String(max_days_overdue)} días`,
       field: "due_date",
       evidence: fields.due_date.evidence,
       message: "La factura está vencida desde hace demasiado tiempo para pagarla sin revisar",

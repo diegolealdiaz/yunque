@@ -37,7 +37,7 @@ describe("esquemas de empresa", () => {
     },
   );
 
-  it("el ledger no admite comprometer más que el límite", () => {
+  it("el ledger rechaza negativos; comprometido sobre el límite es válido (la política bajó)", () => {
     const base = {
       organization_id: ULID,
       period_key: "2026-10",
@@ -47,6 +47,8 @@ describe("esquemas de empresa", () => {
       updated_at: "2026-10-17T00:00:00.000Z",
     };
     expect(LedgerPeriodSchema.safeParse(base).success).toBe(true);
-    expect(LedgerPeriodSchema.safeParse({ ...base, committed: 101 }).success).toBe(false);
+    expect(LedgerPeriodSchema.safeParse({ ...base, committed: 101 }).success).toBe(true);
+    expect(LedgerPeriodSchema.safeParse({ ...base, committed: -1 }).success).toBe(false);
+    expect(LedgerPeriodSchema.safeParse({ ...base, limit: -1 }).success).toBe(false);
   });
 });

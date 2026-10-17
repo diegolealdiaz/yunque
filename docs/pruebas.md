@@ -176,29 +176,29 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 
 ## 4. Matriz de fronteras por regla (P-20)
 
-Para cada regla, los casos mínimos. "=" es el valor igual al parámetro. Todas se prueban además con el parámetro ausente en la política (la regla no aplica y se registra como no configurada) y con moneda distinta a la del parámetro (conversión con tasa fija antes de comparar).
+Para cada regla, los casos mínimos. "=" es el valor igual al parámetro. Los parámetros de la política son obligatorios en el esquema, así que "parámetro ausente" no existe: cuando un dato de la factura o del vendor falta, la regla no aplica y lo registra con motivo. Los montos en otra moneda se comparan con la tasa fija sin redondear antes de comparar.
 
 | Regla | Casos que no disparan | Casos que disparan |
 |---|---|---|
 | `payee_not_allowed` | vendor exacto; alias registrado; identificador fiscal coincide con nombre distinto | nombre parecido sin alias; vendor desconocido; vendor existente pero inactivo |
-| `bank_account_mismatch` | cuenta igual con formato distinto (guiones, espacios) | un dígito distinto; banco distinto con mismo número; cuenta ausente en el documento cuando el vendor la exige |
+| `bank_account_mismatch` | cuenta igual con formato distinto (guiones, espacios); cuenta ausente en el documento (se paga a la registrada y queda registrado) | un dígito distinto |
 | `account_holder_mismatch` | titular igual normalizado | titular distinto; titular ausente cuando la cuenta está presente |
-| `vendor_not_verified` | vendor verificado por persona | vendor pendiente; vendor verificado pero con cuenta cambiada después de la verificación |
+| `vendor_not_verified` | vendor verificado por persona | vendor pendiente (un cambio de cuenta vuelve al vendor a pendiente; es responsabilidad del caso de uso que lo edita) |
 | `vendor_velocity` | N−1 facturas en la ventana | N facturas; N+1; facturas justo fuera de la ventana no cuentan |
-| `amount_over_hard_limit` | monto = límite −1; monto = límite | límite +1; monto en otra moneda que convertido supera; tope absoluto del sistema aunque la política lo ponga más alto |
+| `amount_over_hard_limit` | monto = límite −1; monto = límite | límite +1 (incluso un centavo de la moneda origen que al redondear parecería igual); tope absoluto del sistema aunque la política lo ponga más alto |
 | `amount_over_approval_threshold` | umbral −1; = umbral | umbral +1 |
-| `budget_exceeded` | comprometido + monto = límite | comprometido + monto = límite +1; periodo nuevo reinicia; semana y mes |
+| `budget_exceeded` | comprometido + monto = límite | comprometido + monto = límite +1; ledger de otro periodo, otra moneda o ausente cuenta como ausente (`ledger_missing`, frenar); semana y mes usan su propia clave |
 | `insufficient_balance` | saldo = monto | saldo = monto −1; saldo en otra moneda no cuenta |
 | `duplicate_invoice` | mismo número, distinto vendor; mismo vendor, distinto número; igual pero fuera de la ventana | mismo archivo; misma llave semántica con otro archivo; misma llave con formato distinto del número |
-| `amount_mismatch` | dentro de la tolerancia por arriba y por abajo; contratista con horas × tarifa exactas | fuera de la tolerancia; contratista con horas que no cuadran; acuerdo ausente no dispara pero sí registra |
+| `amount_mismatch` | dentro de la tolerancia por arriba y por abajo; contratista con horas ≤ acordadas × tarifa; orden de compra que coincide; una sola orden abierta sin número en el documento | fuera de la tolerancia; contratista con más horas que las acordadas; orden que no está abierta; acuerdo ausente o varias órdenes abiertas sin número no disparan pero sí registran |
 | `first_payment_to_vendor` | vendor con un pago previo | vendor sin pagos; vendor con pagos solo en estado rechazado |
-| `amount_unusual_for_vendor` | dentro de la desviación; vendor con menos de tres pagos previos no aplica | fuera de la desviación por arriba y por abajo |
+| `amount_unusual_for_vendor` | dentro de la desviación; vendor con menos pagos previos que `min_history` (tres por defecto) no aplica | fuera de la desviación por arriba y por abajo |
 | `unsupported_currency_or_rail` | moneda y riel en la lista | moneda fuera; riel fuera; combinación válida por separado pero no junta |
-| `due_date_window` | vence dentro de la ventana; vence hoy | vencida más del atraso máximo; vence más allá de la ventana (se programa, no dispara); fecha ausente escala por `field_low_confidence` |
-| `field_low_confidence` | confianza = mínimo | mínimo −0.01; un solo campo bajo basta |
-| `field_ambiguous` | un candidato | dos candidatos; monto en letras distinto del numérico |
-| `evidence_missing` | todas las citas presentes | una cita ausente; cita presente pero en otra página que no corresponde al campo |
-| `totals_mismatch` | subtotal + impuestos = total; sin desglose no aplica | diferencia mayor a la tolerancia de redondeo |
+| `due_date_window` | vence dentro de la ventana; vence hoy; fecha ausente (se programa hoy y queda registrado) | vencida más del atraso máximo; vence más allá de la ventana (se programa, no dispara); fecha inexistente en el calendario produce `rule_error` y frena |
+| `field_low_confidence` | confianza = mínimo; campo bajo que no está en `critical_fields` | mínimo −0.01 en un campo crítico; un solo campo bajo basta |
+| `field_ambiguous` | un candidato | dos candidatos (monto en letras distinto del numérico va por `suspicious_instructions`, que frena) |
+| `evidence_missing` | todas las citas presentes | una cita ausente (el Verificador decide qué cuenta como ausente, incluida la página equivocada) |
+| `totals_mismatch` | subtotal + impuestos = total; sin desglose no aplica | diferencia mayor a una unidad mínima, la detecte el motor o el Verificador |
 | `suspicious_instructions` | factura normal con la palabra "aprobado" en contexto normal | instrucción al sistema; "ya aprobado por el CFO"; texto oculto; token canario en la salida |
 | `extraction_unreadable` | factura legible | no es factura; JSON inválido tras reintento; documento vacío |
 

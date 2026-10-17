@@ -26,7 +26,7 @@ export type RuleLogEntry = {
 
 export type Evaluation = {
   readonly verdict: Verdict;
-  /** Hallazgos en el orden del registro; primero los que fallaron, en el orden de evaluación. */
+  /** Hallazgos de las reglas que fallaron, en el orden fijo del registro, más los de sistema al final. */
   readonly findings: readonly Finding[];
   /** Qué hizo cada regla, para la pantalla: falló, pasó, no aplicó o lanzó. */
   readonly log: readonly RuleLogEntry[];
@@ -48,7 +48,7 @@ function runRule(rule: (typeof RULES_IN_ORDER)[number], ctx: EvaluationContext):
         severity: "block",
         action: "frenar",
         observed: `${rule.code}: ${detail}`,
-        threshold: "regla evaluada sin error",
+        threshold: "evaluación sin errores",
         evidence: null,
         field: null,
         message: `La regla ${rule.code} no pudo evaluarse; se frena por seguridad`,
@@ -77,6 +77,7 @@ function verdictFrom(findings: readonly Finding[]): Verdict {
   return "pagar";
 }
 
+/** Evalúa la factura contra la política y devuelve veredicto, hallazgos, registro y fecha. */
 export function evaluate(ctx: EvaluationContext): Evaluation {
   const findings: Finding[] = [];
   const log: RuleLogEntry[] = [];
@@ -109,8 +110,8 @@ export function evaluate(ctx: EvaluationContext): Evaluation {
       code: "payments_disabled",
       severity: "block",
       action: "escalar",
-      observed: "pagos apagados",
-      threshold: "interruptor de pagos encendido",
+      observed: "apagados",
+      threshold: "encendidos",
       evidence: null,
       field: null,
       message: "Los pagos están apagados; la factura queda para una persona",
@@ -123,8 +124,8 @@ export function evaluate(ctx: EvaluationContext): Evaluation {
       code: "autonomy_recomendar",
       severity: "block",
       action: "escalar",
-      observed: "autonomía: recomendar",
-      threshold: "autonomía: decidir",
+      observed: "recomendar",
+      threshold: "decidir",
       evidence: null,
       field: null,
       message:

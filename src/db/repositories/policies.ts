@@ -12,6 +12,7 @@ import {
 
 import type { Executor } from "../client";
 import { DbError, isUniqueViolation } from "../errors";
+import { parseRow } from "../rows";
 import { policyVersions } from "../schema";
 
 /**
@@ -20,18 +21,23 @@ import { policyVersions } from "../schema";
  */
 
 function toPolicyVersion(row: typeof policyVersions.$inferSelect): PolicyVersion {
-  return PolicyVersionSchema.parse({
-    id: row.id,
-    organization_id: row.organizationId,
-    version: row.version,
-    content: row.content,
-    content_hash: row.contentHash,
-    signed_by: row.signedBy,
-    signed_at: row.signedAt,
-    ...(row.note === null ? {} : { note: row.note }),
-  });
+  return parseRow(
+    PolicyVersionSchema,
+    {
+      id: row.id,
+      organization_id: row.organizationId,
+      version: row.version,
+      content: row.content,
+      content_hash: row.contentHash,
+      signed_by: row.signedBy,
+      signed_at: row.signedAt,
+      ...(row.note === null ? {} : { note: row.note }),
+    },
+    "policy_versions",
+  );
 }
 
+/** Versión vigente (la de número mayor), o null si la organización no tiene política. */
 export async function getCurrentPolicy(
   exec: Executor,
   organizationId: Ulid,
@@ -43,6 +49,7 @@ export async function getCurrentPolicy(
   return row ? toPolicyVersion(row) : null;
 }
 
+/** Versión por id; `not_found` si no existe. */
 export async function getPolicyVersion(
   exec: Executor,
   organizationId: Ulid,
@@ -55,6 +62,7 @@ export async function getPolicyVersion(
   return toPolicyVersion(row);
 }
 
+/** Historial de versiones, la más reciente primero. */
 export async function listPolicyVersions(
   exec: Executor,
   organizationId: Ulid,
@@ -66,6 +74,7 @@ export async function listPolicyVersions(
   return rows.map(toPolicyVersion);
 }
 
+/** Guarda una versión nueva (vigente + 1). Dos guardados simultáneos: uno gana, el otro `conflict`. */
 export async function appendPolicyVersion(
   exec: Executor,
   organizationId: Ulid,

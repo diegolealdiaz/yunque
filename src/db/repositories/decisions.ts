@@ -1,13 +1,15 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte } from "drizzle-orm";
 
 import { DecisionSchema, type Decision, type Ulid } from "@/src/domain";
 
 import type { Executor } from "../client";
 import { DbError } from "../errors";
+import { parseRow } from "../rows";
 import { decisions } from "../schema";
 
 /** Decisiones: append-only. La vigente de una factura es la última por fecha. */
 
+/** Inserta una decisión. Nunca se actualiza: una reevaluación crea otra fila. */
 export async function insertDecision(exec: Executor, decision: Decision): Promise<void> {
   const d = DecisionSchema.parse(decision);
   await exec.insert(decisions).values({
@@ -39,36 +41,41 @@ export async function insertDecision(exec: Executor, decision: Decision): Promis
 }
 
 function toDecision(row: typeof decisions.$inferSelect): Decision {
-  return DecisionSchema.parse({
-    id: row.id,
-    organization_id: row.organizationId,
-    invoice_id: row.invoiceId,
-    verdict: row.verdict,
-    findings: row.findings,
-    explanation: row.explanation,
-    summary: row.summary,
-    scheduled_for: row.scheduledFor,
-    payment_order: row.paymentOrder ?? null,
-    amount:
-      row.amount === null || row.amountCurrency === null
-        ? null
-        : { amount: row.amount, currency: row.amountCurrency },
-    amount_usd: row.amountUsd === null ? null : { amount: row.amountUsd, currency: "USD" },
-    vendor_id: row.vendorId,
-    policy_version_id: row.policyVersionId,
-    policy_hash: row.policyHash,
-    document_hash: row.documentHash,
-    extraction_hash: row.extractionHash,
-    field_sources: row.fieldSources,
-    previous_decision_id: row.previousDecisionId,
-    dry_run: row.dryRun,
-    actor: row.actor,
-    cost_usd_micros: row.costUsdMicros,
-    latency_ms: row.latencyMs,
-    decided_at: row.decidedAt,
-  });
+  return parseRow(
+    DecisionSchema,
+    {
+      id: row.id,
+      organization_id: row.organizationId,
+      invoice_id: row.invoiceId,
+      verdict: row.verdict,
+      findings: row.findings,
+      explanation: row.explanation,
+      summary: row.summary,
+      scheduled_for: row.scheduledFor,
+      payment_order: row.paymentOrder ?? null,
+      amount:
+        row.amount === null || row.amountCurrency === null
+          ? null
+          : { amount: row.amount, currency: row.amountCurrency },
+      amount_usd: row.amountUsd === null ? null : { amount: row.amountUsd, currency: "USD" },
+      vendor_id: row.vendorId,
+      policy_version_id: row.policyVersionId,
+      policy_hash: row.policyHash,
+      document_hash: row.documentHash,
+      extraction_hash: row.extractionHash,
+      field_sources: row.fieldSources,
+      previous_decision_id: row.previousDecisionId,
+      dry_run: row.dryRun,
+      actor: row.actor,
+      cost_usd_micros: row.costUsdMicros,
+      latency_ms: row.latencyMs,
+      decided_at: row.decidedAt,
+    },
+    "decisions",
+  );
 }
 
+/** Decisión por id; `not_found` si no existe. */
 export async function getDecision(
   exec: Executor,
   organizationId: Ulid,
@@ -81,6 +88,7 @@ export async function getDecision(
   return toDecision(row);
 }
 
+/** Última decisión de una factura, o null si todavía no se decidió. */
 export async function getLatestDecision(
   exec: Executor,
   organizationId: Ulid,
@@ -93,6 +101,7 @@ export async function getLatestDecision(
   return row ? toDecision(row) : null;
 }
 
+/** Todas las decisiones de una factura, la más reciente primero. */
 export async function listDecisions(
   exec: Executor,
   organizationId: Ulid,
@@ -101,6 +110,29 @@ export async function listDecisions(
   const rows = await exec.query.decisions.findMany({
     where: and(eq(decisions.organizationId, organizationId), eq(decisions.invoiceId, invoiceId)),
     orderBy: [desc(decisions.decidedAt), desc(decisions.id)],
+  });
+  return rows.map(toDecision);
+}
+
+/**
+ * Decisiones de un vendor desde `since` (ISO), más recientes primero. Alimenta las reglas de
+ * historial: primer pago, frecuencia y monto atípico.
+ */
+export async function listDecisionsByVendor(
+  exec: Executor,
+  organizationId: Ulid,
+  vendorId: Ulid,
+  since: string,
+  limit = 200,
+): Promise<Decision[]> {
+  const rows = await exec.query.decisions.findMany({
+    where: and(
+      eq(decisions.organizationId, organizationId),
+      eq(decisions.vendorId, vendorId),
+      gte(decisions.decidedAt, since),
+    ),
+    orderBy: [desc(decisions.decidedAt), desc(decisions.id)],
+    limit,
   });
   return rows.map(toDecision);
 }

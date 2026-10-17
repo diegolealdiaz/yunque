@@ -4,8 +4,10 @@ import { VendorSchema, type Ulid, type Vendor } from "@/src/domain";
 
 import type { Executor } from "../client";
 import { DbError } from "../errors";
+import { parseRow } from "../rows";
 import { vendors } from "../schema";
 
+/** Da de alta un vendor. */
 export async function insertVendor(exec: Executor, vendor: Vendor): Promise<void> {
   const v = VendorSchema.parse(vendor);
   await exec.insert(vendors).values({
@@ -23,20 +25,25 @@ export async function insertVendor(exec: Executor, vendor: Vendor): Promise<void
 }
 
 function toVendor(row: typeof vendors.$inferSelect): Vendor {
-  return VendorSchema.parse({
-    id: row.id,
-    organization_id: row.organizationId,
-    name: row.name,
-    aliases: row.aliases,
-    ...(row.taxId === null ? {} : { tax_id: row.taxId }),
-    country: row.country,
-    account: row.account,
-    verification: row.verification,
-    agreement: row.agreement,
-    created_at: row.createdAt,
-  });
+  return parseRow(
+    VendorSchema,
+    {
+      id: row.id,
+      organization_id: row.organizationId,
+      name: row.name,
+      aliases: row.aliases,
+      ...(row.taxId === null ? {} : { tax_id: row.taxId }),
+      country: row.country,
+      account: row.account,
+      verification: row.verification,
+      agreement: row.agreement,
+      created_at: row.createdAt,
+    },
+    "vendors",
+  );
 }
 
+/** Vendors de la organización, por nombre. */
 export async function listVendors(exec: Executor, organizationId: Ulid): Promise<Vendor[]> {
   const rows = await exec.query.vendors.findMany({
     where: eq(vendors.organizationId, organizationId),
@@ -45,6 +52,7 @@ export async function listVendors(exec: Executor, organizationId: Ulid): Promise
   return rows.map(toVendor);
 }
 
+/** Vendor por id; `not_found` si no existe. */
 export async function getVendor(
   exec: Executor,
   organizationId: Ulid,

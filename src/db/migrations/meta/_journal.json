@@ -15,6 +15,20 @@
       "when": 1792238124054,
       "tag": "0001_append_only_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792240513593,
+      "tag": "0002_indice_decisiones_por_vendor",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792240514131,
+      "tag": "0003_append_only_insert_y_checks",
+      "breakpoints": true
     }
   ]
 }

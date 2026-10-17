@@ -1,4 +1,4 @@
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, ne } from "drizzle-orm";
 
 import {
   InvoiceSchema,
@@ -11,6 +11,7 @@ import {
 
 import type { Executor } from "../client";
 import { DbError, isUniqueViolation } from "../errors";
+import { parseRow } from "../rows";
 import { invoices } from "../schema";
 
 /**
@@ -43,29 +44,34 @@ function toRow(inv: Invoice): typeof invoices.$inferInsert {
 }
 
 function toInvoice(row: typeof invoices.$inferSelect): Invoice {
-  return InvoiceSchema.parse({
-    id: row.id,
-    organization_id: row.organizationId,
-    reference: row.reference,
-    channel: row.channel,
-    source_kind: row.sourceKind,
-    document_hash: row.documentHash,
-    file_key: row.fileKey,
-    file_state: row.fileState,
-    original_name: row.originalName,
-    mime_type: row.mimeType,
-    size_bytes: row.sizeBytes,
-    page_keys: row.pageKeys,
-    text: row.text,
-    semantic_key: row.semanticKey,
-    status: row.status,
-    approval_expires_at: row.approvalExpiresAt,
-    channel_meta: row.channelMeta,
-    received_at: row.receivedAt,
-    updated_at: row.updatedAt,
-  });
+  return parseRow(
+    InvoiceSchema,
+    {
+      id: row.id,
+      organization_id: row.organizationId,
+      reference: row.reference,
+      channel: row.channel,
+      source_kind: row.sourceKind,
+      document_hash: row.documentHash,
+      file_key: row.fileKey,
+      file_state: row.fileState,
+      original_name: row.originalName,
+      mime_type: row.mimeType,
+      size_bytes: row.sizeBytes,
+      page_keys: row.pageKeys,
+      text: row.text,
+      semantic_key: row.semanticKey,
+      status: row.status,
+      approval_expires_at: row.approvalExpiresAt,
+      channel_meta: row.channelMeta,
+      received_at: row.receivedAt,
+      updated_at: row.updatedAt,
+    },
+    "invoices",
+  );
 }
 
+/** Inserta una factura nueva. El mismo documento o la misma referencia producen `conflict`. */
 export async function insertInvoice(exec: Executor, invoice: Invoice): Promise<void> {
   try {
     await exec.insert(invoices).values(toRow(InvoiceSchema.parse(invoice)));
@@ -77,6 +83,7 @@ export async function insertInvoice(exec: Executor, invoice: Invoice): Promise<v
   }
 }
 
+/** Factura por id dentro de la organización; `not_found` si no existe. */
 export async function getInvoice(exec: Executor, organizationId: Ulid, id: Ulid): Promise<Invoice> {
   const row = await exec.query.invoices.findFirst({
     where: and(eq(invoices.organizationId, organizationId), eq(invoices.id, id)),
@@ -85,6 +92,7 @@ export async function getInvoice(exec: Executor, organizationId: Ulid, id: Ulid)
   return toInvoice(row);
 }
 
+/** Factura con ese hash de archivo, o null. */
 export async function findInvoiceByDocumentHash(
   exec: Executor,
   organizationId: Ulid,
@@ -112,12 +120,15 @@ export async function findInvoicesBySemanticKey(
       eq(invoices.organizationId, organizationId),
       eq(invoices.semanticKey, semanticKey),
       gte(invoices.receivedAt, since),
+      ne(invoices.id, excludeId),
     ),
     orderBy: [desc(invoices.receivedAt)],
+    limit: 50,
   });
-  return rows.filter((r) => r.id !== excludeId).map(toInvoice);
+  return rows.map(toInvoice);
 }
 
+/** Facturas de la organización, más recientes primero, con filtro opcional por estado. */
 export async function listInvoices(
   exec: Executor,
   organizationId: Ulid,

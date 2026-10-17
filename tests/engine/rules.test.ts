@@ -6,6 +6,7 @@ import type { EvaluationContext } from "@/src/engine";
 
 import {
   DOC_HASH,
+  INVOICE_ID,
   OTHER_VENDOR_ID,
   SEMANTIC_KEY,
   balances,
@@ -132,6 +133,13 @@ describe("matriz de fronteras (P-20)", () => {
       expect(codes(baseContext({ prior: recent(3) }))).toEqual(["vendor_velocity"]);
       expect(codes(baseContext({ prior: recent(4) }))).toEqual(["vendor_velocity"]);
       expect(codes(baseContext({ prior: [...recent(2), priorPaid(8), priorPaid(9)] }))).toEqual([]);
+      // Borde exacto de la ventana: hace 7 días cuenta; hace 8 no.
+      expect(codes(baseContext({ prior: [...recent(2), priorPaid(7)] }))).toEqual([
+        "vendor_velocity",
+      ]);
+      // La propia factura nunca cuenta en su historial.
+      const self = { ...priorPaid(1), invoice_id: INVOICE_ID };
+      expect(codes(baseContext({ prior: [...recent(2), self] }))).toEqual([]);
     });
   });
 
@@ -149,20 +157,21 @@ describe("matriz de fronteras (P-20)", () => {
         ledger: ledger(100_000_000),
         balances: balances(100_000_000_000),
       });
-    it("umbral: −1 y = no disparan; +1 escala", () => {
+    it("umbral: −1 y = no disparan; +1 centavo COP (menos de un centavo USD) ya escala", () => {
       expect(codes(withTotal(usdToCop(500_000) - 100))).toEqual([]);
       expect(codes(withTotal(usdToCop(500_000)))).toEqual([]);
-      expect(codes(withTotal(usdToCop(500_000) + 4200))).toEqual([
-        "amount_over_approval_threshold",
-      ]);
+      expect(codes(withTotal(usdToCop(500_000) + 1))).toEqual(["amount_over_approval_threshold"]);
     });
     it("límite: = no dispara; +1 frena; el tope del sistema manda aunque la política sea mayor", () => {
       const limitCop = usdToCop(2_000_000);
       expect(codes(withTotal(limitCop))).toEqual(["amount_over_approval_threshold"]);
-      expect(codes(withTotal(limitCop + 4200))).toEqual([
+      expect(codes(withTotal(limitCop - 100))).toEqual(["amount_over_approval_threshold"]);
+      expect(codes(withTotal(limitCop + 1))).toEqual([
         "amount_over_hard_limit",
         "amount_over_approval_threshold",
       ]);
+      // 20.000,004 USD exactos: el redondeo lo dejaría en 20.000,00; la comparación exacta no.
+      expect(codes(withTotal(8_300_501_660))).toContain("amount_over_hard_limit");
       const policy = basePolicy();
       const tightSystem = {
         ...policy,
@@ -212,6 +221,28 @@ describe("matriz de fronteras (P-20)", () => {
       expect(noLedger.findings.map((f) => f.code)).toEqual(["ledger_missing"]);
       expect(noLedger.verdict).toBe("frenar");
     });
+    it("un ledger de otro periodo o de otra moneda cuenta como ausente; la semana usa su propia clave", () => {
+      const old = { ...ledger(usd * 10, 0), period_key: "2026-09" };
+      expect(codes(baseContext({ ledger: old }))).toEqual(["ledger_missing"]);
+      const eur = { ...ledger(usd * 10, 0), currency: "EUR" as const };
+      expect(codes(baseContext({ ledger: eur }))).toEqual(["ledger_missing"]);
+      const policy = basePolicy();
+      const weekly = {
+        ...policy,
+        limits: { ...policy.limits, budget: { ...policy.limits.budget, period: "week" as const } },
+      };
+      expect(codes(baseContext({ policy: weekly, ledger: ledger(usd * 10, 0) }))).toEqual([
+        "ledger_missing",
+      ]);
+      const week = { ...ledger(usd * 10, 0), period_key: "2026-W42" };
+      expect(codes(baseContext({ policy: weekly, ledger: week }))).toEqual([]);
+    });
+    it("lo comprometido más el pago se compara sin redondear", () => {
+      // Queda exactamente 1.156,56 USD; 4.800.000 COP son 1.156,5568 USD: cabe.
+      expect(codes(baseContext({ ledger: ledger(usd, 0) }))).toEqual([]);
+      // Queda 1.156,55 USD: no cabe aunque el redondeo diga 1.156,56.
+      expect(codes(baseContext({ ledger: ledger(usd + 99, 100) }))).toEqual(["budget_exceeded"]);
+    });
     it("respeta la acción configurada", () => {
       const policy = basePolicy();
       const escalar = {
@@ -258,6 +289,17 @@ describe("matriz de fronteras (P-20)", () => {
       expect(result.findings.map((f) => f.code)).toEqual(["duplicate_invoice"]);
       expect(result.verdict).toBe("frenar");
     });
+    it("la propia factura en el historial no es duplicado", () => {
+      const self = {
+        ...priorPaid(0),
+        invoice_id: INVOICE_ID,
+        document_hash: DOC_HASH,
+        semantic_key: SEMANTIC_KEY,
+      };
+      expect(
+        codes(baseContext({ prior: [self, priorPaid(40), priorPaid(70), priorPaid(100)] })),
+      ).toEqual([]);
+    });
     it("una factura previa rechazada con la misma llave no cuenta como duplicado", () => {
       const rejected = {
         ...priorPaid(5),
@@ -302,6 +344,58 @@ describe("matriz de fronteras (P-20)", () => {
         });
       expect(codes(ctx(50, 475_000_000))).toEqual([]);
       expect(codes(ctx(50, 600_000_000))).toEqual(["amount_mismatch"]);
+      // Las horas del documento no fijan la vara: más horas que las acordadas dispara aunque el total cuadre.
+      const over = evaluate(ctx(1000, 9_500_000_000));
+      expect(over.findings.find((f) => f.code === "amount_mismatch")).toMatchObject({
+        observed: "1000 h reportadas",
+        threshold: "80 h acordadas",
+      });
+    });
+    it("órdenes de compra: coincide, no abierta, una sola abierta sin número, varias abiertas", () => {
+      const orders = (list: { number: string; amount: number; open: boolean }[]) => ({
+        ...vendor,
+        agreement: {
+          kind: "purchase_orders" as const,
+          orders: list.map((o) => ({
+            number: o.number,
+            amount: { amount: o.amount, currency: "COP" as const },
+            open: o.open,
+          })),
+        },
+      });
+      const ctx = (v: typeof vendor, po: string | null, total: number) =>
+        baseContext({
+          payee: { kind: "matched", vendor: v, by: "exact" },
+          extraction: fields({
+            purchase_order: po === null ? missing() : present(po, "x"),
+            total: present(total, "x"),
+            subtotal: missing(),
+            taxes: missing(),
+          }),
+          prior: [priorPaid(40, total), priorPaid(70, total), priorPaid(100, total)],
+        });
+      const two = orders([
+        { number: "PO-1", amount: 480_000_000, open: true },
+        { number: "PO-2", amount: 100_000_000, open: true },
+      ]);
+      expect(codes(ctx(two, "po 1", 480_000_000))).toEqual([]);
+      expect(codes(ctx(two, "PO-1", 600_000_000))).toEqual(["amount_mismatch"]);
+      expect(codes(ctx(two, "PO-9", 480_000_000))).toEqual(["amount_mismatch"]);
+      const several = evaluate(ctx(two, null, 480_000_000)).log.find(
+        (l) => l.code === "amount_mismatch",
+      );
+      expect(several?.outcome).toBe("skipped");
+      const one = orders([
+        { number: "PO-1", amount: 480_000_000, open: true },
+        { number: "PO-0", amount: 1, open: false },
+      ]);
+      expect(codes(ctx(one, null, 480_000_000))).toEqual([]);
+      expect(codes(ctx(one, null, 100_000_000))).toEqual(["amount_mismatch"]);
+      const closed = orders([{ number: "PO-0", amount: 1, open: false }]);
+      const none = evaluate(ctx(closed, null, 480_000_000)).log.find(
+        (l) => l.code === "amount_mismatch",
+      );
+      expect(none?.detail).toBe("sin órdenes de compra abiertas");
     });
     it("sin acuerdo no dispara pero queda registrado", () => {
       const none = { ...vendor, agreement: { kind: "none" as const } };
@@ -328,17 +422,25 @@ describe("matriz de fronteras (P-20)", () => {
 
   describe("amount_unusual_for_vendor", () => {
     it("con menos historial que el mínimo no aplica; dentro de la desviación no dispara; fuera sí", () => {
-      expect(codes(baseContext({ prior: [priorPaid(40, 100_000_000)] }))).toEqual([]);
-      const history = [priorPaid(40, 100_000_000), priorPaid(70, 100_000_000)];
-      const withTotal = (cop: number) =>
+      const two = [priorPaid(40, 100_000_000), priorPaid(70, 100_000_000)];
+      const noAgreement = { ...vendor, agreement: { kind: "none" as const } };
+      const withTotal = (cop: number, prior = two) =>
         baseContext({
-          prior: history,
+          payee: { kind: "matched", vendor: noAgreement, by: "exact" },
+          prior,
           extraction: fields({ total: present(cop, "x"), subtotal: missing(), taxes: missing() }),
         });
-      expect(codes(withTotal(150_000_000))).toContain("amount_mismatch");
-      expect(codes(withTotal(150_000_000))).not.toContain("amount_unusual_for_vendor");
-      expect(codes(withTotal(151_000_000))).toContain("amount_unusual_for_vendor");
-      expect(codes(withTotal(49_000_000))).toContain("amount_unusual_for_vendor");
+      expect(
+        evaluate(withTotal(300_000_000)).log.find((l) => l.code === "amount_unusual_for_vendor"),
+      ).toMatchObject({
+        outcome: "skipped",
+        detail: "historial insuficiente: 2 pagos",
+      });
+      const three = [...two, priorPaid(100, 100_000_000)];
+      expect(codes(withTotal(150_000_000, three))).toEqual([]);
+      expect(codes(withTotal(50_000_000, three))).toEqual([]);
+      expect(codes(withTotal(151_000_000, three))).toEqual(["amount_unusual_for_vendor"]);
+      expect(codes(withTotal(49_000_000, three))).toEqual(["amount_unusual_for_vendor"]);
     });
   });
 
@@ -356,6 +458,14 @@ describe("matriz de fronteras (P-20)", () => {
         baseContext({ extraction: fields({ currency: present("USD", "USD") }) }),
       );
       expect(result.findings.map((f) => f.code)).toContain("unsupported_currency_or_rail");
+    });
+    it("una ruta registrada que no sirve para la moneda frena", () => {
+      const badRail = { ...vendor, account: { ...vendor.account, rail: "pix" as const } };
+      const result = evaluate(
+        baseContext({ payee: { kind: "matched", vendor: badRail, by: "exact" } }),
+      );
+      expect(result.findings.map((f) => f.code)).toEqual(["unsupported_currency_or_rail"]);
+      expect(result.verdict).toBe("frenar");
     });
   });
 
@@ -375,6 +485,16 @@ describe("matriz de fronteras (P-20)", () => {
       expect(codes(withDue("2026-09-16"))).toEqual(["due_date_window"]);
       expect(evaluate(withDue("2026-09-16")).verdict).toBe("escalar");
     });
+    it("una fecha que no existe en el calendario no se interpreta: la regla falla y se frena", () => {
+      const result = evaluate(withDue("2026-02-30"));
+      expect(result.findings.map((f) => f.code)).toEqual(["rule_error"]);
+      expect(result.verdict).toBe("frenar");
+    });
+    it("sin fecha de vencimiento no dispara, queda registrado y se programa hoy", () => {
+      const result = evaluate(withDue(null));
+      expect(result.findings).toEqual([]);
+      expect(result.log.find((l) => l.code === "due_date_window")?.outcome).toBe("skipped");
+    });
   });
 
   describe("field_low_confidence", () => {
@@ -388,6 +508,30 @@ describe("matriz de fronteras (P-20)", () => {
       expect(
         codes(baseContext({ extraction: fields({ description: present("x", "x", 0.1) }) })),
       ).toEqual([]);
+      expect(
+        codes(baseContext({ extraction: fields({ invoice_number: present("F-1", "x", 0.5) }) })),
+      ).toEqual(["field_low_confidence"]);
+      // hours no es crítico por defecto; la política puede sumarlo.
+      expect(codes(baseContext({ extraction: fields({ hours: present(10, "x", 0.1) }) }))).toEqual(
+        [],
+      );
+      const policy = basePolicy();
+      const lowConf = policy.rules.field_low_confidence;
+      const withHours = {
+        ...policy,
+        rules: {
+          ...policy.rules,
+          field_low_confidence: {
+            ...lowConf,
+            critical_fields: [...lowConf.critical_fields, "hours" as const],
+          },
+        },
+      };
+      expect(
+        codes(
+          baseContext({ policy: withHours, extraction: fields({ hours: present(10, "x", 0.1) }) }),
+        ),
+      ).toEqual(["field_low_confidence"]);
     });
   });
 
@@ -421,6 +565,14 @@ describe("matriz de fronteras (P-20)", () => {
           baseContext({ verification, extraction: fields({ taxes: present(76_638_600, "x") }) }),
         ),
       ).toEqual(["totals_mismatch"]);
+      // El motor hace su propia cuenta aunque el verificador diga que no aplica.
+      const notApplicable = { ...baseContext().verification, totals: "not_applicable" as const };
+      const broken = fields({ subtotal: present(1, "x"), taxes: present(1, "x") });
+      expect(codes(baseContext({ verification: notApplicable, extraction: broken }))).toEqual([
+        "totals_mismatch",
+      ]);
+      // Y el verificador manda aunque la cuenta cuadre.
+      expect(codes(baseContext({ verification }))).toEqual(["totals_mismatch"]);
     });
     it("instrucciones sospechosas frenan, vengan del modelo o del detector", () => {
       const fromModel = {
