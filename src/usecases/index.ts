@@ -3,6 +3,8 @@
  * a todas las demás; las rutas de la app y los canales solo hablan con esta.
  */
 export * from "./business-day";
+export * from "./correct-invoice";
+export type { DecideDeps } from "./decide";
 export * from "./errors";
 export * from "./inbox";
 export * from "./invoice-detail";

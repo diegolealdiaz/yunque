@@ -107,6 +107,8 @@ export type ApprovalOffer = {
   readonly checklist: readonly ChecklistItem[];
   /** Por qué no se puede aprobar (solo rechazar), o null si se puede. */
   readonly blocked: string | null;
+  /** El bloqueo se resuelve reevaluando: cambió la política o venció la espera. */
+  readonly needsReevaluation: boolean;
 };
 
 type Escalation = {
@@ -159,28 +161,44 @@ async function loadEscalation(
   };
 }
 
+type Blocker = { readonly message: string; readonly reevaluate: boolean };
+
 /** Por qué una escalada no se puede aprobar, o null si sí. Rechazar siempre se puede. */
 async function approvalBlocker(
   db: Database,
   escalation: Escalation,
   now: Date,
-): Promise<string | null> {
+): Promise<Blocker | null> {
   const { invoice, decision, vendor, policy } = escalation;
   if (!vendor) {
-    return "El beneficiario no está en la lista de vendors: primero hay que darlo de alta. Mientras tanto, solo se puede rechazar.";
+    return {
+      message:
+        "El beneficiario no está en la lista de vendors: primero hay que darlo de alta. Mientras tanto, solo se puede rechazar.",
+      reevaluate: false,
+    };
   }
   if (!decision.amount) {
-    return "No hay un monto leído que pagar: hay que corregir los campos o reprocesar. Mientras tanto, solo se puede rechazar.";
+    return {
+      message:
+        "No hay un monto leído que pagar: hay que corregir los campos o reprocesar. Mientras tanto, solo se puede rechazar.",
+      reevaluate: false,
+    };
   }
   if (
     invoice.approval_expires_at !== null &&
     Date.parse(invoice.approval_expires_at) < now.getTime()
   ) {
-    return "La espera de aprobación venció: hay que reevaluarla con la política vigente.";
+    return {
+      message: "La espera de aprobación venció: hay que reevaluarla con la política vigente.",
+      reevaluate: true,
+    };
   }
   const current = await getCurrentPolicy(db, invoice.organization_id);
   if (current?.id !== policy.id) {
-    return "La política cambió desde esta decisión: hay que reevaluarla con la vigente.";
+    return {
+      message: "La política cambió desde esta decisión: hay que reevaluarla con la vigente.",
+      reevaluate: true,
+    };
   }
   return null;
 }
@@ -198,11 +216,13 @@ export async function approvalOffer(
     },
   );
   if (!escalation) return null;
+  const blocker = await approvalBlocker(deps.db, escalation, deps.now());
   return {
     payload: escalation.payload,
     signature: signApproval(escalation.payload, deps.signingSecret),
     checklist: checklistFor(escalation.decision.findings),
-    blocked: await approvalBlocker(deps.db, escalation, deps.now()),
+    blocked: blocker?.message ?? null,
+    needsReevaluation: blocker?.reevaluate ?? false,
   };
 }
 
@@ -284,8 +304,8 @@ export async function approveEscalation(
   if (blocker || !vendor || !decision.amount) {
     throw new ApprovalError(
       "not_approvable",
-      blocker ?? "No se puede aprobar",
-      "Rechaza con motivo o reevalúa",
+      blocker?.message ?? "No se puede aprobar",
+      blocker?.reevaluate ? "Reevalúala con la política vigente" : "Rechaza con motivo",
     );
   }
   const required = checklistFor(decision.findings);
