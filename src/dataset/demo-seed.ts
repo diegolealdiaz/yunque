@@ -1,7 +1,15 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { GroundTruthSchema, HistorySchema, ManifestSchema, type HistoryEntry } from "./schema";
+import type { Channel } from "@/src/domain";
+
+import {
+  GroundTruthSchema,
+  HistorySchema,
+  ManifestSchema,
+  type DatasetCase,
+  type HistoryEntry,
+} from "./schema";
 
 /**
  * Lo que necesita la copia de la demo de cada visitante: el historial de meses anteriores,
@@ -37,6 +45,13 @@ export type BatchCase = {
   readonly format: "pdf" | "png" | "email" | "chat" | "not_invoice";
 };
 
+/** El canal con el que llega cada formato del dataset: el correo por la bandeja, el chat por Telegram. */
+export function channelOfFormat(format: BatchCase["format"]): Channel {
+  if (format === "email") return "inbox";
+  if (format === "chat") return "telegram";
+  return "batch";
+}
+
 export const GENERATED_DIR = path.join(process.cwd(), "data", "dataset", "generado");
 
 /**
@@ -48,4 +63,17 @@ export async function loadBatchCases(dir: string = GENERATED_DIR): Promise<Batch
     JSON.parse(await readFile(path.join(dir, "verdad.json"), "utf8")),
   );
   return truth.cases.map((c) => ({ id: c.id, file: c.file, format: c.format }));
+}
+
+/**
+ * Casos del manifiesto con su veredicto esperado y los campos del documento: la verdad contra
+ * la que Métricas compara lo que decidió el agente con cada caso del lote.
+ */
+export async function loadExpectedCases(
+  dir: string = path.join(process.cwd(), "data", "dataset"),
+): Promise<DatasetCase[]> {
+  const manifest = ManifestSchema.parse(
+    JSON.parse(await readFile(path.join(dir, "manifiesto.json"), "utf8")),
+  );
+  return manifest.cases;
 }

@@ -2,8 +2,8 @@ import type { Verdict } from "@/src/domain";
 
 /**
  * Métricas del set de regresión, tal como las define `trazabilidad.md` §3. Función pura de
- * los resultados: la usan `npm run eval` y, después, la pantalla de métricas, para que los
- * dos muestren siempre los mismos números (P-91).
+ * los resultados: la usan `npm run eval` y la pantalla de Métricas (`src/usecases/metrics.ts`),
+ * para que las dos muestren siempre los mismos números (P-91).
  *
  * - Autonomía: facturas cuyo veredicto coincide con el esperado, sin persona. Escalar de más
  *   no cuenta como acierto.

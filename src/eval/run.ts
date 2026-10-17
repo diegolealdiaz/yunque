@@ -3,32 +3,21 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  channelOfFormat,
   idealExtraction,
   loadDatasetSources,
   loadGroundTruth,
-  type CaseDocument,
-  type DatasetCase,
 } from "@/src/dataset";
 import { closeDatabase, createDatabase, runMigrations } from "@/src/db/client";
 import { appendPolicyVersion, getLatestExtraction } from "@/src/db/repositories";
 import { loadSeedData, seedDatasetOrganization } from "@/src/db/seed";
-import {
-  createUlidGenerator,
-  isPresent,
-  normalizeInvoiceNumber,
-  normalizeText,
-  type Channel,
-  type Decision,
-  type Extraction,
-  type ExtractedFields,
-  type Policy,
-} from "@/src/domain";
-import { decidingFinding } from "@/src/engine";
+import { createUlidGenerator, type Policy } from "@/src/domain";
 import { MemoryFileStorage, type ModelClient } from "@/src/extraction";
 import { createModelReader, processInvoice } from "@/src/usecases";
 
 import { FixtureStore, fixtureClient, recordingClient } from "./fixtures";
-import { computeMetrics, type EvalRow, type FieldComparison, type Metrics } from "./metrics";
+import { computeMetrics, type EvalRow, type Metrics } from "./metrics";
+import { evalRowFor } from "./rows";
 
 /**
  * Corre el set de regresión de punta a punta: una base temporal sembrada como el dataset,
@@ -76,61 +65,6 @@ export const DEFAULT_FALLBACK_MODEL = "anthropic/claude-sonnet-5.5";
 const DATASET_HARD_CAP_USD_CENTS = 10_000_000;
 const DATASET_DIR = path.join(process.cwd(), "data", "dataset", "generado");
 const LIMITS = { maxUploadBytes: 5 * 1024 * 1024, maxPages: 5 } as const;
-
-/** El canal con el que llega cada formato del dataset. */
-function channelOf(format: DatasetCase["format"]): Channel {
-  if (format === "email") return "inbox";
-  if (format === "chat") return "telegram";
-  return "batch";
-}
-
-const alphanumeric = (text: string) => text.replace(/[^A-Za-z0-9]+/g, "").toUpperCase();
-
-/**
- * Campos que se miden y cómo se normalizan antes de comparar. La descripción, texto libre,
- * no se mide.
- */
-const MEASURED_FIELDS: readonly {
-  readonly name: keyof ExtractedFields & keyof CaseDocument;
-  readonly normalize: (value: string | number) => string;
-}[] = [
-  { name: "payee_name", normalize: (v) => normalizeText(String(v)) },
-  { name: "payee_tax_id", normalize: (v) => alphanumeric(String(v)) },
-  { name: "invoice_number", normalize: (v) => normalizeInvoiceNumber(String(v)) },
-  { name: "issue_date", normalize: String },
-  { name: "due_date", normalize: String },
-  { name: "currency", normalize: (v) => String(v).toUpperCase() },
-  { name: "subtotal", normalize: String },
-  { name: "taxes", normalize: String },
-  { name: "total", normalize: String },
-  { name: "bank_account", normalize: (v) => alphanumeric(String(v)) },
-  { name: "bank_holder", normalize: (v) => normalizeText(String(v)) },
-  { name: "hours", normalize: String },
-  { name: "purchase_order", normalize: (v) => alphanumeric(String(v)) },
-];
-
-/** Compara lo leído con lo esperado, campo por campo. Un documento que no es factura no se mide. */
-export function compareFields(c: DatasetCase, extraction: Extraction): FieldComparison[] {
-  if (c.format === "not_invoice") return [];
-  const fields = extraction.kind === "invoice" ? extraction.fields : null;
-  return MEASURED_FIELDS.map(({ name, normalize }) => {
-    const expected = c.document[name];
-    const read = fields?.[name];
-    return {
-      field: name,
-      expected: expected === null ? null : normalize(expected),
-      actual: read && isPresent(read) ? normalize(read.value) : null,
-    };
-  });
-}
-
-/** Una decisión se explica si trae explicación y cada hallazgo tiene valor, umbral y mensaje. */
-function isExplained(decision: Decision): boolean {
-  return (
-    decision.explanation.length > 0 &&
-    decision.findings.every((f) => f.observed !== "" && f.threshold !== "" && f.message !== "")
-  );
-}
 
 export async function runEvaluation(options: RunEvaluationOptions): Promise<EvaluationResult> {
   const primary = options.primaryModel ?? DEFAULT_PRIMARY_MODEL;
@@ -222,7 +156,7 @@ export async function runEvaluation(options: RunEvaluationOptions): Promise<Eval
       const started = performance.now();
       const result = await processInvoice(deps, {
         organizationId,
-        channel: channelOf(c.format),
+        channel: channelOfFormat(c.format),
         receiptKey: `eval:${c.id}`,
         bytes,
         originalName: generated.file,
@@ -231,21 +165,7 @@ export async function runEvaluation(options: RunEvaluationOptions): Promise<Eval
       if (result.kind !== "decided") throw new Error(`El caso ${c.id} ya estaba recibido`);
       const { decision } = result;
       const stored = await getLatestExtraction(db, organizationId, decision.invoice_id);
-      rows.push({
-        id: c.id,
-        group: c.group,
-        expected: { verdict: c.expected.verdict, rule: c.expected.rule },
-        actual: { verdict: decision.verdict, rule: decidingFinding(decision)?.code ?? null },
-        fields: stored
-          ? compareFields(c, stored.record.extraction)
-          : compareFields(c, {
-              kind: "unreadable",
-              reason: "sin extracción",
-            }),
-        explained: isExplained(decision),
-        cost_usd_micros: decision.cost_usd_micros,
-        latency_ms: latency,
-      });
+      rows.push(evalRowFor(c, decision, stored?.record.extraction ?? null, latency));
     }
 
     return {

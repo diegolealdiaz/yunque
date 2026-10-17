@@ -157,6 +157,29 @@ export async function listLatestDecisions(
   return out;
 }
 
+/** Todas las decisiones de cada factura del conjunto, la más reciente primero, por id de factura. */
+export async function listDecisionsByInvoices(
+  exec: Executor,
+  organizationId: Ulid,
+  invoiceIds: readonly Ulid[],
+): Promise<Map<Ulid, Decision[]>> {
+  const out = new Map<Ulid, Decision[]>();
+  if (invoiceIds.length === 0) return out;
+  const rows = await exec.query.decisions.findMany({
+    where: and(
+      eq(decisions.organizationId, organizationId),
+      inArray(decisions.invoiceId, [...invoiceIds]),
+    ),
+    orderBy: [desc(decisions.decidedAt), desc(decisions.id)],
+  });
+  for (const row of rows) {
+    const list = out.get(row.invoiceId) ?? [];
+    list.push(toDecision(row));
+    out.set(row.invoiceId, list);
+  }
+  return out;
+}
+
 /** Decisiones tomadas desde `since` (ISO), las más recientes primero. */
 export async function listDecisionsSince(
   exec: Executor,

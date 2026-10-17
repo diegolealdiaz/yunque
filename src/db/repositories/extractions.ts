@@ -66,13 +66,13 @@ export async function getLatestExtraction(
   };
 }
 
-/** Última extracción de cada factura del conjunto, por id de factura. */
-export async function listLatestExtractions(
+/** Todas las extracciones de cada factura del conjunto, la más reciente primero, por id de factura. */
+export async function listExtractionsByInvoices(
   exec: Executor,
   organizationId: Ulid,
   invoiceIds: readonly Ulid[],
-): Promise<Map<Ulid, StoredExtraction>> {
-  const out = new Map<Ulid, StoredExtraction>();
+): Promise<Map<Ulid, StoredExtraction[]>> {
+  const out = new Map<Ulid, StoredExtraction[]>();
   if (invoiceIds.length === 0) return out;
   const rows = await exec.query.extractions.findMany({
     where: and(
@@ -82,8 +82,8 @@ export async function listLatestExtractions(
     orderBy: [desc(extractions.createdAt), desc(extractions.id)],
   });
   for (const row of rows) {
-    if (out.has(row.invoiceId)) continue;
-    out.set(row.invoiceId, {
+    const list = out.get(row.invoiceId) ?? [];
+    list.push({
       id: row.id,
       organization_id: row.organizationId,
       invoice_id: row.invoiceId,
@@ -91,6 +91,22 @@ export async function listLatestExtractions(
       record: parseRow(ExtractionRecordSchema, row.record, "extractions"),
       created_at: row.createdAt,
     });
+    out.set(row.invoiceId, list);
+  }
+  return out;
+}
+
+/** Última extracción de cada factura del conjunto, por id de factura. */
+export async function listLatestExtractions(
+  exec: Executor,
+  organizationId: Ulid,
+  invoiceIds: readonly Ulid[],
+): Promise<Map<Ulid, StoredExtraction>> {
+  const all = await listExtractionsByInvoices(exec, organizationId, invoiceIds);
+  const out = new Map<Ulid, StoredExtraction>();
+  for (const [invoiceId, list] of all) {
+    const latest = list[0];
+    if (latest) out.set(invoiceId, latest);
   }
   return out;
 }

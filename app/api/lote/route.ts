@@ -3,8 +3,8 @@ import path from "node:path";
 
 import { z } from "zod";
 
-import { GENERATED_DIR, loadBatchCases, type BatchCase } from "@/src/dataset/demo-seed";
-import { receiptKeyFor, type Channel } from "@/src/domain";
+import { GENERATED_DIR, channelOfFormat, loadBatchCases } from "@/src/dataset/demo-seed";
+import { receiptKeyFor } from "@/src/domain";
 import { assertWithinDailyLimits, processInvoice, startOfBusinessDay } from "@/src/usecases";
 
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
@@ -21,13 +21,6 @@ import { processingContext } from "../../_data/process";
 export const maxDuration = 90;
 
 const RequestSchema = z.strictObject({ caso: z.string().regex(/^[a-z0-9_]{1,60}$/) });
-
-/** El canal con el que llega cada formato del dataset. */
-function channelOf(format: BatchCase["format"]): Channel {
-  if (format === "email") return "inbox";
-  if (format === "chat") return "telegram";
-  return "batch";
-}
 
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return forbiddenOrigin();
@@ -60,7 +53,7 @@ export async function POST(request: Request): Promise<Response> {
     const bytes = new Uint8Array(await readFile(path.join(GENERATED_DIR, batchCase.file)));
     const result = await processInvoice(deps, {
       organizationId: organization.id,
-      channel: channelOf(batchCase.format),
+      channel: channelOfFormat(batchCase.format),
       // La misma llave por caso: volver a procesar el periodo no duplica facturas.
       receiptKey: receiptKeyFor("batch", batchCase.id),
       bytes,
