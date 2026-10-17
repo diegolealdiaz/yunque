@@ -1,0 +1,24 @@
+# dependencias y build
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# entorno y secretos
+.env
+.env.*
+!.env.example
+
+# datos locales
+data/*.db
+data/*.db-journal
+data/files/
+
+# herramientas locales
+.vercel/
+.DS_Store
+.idea/
+.vscode/
+.claude/
+CLAUDE.local.md
