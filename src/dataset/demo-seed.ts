@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { HistorySchema, ManifestSchema, type HistoryEntry } from "./schema";
+import { GroundTruthSchema, HistorySchema, ManifestSchema, type HistoryEntry } from "./schema";
 
 /**
  * Lo que necesita la copia de la demo de cada visitante: el historial de meses anteriores,
@@ -28,4 +28,24 @@ export async function loadDemoSeed(
     committedUsdCents: manifest.october_committed_usd_cents,
     history: HistorySchema.parse(JSON.parse(historyText)),
   };
+}
+
+/** Un caso del lote del periodo: su id, su archivo generado y su formato. */
+export type BatchCase = {
+  readonly id: string;
+  readonly file: string;
+  readonly format: "pdf" | "png" | "email" | "chat" | "not_invoice";
+};
+
+export const GENERATED_DIR = path.join(process.cwd(), "data", "dataset", "generado");
+
+/**
+ * Casos del lote en el orden del dataset, leídos de `verdad.json`. Es la lista cerrada de lo
+ * que "Procesar periodo" puede pedir: el cliente nombra un caso, nunca una ruta.
+ */
+export async function loadBatchCases(dir: string = GENERATED_DIR): Promise<BatchCase[]> {
+  const truth = GroundTruthSchema.parse(
+    JSON.parse(await readFile(path.join(dir, "verdad.json"), "utf8")),
+  );
+  return truth.cases.map((c) => ({ id: c.id, file: c.file, format: c.format }));
 }
