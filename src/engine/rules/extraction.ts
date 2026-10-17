@@ -120,13 +120,13 @@ export const evidenceMissing: Rule = {
       observed: missing.join(", "),
       threshold: "cita presente en el documento",
       field: first,
-      message: `La cita del campo ${first} no aparece en el documento`,
+      message: `La cita del campo ${first} no aparece en el documento o no respalda el valor leído`,
     });
   },
 };
 
 /** Tolerancia de redondeo entre subtotal más impuestos y total: una unidad mínima. */
-const TOTALS_TOLERANCE = 1;
+export const TOTALS_TOLERANCE = 1;
 
 /**
  * Cuadre de totales. El motor hace su propia aritmética sobre los campos leídos y además

@@ -6,3 +6,4 @@ export * from "./context";
 export * from "./evaluate";
 export { RULES_IN_ORDER, assertRegistryComplete, ruleByCode } from "./rules/registry";
 export type { Rule, RuleOutcome } from "./rules/types";
+export { TOTALS_TOLERANCE } from "./rules/extraction";

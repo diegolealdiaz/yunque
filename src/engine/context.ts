@@ -29,7 +29,11 @@ export type PayeeMatch =
 
 /** Resultado del Verificador (código) sobre la extracción. */
 export type VerificationReport = {
-  /** Campos cuya cita no aparece en el texto del documento. */
+  /**
+   * Campos cuya evidencia no se sostiene: la cita no aparece en el texto del documento, o
+   * aparece pero el valor leído no se deriva de ella. El detalle de cada caso queda en el
+   * informe del Verificador; para el Juez ambos significan "no hay evidencia válida".
+   */
   readonly evidence_missing: readonly ExtractedFieldName[];
   /** Si subtotal e impuestos existen, si cuadran con el total. */
   readonly totals: "ok" | "mismatch" | "not_applicable";

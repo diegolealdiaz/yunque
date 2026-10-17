@@ -95,7 +95,7 @@ export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
   },
   evidence_missing: {
     explain: (f) =>
-      `No se encontró en el documento la cita de ${s(f.observed)}; se exige ${s(f.threshold)}.`,
+      `La cita de ${s(f.observed)} no aparece en el documento o no respalda el valor leído; se exige ${s(f.threshold)}.`,
     check: (f) => `Verifiqué el campo ${s(f.field ?? "indicado")} directamente en el documento`,
   },
   totals_mismatch: {
