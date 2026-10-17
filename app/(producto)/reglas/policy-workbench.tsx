@@ -98,7 +98,7 @@ function Group({
   readonly children: ReactNode;
 }) {
   return (
-    <fieldset className="rounded-[var(--radius-card)] border border-line bg-surface px-4 pt-3 pb-2">
+    <fieldset className="card px-4 pt-3 pb-2">
       <legend className="sr-only">{title}</legend>
       <p aria-hidden="true" className="text-[13px] font-semibold text-ink">
         {title}
@@ -335,7 +335,7 @@ export function PolicyWorkbench({
         type="button"
         disabled={!dirty || !canSign || saving}
         onClick={openSave}
-        className="h-8 rounded-[var(--radius-control)] bg-ink px-3 text-[13px] font-medium text-surface disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-3"
+        className="h-8 btn-primary px-3 text-[13px]"
       >
         Guardar como v{version + 1}
       </button>

@@ -133,7 +133,7 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
           <button
             type="submit"
             disabled={busy || code.trim() === ""}
-            className="h-8 rounded-[var(--radius-control)] bg-ink px-3 text-[13px] font-medium text-surface disabled:opacity-50"
+            className="h-8 btn-primary px-3 text-[13px]"
           >
             {busy ? "Validando…" : "Entrar"}
           </button>

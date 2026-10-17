@@ -3,16 +3,26 @@
 /*
  * Sistema visual de Yunque (docs/interfaz.md §6).
  *
- * - Neutros cálidos: papel y tinta azul-negra; los grises derivan de la tinta.
- * - Ningún color de marca. Los únicos colores cromáticos son los del veredicto:
- *   verde pagar, ámbar escalar, rojo frenar. Siempre acompañados de icono y texto.
- * - Contraste: texto 4.5:1 sobre su fondo, chips y puntos 3:1. La prueba
+ * - Dos temas con los mismos nombres de token: claro (papel y tinta) y oscuro (azul noche,
+ *   el fondo del logo). El tema lo fija `data-theme` en <html> antes de pintar
+ *   (app/layout.tsx): la elección guardada o, si no hay, la del sistema.
+ * - Tres niveles de superficie: barra (`shell`), página (`paper`) y tarjeta (`surface`). El
+ *   más oscuro enmarca, el más claro contiene.
+ * - Un solo color de marca, el azul acero del yunque: marca dónde estás y la acción
+ *   principal de la pantalla, nada más. Su degradado va una vez por pantalla, en la cifra
+ *   principal o en el botón primario.
+ * - Verde pagar, ámbar escalar, rojo frenar: los únicos otros colores, siempre con icono y
+ *   texto.
+ * - Contraste: texto 4.5:1 sobre su fondo, chips y puntos 3:1, en los dos temas. La prueba
  *   tests/ui/tokens.test.ts lee este archivo y lo comprueba par por par.
- * - Rejilla de 4 px, filas de 36 px, radios de 4 px en controles y 12 px en tarjetas.
+ * - Rejilla de 4 px, filas de 44 px, radios de 6 px en controles y 16 px en tarjetas.
  */
 
 :root {
+  color-scheme: light;
+
   /* Superficies */
+  --shell: #ffffff;
   --paper: #f8f7f3;
   --surface: #ffffff;
   --surface-hover: #f1efe9;
@@ -27,6 +37,13 @@
   /* Borde de controles (casillas, campos, interruptores): 3:1 sobre la superficie. */
   --control: #7b8292;
 
+  /* Marca: azul acero del yunque */
+  --brand: #1e5eeb;
+  --brand-grad-start: #1840b0;
+  --brand-grad-end: #0a86b8;
+  --brand-tint: rgb(30 94 235 / 0.09);
+  --on-brand: #ffffff;
+
   /* Veredictos: texto sobre su tinte, y el punto sólido para iconos y marcas */
   --pay: #17663f;
   --pay-tint: #e6f2eb;
@@ -40,19 +57,62 @@
   --pending: #4b5468;
   --pending-tint: #ecebe6;
 
-  /* Marco de marca: luz suave en el borde de la ventana, con los azules del logo. */
-  --glow-deep: rgb(30 107 255 / 0.22);
-  --glow-light: rgb(0 180 255 / 0.3);
+  /* Profundidad: brillo de 1 px arriba y sombra corta; halos de marca en el fondo. */
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 1), 0 10px 28px rgb(26 34 51 / 0.07);
+  --glow-1: rgb(30 94 235 / 0.07);
+  --glow-2: rgb(10 134 184 / 0.06);
 
-  /* Foco: anillo de tinta, siempre visible al navegar con teclado */
-  --focus: #1a2233;
+  /* Foco: anillo de marca, siempre visible al navegar con teclado */
+  --focus: #1e5eeb;
 
-  --radius-control: 4px;
-  --radius-card: 12px;
-  --row-height: 36px;
+  --radius-control: 6px;
+  --radius-card: 16px;
+  --row-height: 44px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --shell: #0a1220;
+  --paper: #0f1a2b;
+  --surface: #172438;
+  --surface-hover: #213049;
+  --surface-sunken: #111c2e;
+
+  --ink: #eef3fa;
+  --ink-2: #c9d3e2;
+  --ink-3: #a3b1c6;
+  --line: #24324a;
+  --line-strong: #34465f;
+  --control: #7d8ba1;
+
+  --brand: #4c8dff;
+  --brand-grad-start: #9cc2ff;
+  --brand-grad-end: #37c8ff;
+  --brand-tint: rgb(76 141 255 / 0.16);
+  --on-brand: #06142b;
+
+  --pay: #4ade80;
+  --pay-tint: #1e3c41;
+  --pay-solid: #4ade80;
+  --escalate: #fbbf24;
+  --escalate-tint: #353835;
+  --escalate-solid: #fbbf24;
+  --hold: #f87171;
+  --hold-tint: #342e3f;
+  --hold-solid: #f87171;
+  --pending: #c9d3e2;
+  --pending-tint: #26344a;
+
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 16px 36px rgb(3 8 18 / 0.45);
+  --glow-1: rgb(76 141 255 / 0.16);
+  --glow-2: rgb(55 200 255 / 0.12);
+
+  --focus: #9cc2ff;
 }
 
 @theme inline {
+  --color-shell: var(--shell);
   --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
@@ -63,6 +123,9 @@
   --color-line: var(--line);
   --color-line-strong: var(--line-strong);
   --color-control: var(--control);
+  --color-brand: var(--brand);
+  --color-brand-tint: var(--brand-tint);
+  --color-on-brand: var(--on-brand);
   --color-pay: var(--pay);
   --color-pay-tint: var(--pay-tint);
   --color-pay-solid: var(--pay-solid);
@@ -78,17 +141,23 @@
   --font-mono: var(--font-mono);
   --radius-control: var(--radius-control);
   --radius-card: var(--radius-card);
+  --shadow-card: var(--shadow-card);
   --text-table: 13px;
   --text-prose: 14px;
-  --text-title: 22px;
+  --text-title: 30px;
 }
 
 html {
   background: var(--paper);
 }
 
+/* Dos halos de marca arriba, quietos al desplazar: dan profundidad sin tocar el contenido. */
 body {
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(circle farthest-corner at 26% 0%, var(--glow-1) 0%, transparent 38%),
+    radial-gradient(circle farthest-corner at 100% 0%, var(--glow-2) 0%, transparent 34%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 14px;
@@ -106,6 +175,62 @@ table {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
   border-radius: var(--radius-control);
+}
+
+/* Piezas compartidas. En la capa de componentes, así una utilidad puede ajustarlas. */
+@layer components {
+  /* Tarjeta: agrupa algo de verdad. Un dato suelto no necesita caja. */
+  .card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Botón primario: uno por pantalla, para la acción principal. */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: var(--radius-control);
+    background-image: linear-gradient(in oklab 90deg, var(--brand-grad-start), var(--brand));
+    color: var(--on-brand);
+    font-weight: 600;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  .btn-primary:disabled {
+    cursor: not-allowed;
+    background-image: none;
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+    color: var(--ink-3);
+  }
+
+  /* La cifra principal de una pantalla lleva el degradado de marca. Una por pantalla. */
+  .hero-figure {
+    background-image: linear-gradient(
+      in oklab 160deg,
+      var(--brand-grad-start) 10%,
+      var(--brand) 55%,
+      var(--brand-grad-end) 95%
+    );
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Etiqueta en versalitas: encabezados de tabla y de grupo. */
+  .caps {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+  }
 }
 
 /* Esqueleto de carga: bloques quietos con un pulso suave que respeta la preferencia del sistema. */
@@ -127,23 +252,8 @@ table {
   }
 }
 
-/*
- * Marco de marca: una luz azul, del degradado del logo, en el borde de la ventana. Es la
- * única presencia de color de marca en las pantallas y queda por fuera del contenido: no
- * compite con los colores del veredicto ni intercepta clics. No se imprime.
- */
-.brand-frame {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  box-shadow:
-    inset 0 0 36px 4px var(--glow-deep),
-    inset 0 0 6px 0 var(--glow-light);
-}
-
 @media print {
-  .brand-frame {
-    display: none;
+  body {
+    background-image: none;
   }
 }

@@ -9,10 +9,13 @@ import { useId, useRef, type ReactNode } from "react";
 export function ActionDialog({
   children,
   label,
+  primary = false,
 }: {
   readonly children: ReactNode;
   /** Texto del botón y título del diálogo. */
   readonly label: string;
+  /** La acción principal de la pantalla: una sola por pantalla. */
+  readonly primary?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -21,7 +24,11 @@ export function ActionDialog({
       <button
         type="button"
         onClick={() => dialog.current?.showModal()}
-        className="h-8 rounded-[var(--radius-control)] border border-control px-3 text-[13px] font-medium text-ink"
+        className={`h-9 px-4 text-[13px] ${
+          primary
+            ? "btn-primary"
+            : "rounded-[var(--radius-control)] border border-control font-medium text-ink hover:bg-surface-hover"
+        }`}
       >
         {label}
       </button>
@@ -33,11 +40,11 @@ export function ActionDialog({
         onClick={(event) => {
           if (event.target === event.currentTarget) dialog.current?.close();
         }}
-        className="m-auto w-full max-w-lg rounded-[var(--radius-card)] border border-line bg-surface text-ink backdrop:bg-ink/30"
+        className="m-auto w-full max-w-lg card text-ink backdrop:bg-black/50"
       >
         <div className="p-5">
           <div className="mb-3 flex items-center justify-between">
-            <p id={titleId} className="text-[14px] font-medium">
+            <p id={titleId} className="text-[16px] font-semibold">
               {label}
             </p>
             <button

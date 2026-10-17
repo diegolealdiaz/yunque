@@ -139,7 +139,7 @@ export function DataTable({
           return (
             <li
               key={row.key}
-              className="relative rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3 text-[13px] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-ink"
+              className="relative card px-4 py-3 text-[13px] has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-ink"
             >
               {row.href ? (
                 <Link
@@ -157,7 +157,7 @@ export function DataTable({
                   ))}
                 </div>
                 {aside.map(({ cell, c }) => (
-                  <div key={c} className="num shrink-0 text-right text-ink">
+                  <div key={c} className="num shrink-0 text-right font-mono text-ink">
                     {cell}
                   </div>
                 ))}
@@ -181,7 +181,7 @@ export function DataTable({
         se desplaza por dentro bajo el encabezado fijo.
       */}
       <div
-        className={`rounded-[var(--radius-card)] border border-line bg-surface max-md:hidden max-lg:overflow-x-auto ${
+        className={`card max-md:hidden max-lg:overflow-x-auto ${
           fill ? "lg:min-h-0 lg:flex-1 lg:overflow-auto" : ""
         }`}
       >
@@ -194,7 +194,7 @@ export function DataTable({
                   key={c}
                   scope="col"
                   style={column.width ? { width: column.width } : undefined}
-                  className={`h-8 px-3 text-[12px] font-medium text-ink-2 ${column.align === "right" ? "text-right" : ""} ${visibility(column)}`}
+                  className={`caps h-10 px-4 ${column.align === "right" ? "text-right" : ""} ${visibility(column)}`}
                 >
                   <span className={column.hideHeader ? "sr-only" : undefined}>{column.header}</span>
                 </th>
@@ -225,7 +225,7 @@ export function DataTable({
                 {row.cells.map((cell, c) => (
                   <td
                     key={c}
-                    className={`px-3 align-middle whitespace-nowrap text-ink ${columns[c]?.align === "right" ? "num text-right" : ""} ${columns[c]?.flexible ? "truncate" : ""} ${visibility(columns[c])}`}
+                    className={`px-4 align-middle whitespace-nowrap text-ink ${columns[c]?.align === "right" ? "num text-right font-mono" : ""} ${columns[c]?.flexible ? "truncate" : ""} ${visibility(columns[c])}`}
                   >
                     {cell}
                   </td>

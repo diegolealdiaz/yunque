@@ -79,14 +79,14 @@ function Column({
 }) {
   return (
     <section aria-label={title} className={`min-w-0 space-y-4 ${className}`}>
-      <h2 className="text-[12px] font-semibold tracking-wide text-ink-2 uppercase">{title}</h2>
+      <h2 className="text-[16px] font-semibold tracking-tight text-ink">{title}</h2>
       {children}
     </section>
   );
 }
 
 function SubTitle({ children }: { readonly children: ReactNode }) {
-  return <h3 className="text-[12px] font-medium tracking-wide text-ink-3 uppercase">{children}</h3>;
+  return <h3 className="caps">{children}</h3>;
 }
 
 /** Cómo se ve una regla que falló, según lo que hace: frenar o escalar. Siempre con texto. */
@@ -124,13 +124,21 @@ function RuleRow({ rule }: { readonly rule: RuleTrace }) {
 
 /** Color, icono y borde de la tarjeta "Por qué", según cómo terminó la factura. */
 const WHY_TONE = {
-  pagar: { Icon: CheckIcon, text: "text-pay", box: "border-pay-solid/40 bg-pay-tint" },
+  pagar: {
+    Icon: CheckIcon,
+    text: "text-pay",
+    box: "border-pay-solid/35 bg-linear-to-r from-pay-tint to-pay-tint/30",
+  },
   escalar: {
     Icon: AlertIcon,
     text: "text-escalate",
-    box: "border-escalate-solid/40 bg-escalate-tint",
+    box: "border-escalate-solid/35 bg-linear-to-r from-escalate-tint to-escalate-tint/30",
   },
-  frenar: { Icon: StopIcon, text: "text-hold", box: "border-hold-solid/40 bg-hold-tint" },
+  frenar: {
+    Icon: StopIcon,
+    text: "text-hold",
+    box: "border-hold-solid/35 bg-linear-to-r from-hold-tint to-hold-tint/30",
+  },
 } as const;
 
 /**
@@ -159,10 +167,11 @@ function WhyCard({ detail, fx }: { readonly detail: InvoiceDetail; readonly fx: 
   return (
     <section
       aria-label="Por qué"
-      className={`rounded-[var(--radius-card)] border px-5 py-4 ${tone.box}`}
+      className={`rounded-[var(--radius-card)] border px-6 py-5 ${tone.box}`}
     >
-      <p className={`flex items-center gap-2 text-[16px] font-semibold ${tone.text}`}>
-        <Icon className="shrink-0" />
+      <p className={`caps ${tone.text}`}>Por qué</p>
+      <p className="mt-2 flex items-center gap-2 text-[20px] font-bold tracking-tight text-ink">
+        <Icon className={`size-5 shrink-0 ${tone.text}`} />
         {summary.headline}
       </p>
       {reasons.length > 0 ? (
@@ -222,7 +231,7 @@ function DecisionPanel({
   }
   if (invoice.status === "rechazada" && approval) {
     return (
-      <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+      <div className="space-y-2 card p-4 text-[13px]">
         <p className="font-medium text-hold">
           Rechazada por {approval.approver} · {instant(approval.created_at, timeZone)}
         </p>
@@ -234,7 +243,7 @@ function DecisionPanel({
   if (decision.verdict === "pagar") {
     const order = decision.payment_order;
     return (
-      <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+      <div className="space-y-2 card p-4 text-[13px]">
         <p className="font-medium text-pay">
           {decision.actor.kind === "humano"
             ? `Aprobada por ${decision.actor.name} · ${instant(decision.decided_at, timeZone)}`
@@ -287,7 +296,7 @@ function DecisionPanel({
   // es una frenada, y la pantalla no debe decir que lo es.
   if (decision.verdict === "escalar") {
     return (
-      <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+      <div className="space-y-2 card p-4 text-[13px]">
         {invoice.status === "aprobada" ? (
           <p className="font-medium text-pay">
             Aprobada por {approval ? approval.approver : "una persona"}
@@ -305,7 +314,7 @@ function DecisionPanel({
     );
   }
   return (
-    <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+    <div className="space-y-2 card p-4 text-[13px]">
       <p className="font-medium text-hold">El agente la frenó.</p>
       <p className="text-ink-2">No se paga. Arriba está el porqué.</p>
       {detail.newerPolicy ? (
@@ -378,8 +387,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="space-y-1">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 space-y-1.5">
           <Link
             href="/pendientes"
             data-shortcut="volver"
@@ -387,32 +396,38 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           >
             ← Pendientes
           </Link>
-          <h1 className="text-[22px] font-semibold tracking-tight text-ink">
-            <span className="font-mono">{invoice.reference}</span>
-            {detail.payeeName ? <span> · {detail.payeeName}</span> : null}
-            {decision?.amount ? (
-              <span className="font-mono"> · {formatMoney(decision.amount)}</span>
-            ) : null}
+          <h1 className="text-[26px] leading-tight font-bold tracking-tight text-ink sm:text-[30px]">
+            {detail.payeeName ?? <span className="font-mono">{invoice.reference}</span>}
           </h1>
+          {detail.payeeName ? (
+            <p className="font-mono text-[13px] text-ink-3">{invoice.reference}</p>
+          ) : null}
         </div>
-        {decision ? (
-          <VerdictChip
-            focusable
-            verdict={decision.verdict}
-            rule={
-              deciding
-                ? {
-                    code: deciding.code,
-                    observed: deciding.observed,
-                    threshold: deciding.threshold,
-                  }
-                : null
-            }
-            policyVersion={detail.policyVersion}
-          />
-        ) : (
-          <VerdictChip verdict="en_proceso" />
-        )}
+        <div className="flex flex-wrap items-center gap-4">
+          {decision?.amount ? (
+            <span className="num font-mono text-[24px] font-semibold tracking-tight text-ink sm:text-[28px]">
+              {formatMoney(decision.amount)}
+            </span>
+          ) : null}
+          {decision ? (
+            <VerdictChip
+              focusable
+              verdict={decision.verdict}
+              rule={
+                deciding
+                  ? {
+                      code: deciding.code,
+                      observed: deciding.observed,
+                      threshold: deciding.threshold,
+                    }
+                  : null
+              }
+              policyVersion={detail.policyVersion}
+            />
+          ) : (
+            <VerdictChip verdict="en_proceso" />
+          )}
+        </div>
       </div>
 
       <WhyCard detail={detail} fx={organization.fx} />
@@ -500,9 +515,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 
             {decision ? (
               <details className="text-[13px]">
-                <summary className="cursor-pointer text-[12px] font-medium tracking-wide text-ink-3 uppercase">
-                  Registro técnico (auditoría)
-                </summary>
+                <summary className="cursor-pointer caps">Registro técnico (auditoría)</summary>
                 <p className="mt-2 font-mono text-[12px] leading-relaxed whitespace-pre-line text-ink-2">
                   {decision.explanation}
                 </p>

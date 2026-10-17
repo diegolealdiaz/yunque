@@ -40,7 +40,7 @@ export function ControlSwitch({
   const next = !value;
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 card px-4 py-3">
       <p className="text-[13px] font-medium text-ink">{label}</p>
       <button
         type="button"
@@ -61,7 +61,7 @@ export function ControlSwitch({
       <dialog
         ref={dialog}
         aria-labelledby={titleId}
-        className="m-auto max-w-sm rounded-[var(--radius-card)] border border-line bg-surface p-5 text-ink backdrop:bg-ink/30"
+        className="m-auto max-w-sm card p-5 text-ink backdrop:bg-black/50"
       >
         <p id={titleId} className="text-[14px] font-medium">
           ¿Cambiar «{label}» a «{next ? onLabel : offLabel}»?
@@ -77,7 +77,7 @@ export function ControlSwitch({
               onChange?.(next);
               dialog.current?.close();
             }}
-            className="h-8 rounded-[var(--radius-control)] bg-ink px-3 text-[13px] font-medium text-surface"
+            className="h-8 btn-primary px-3 text-[13px]"
           >
             Confirmar
           </button>

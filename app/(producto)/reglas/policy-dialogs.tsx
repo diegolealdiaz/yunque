@@ -36,7 +36,7 @@ export function PreviewDialog({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      className="m-auto w-full max-w-xl rounded-[var(--radius-card)] border border-line bg-surface p-5 text-ink backdrop:bg-ink/30"
+      className="m-auto w-full max-w-xl card p-5 text-ink backdrop:bg-black/50"
     >
       {preview?.ok === false ? (
         <div className="space-y-2 text-[13px]">
@@ -110,7 +110,7 @@ export function PreviewDialog({
             type="button"
             disabled={!canSave}
             onClick={onSave}
-            className="h-8 rounded-[var(--radius-control)] bg-ink px-3 text-[13px] font-medium text-surface disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-3"
+            className="h-8 btn-primary px-3 text-[13px]"
           >
             Guardar como v{version + 1}
           </button>
@@ -137,7 +137,7 @@ export function SaveDialog({
     <dialog
       ref={dialogRef}
       aria-labelledby={titleId}
-      className="m-auto max-w-sm rounded-[var(--radius-card)] border border-line bg-surface p-5 text-ink backdrop:bg-ink/30"
+      className="m-auto max-w-sm card p-5 text-ink backdrop:bg-black/50"
     >
       <form
         action={(data) => {
@@ -171,10 +171,7 @@ export function SaveDialog({
           >
             Cancelar
           </button>
-          <button
-            type="submit"
-            className="h-8 rounded-[var(--radius-control)] bg-ink px-3 text-[13px] font-medium text-surface"
-          >
+          <button type="submit" className="h-8 btn-primary px-3 text-[13px]">
             Guardar y reevaluar
           </button>
         </div>

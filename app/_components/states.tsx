@@ -67,11 +67,7 @@ export function TableSkeleton({
   readonly columns?: number;
 }) {
   return (
-    <div
-      aria-busy="true"
-      aria-label="Cargando"
-      className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface"
-    >
+    <div aria-busy="true" aria-label="Cargando" className="overflow-hidden card">
       {Array.from({ length: rows }, (_, r) => (
         <div
           key={r}

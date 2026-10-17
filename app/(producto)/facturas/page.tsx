@@ -13,7 +13,7 @@ import {
   type Verdict,
 } from "@/src/domain";
 import { dueRelative, instant } from "@/src/ui/format";
-import { CHANNEL_LABEL, STATUS_LABEL, VERDICT_LABEL } from "@/src/ui/labels";
+import { CHANNEL_LABEL, STATUS_LABEL } from "@/src/ui/labels";
 import {
   LIST_LIMIT,
   currentBusinessDate,
@@ -52,7 +52,7 @@ const FiltersSchema = z.object({
   q: z.string().max(100).optional().catch(undefined),
 });
 
-const VERDICTS: readonly Verdict[] = ["pagar", "escalar", "frenar"];
+type Filters = z.infer<typeof FiltersSchema>;
 const STATUSES: readonly InvoiceStatus[] = [
   "esperando_aprobacion",
   "decidida",
@@ -93,6 +93,25 @@ function Select<T extends string>({
       </select>
     </label>
   );
+}
+
+/** Atajos por veredicto, en píldoras: el filtro más usado a un clic, sin abrir el formulario. */
+const VERDICT_PILLS: readonly { verdict: Verdict | null; label: string; dot: string | null }[] = [
+  { verdict: null, label: "Todas", dot: null },
+  { verdict: "pagar", label: "Pagadas", dot: "bg-pay-solid" },
+  { verdict: "escalar", label: "Escaladas", dot: "bg-escalate-solid" },
+  { verdict: "frenar", label: "Frenadas", dot: "bg-hold-solid" },
+];
+
+/** Enlace a la lista con un veredicto, conservando los demás filtros. */
+function verdictHref(filters: Filters, verdict: Verdict | null): string {
+  const params = new URLSearchParams();
+  if (verdict) params.set("veredicto", verdict);
+  if (filters.estado) params.set("estado", filters.estado);
+  if (filters.canal) params.set("canal", filters.canal);
+  if (filters.q) params.set("q", filters.q);
+  const query = params.toString();
+  return query ? `/facturas?${query}` : "/facturas";
 }
 
 export default async function FacturasPage({
@@ -152,7 +171,7 @@ export default async function FacturasPage({
         }
         actions={
           <>
-            <ActionDialog label="Subir factura">
+            <ActionDialog label="Subir factura" primary={!config.demo.enabled}>
               <UploadPanel maxBytes={config.demo.maxUploadBytes} />
             </ActionDialog>
             {accessEnabled && (inbound || telegram) ? (
@@ -193,7 +212,36 @@ export default async function FacturasPage({
         </p>
       ) : null}
 
+      <nav aria-label="Filtrar por veredicto">
+        <ul className="flex flex-wrap gap-1.5">
+          {VERDICT_PILLS.map(({ verdict, label, dot }) => {
+            const active = (filters.veredicto ?? null) === verdict;
+            return (
+              <li key={label}>
+                <Link
+                  href={verdictHref(filters, verdict)}
+                  aria-current={active ? "page" : undefined}
+                  className={`inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px] ${
+                    active
+                      ? "bg-surface-hover font-semibold text-ink"
+                      : "text-ink-2 hover:bg-surface-hover hover:text-ink"
+                  }`}
+                >
+                  {dot ? (
+                    <span aria-hidden="true" className={`size-[7px] rounded-full ${dot}`} />
+                  ) : null}
+                  {label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
       <form className="flex flex-wrap items-end gap-3" role="search">
+        {filters.veredicto ? (
+          <input type="hidden" name="veredicto" value={filters.veredicto} />
+        ) : null}
         <label className="flex flex-col gap-1 text-[12px] text-ink-3">
           Buscar
           <input
@@ -205,13 +253,6 @@ export default async function FacturasPage({
             className="h-8 w-64 rounded-[var(--radius-control)] border border-control bg-surface px-2.5 text-[13px] text-ink placeholder:text-ink-3"
           />
         </label>
-        <Select
-          name="veredicto"
-          label="Veredicto"
-          value={filters.veredicto}
-          options={VERDICTS}
-          labelOf={(v) => VERDICT_LABEL[v]}
-        />
         <Select
           name="estado"
           label="Estado"
@@ -250,9 +291,9 @@ export default async function FacturasPage({
           { header: "Referencia", width: "10rem", from: "xl", card: "line" },
           { header: "Beneficiario", flexible: true, card: "title" },
           { header: "Monto", align: "right", width: "10rem", card: "aside" },
-          { header: "Vence", width: "8rem", from: "xl" },
+          { header: "Vence", width: "10rem", from: "xl" },
           { header: "Canal", width: "9.5rem", from: "3xl", card: "hidden" },
-          { header: "Veredicto", width: "18.5rem" },
+          { header: "Veredicto", width: "20.5rem" },
           { header: "Actualizada", width: "7.5rem", from: "2xl", card: "hidden" },
         ]}
         rows={rows.map((row) => ({

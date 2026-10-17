@@ -83,8 +83,10 @@ export function DeliveryRunner({
         type="button"
         onClick={() => void run()}
         disabled={running}
-        className={`h-8 rounded-[var(--radius-control)] px-3 text-[13px] font-medium disabled:cursor-wait disabled:opacity-70 ${
-          primary ? "bg-ink text-surface" : "border border-control text-ink"
+        className={`h-9 px-4 text-[13px] disabled:cursor-wait disabled:opacity-70 ${
+          primary
+            ? "btn-primary"
+            : "rounded-[var(--radius-control)] border border-control font-medium text-ink hover:bg-surface-hover"
         }`}
       >
         {running ? "Procesando…" : label}

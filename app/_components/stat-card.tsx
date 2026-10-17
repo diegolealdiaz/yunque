@@ -21,18 +21,16 @@ export function StatCard({
 }) {
   const body = (
     <>
-      <span className="block text-[12px] font-medium tracking-wide text-ink-2 uppercase">
-        {label}
-      </span>
+      <span className="caps block">{label}</span>
       <span
-        className={`num mt-1 block font-semibold text-ink ${emphasis ? "text-[32px]" : "text-[24px]"}`}
+        className={`num mt-1.5 block font-mono font-medium tracking-tight text-ink ${emphasis ? "text-[32px]" : "text-[24px]"}`}
       >
         {value}
       </span>
       {detail ? <span className="mt-1 block text-[12px] text-ink-3">{detail}</span> : null}
     </>
   );
-  const frame = "block rounded-[var(--radius-card)] border border-line bg-surface p-4";
+  const frame = "card block p-5";
   return href ? (
     <Link href={href} className={`${frame} hover:border-line-strong`}>
       {body}

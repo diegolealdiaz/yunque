@@ -38,7 +38,7 @@ function RatesTable({ fx }: { readonly fx: FxTable }) {
         con estas tasas y se compara sin redondear. Son fijas desde el {calendarDate(fx.asOf)} y no
         se editan aquí: cambiarlas cambiaría qué se paga.
       </p>
-      <table className="w-full rounded-[var(--radius-card)] border border-line bg-surface text-[13px]">
+      <table className="w-full card text-[13px]">
         <caption className="sr-only">Tasas de cambio por 1 USD</caption>
         <thead>
           <tr className="border-b border-line text-left text-[12px] text-ink-2">
@@ -144,7 +144,7 @@ export default async function ReglasPage() {
         versions={{
           count: versions.length,
           content: (
-            <ol className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface text-[13px]">
+            <ol className="divide-y divide-line card text-[13px]">
               {versions.map((v) => (
                 <li key={v.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
                   <span className="w-10 font-medium text-ink">v{v.version}</span>

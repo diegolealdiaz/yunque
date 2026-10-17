@@ -8,6 +8,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { Controls } from "@/src/domain";
 
 import { ChartIcon, CloseIcon, InboxIcon, ListIcon, LogIcon, MenuIcon, RulesIcon } from "./icons";
+import { ThemeToggle } from "./theme-toggle";
 
 /**
  * Barra lateral (docs/interfaz.md §4): cinco destinos en orden de uso y, abajo, el estado
@@ -45,9 +46,9 @@ function Brand() {
   return (
     <Link
       href="/pendientes"
-      className="flex items-center gap-2 text-[16px] font-semibold tracking-tight text-ink"
+      className="flex items-center gap-2.5 text-[17px] font-bold tracking-tight text-ink"
     >
-      <Image src="/marca.png" alt="" width={24} height={24} className="rounded-[6px]" />
+      <Image src="/marca.png" alt="" width={28} height={28} className="rounded-[7px]" />
       Yunque
     </Link>
   );
@@ -96,7 +97,7 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
 
   return (
     <>
-      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 lg:hidden">
+      <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-line bg-shell px-4 lg:hidden">
         <Brand />
         <div className="flex items-center gap-3 text-[12px]">
           {state.pendingCount > 0 ? (
@@ -121,7 +122,7 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
         <div
           aria-hidden="true"
           onClick={() => setOpenOn(null)}
-          className="fixed inset-0 z-30 bg-ink/30 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
         />
       ) : null}
       <aside
@@ -131,12 +132,14 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
         role={open ? "dialog" : undefined}
         aria-label={open ? "Menú principal" : undefined}
         onKeyDown={trapFocus}
-        className={`${open ? "fixed inset-y-0 left-0 z-40 flex w-64 shadow-lg" : "hidden"} shrink-0 flex-col border-r border-line bg-surface lg:static lg:flex lg:w-56 lg:shadow-none`}
+        className={`${open ? "fixed inset-y-0 left-0 z-40 flex w-64 shadow-lg" : "hidden"} shrink-0 flex-col border-r border-line bg-shell lg:static lg:flex lg:w-60 lg:shadow-none`}
       >
         <div className="flex items-start justify-between gap-2 px-4 pt-5 pb-4">
           <div className="min-w-0">
             <Brand />
-            <p className="mt-0.5 truncate text-[12px] text-ink-3">{state.organizationName}</p>
+            <p className="mt-0.5 truncate pl-[38px] text-[12px] text-ink-3">
+              {state.organizationName}
+            </p>
           </div>
           <button
             ref={closeButton}
@@ -148,7 +151,7 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
             <CloseIcon />
           </button>
         </div>
-        <nav aria-label="Secciones" className="flex-1 px-2">
+        <nav aria-label="Secciones" className="flex-1 px-3">
           <ul className="space-y-0.5">
             {NAV_ITEMS.map(({ href, label, Icon }) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
@@ -157,9 +160,9 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
                   <Link
                     href={href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex h-8 items-center gap-2.5 rounded-[var(--radius-control)] px-2.5 text-[13px] ${
+                    className={`flex h-9 items-center gap-2.5 rounded-[8px] px-3 text-[14px] ${
                       active
-                        ? "bg-surface-sunken font-medium text-ink"
+                        ? "bg-brand-tint font-semibold text-brand"
                         : "text-ink-2 hover:bg-surface-hover hover:text-ink"
                     }`}
                   >
@@ -168,7 +171,9 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
                     {href === "/pendientes" && state.pendingCount > 0 ? (
                       <span
                         aria-label={`${String(state.pendingCount)} esperan decisión`}
-                        className="num rounded-full bg-escalate-tint px-1.5 text-[11px] font-semibold text-escalate"
+                        className={`num rounded-full px-2 font-mono text-[11px] font-semibold ${
+                          active ? "bg-brand text-on-brand" : "bg-surface-hover text-ink"
+                        }`}
                       >
                         {state.pendingCount}
                       </span>
@@ -179,40 +184,46 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
             })}
           </ul>
         </nav>
-        <dl className="space-y-1.5 border-t border-line px-4 py-4 text-[12px]">
-          <div className="flex justify-between">
-            <dt className="text-ink-3">Pagos</dt>
-            <dd
-              className={`font-medium ${state.controls.payments_enabled ? "text-ink" : "text-hold"}`}
-            >
-              {state.controls.payments_enabled ? "Encendidos" : "Apagados"}
-            </dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-ink-3">Agente</dt>
-            <dd className="font-medium text-ink">
-              {state.controls.autonomy === "decidir" ? "Decide" : "Solo recomienda"}
-            </dd>
-          </div>
-          {state.controls.dry_run ? (
+        <div className="mx-3 border-t border-line px-2 pt-4 pb-4">
+          <p className="caps mb-2.5">Controles</p>
+          <dl className="space-y-2 text-[13px]">
             <div className="flex justify-between">
-              <dt className="text-ink-3">Prueba</dt>
-              <dd className="font-medium text-ink">Sin órdenes reales</dd>
-            </div>
-          ) : null}
-          <div className="pt-1">
-            <dt className="sr-only">Salud</dt>
-            <dd>
-              <Link
-                href="/salud"
-                className="inline-flex items-center gap-1.5 text-ink-2 hover:text-ink"
+              <dt className="text-ink-3">Pagos</dt>
+              <dd
+                className={`font-medium ${state.controls.payments_enabled ? "text-ink" : "text-hold"}`}
               >
-                <span aria-hidden="true" className={`size-2 rounded-full ${health.dot}`} />
-                {health.label}
-              </Link>
-            </dd>
+                {state.controls.payments_enabled ? "Encendidos" : "Apagados"}
+              </dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-ink-3">Agente</dt>
+              <dd className="font-medium text-ink">
+                {state.controls.autonomy === "decidir" ? "Decide" : "Solo recomienda"}
+              </dd>
+            </div>
+            {state.controls.dry_run ? (
+              <div className="flex justify-between">
+                <dt className="text-ink-3">Prueba</dt>
+                <dd className="font-medium text-ink">Sin órdenes reales</dd>
+              </div>
+            ) : null}
+            <div className="pt-1">
+              <dt className="sr-only">Salud</dt>
+              <dd>
+                <Link
+                  href="/salud"
+                  className="inline-flex items-center gap-1.5 text-ink-2 hover:text-ink"
+                >
+                  <span aria-hidden="true" className={`size-2 rounded-full ${health.dot}`} />
+                  {health.label}
+                </Link>
+              </dd>
+            </div>
+          </dl>
+          <div className="mt-4">
+            <ThemeToggle />
           </div>
-        </dl>
+        </div>
       </aside>
     </>
   );

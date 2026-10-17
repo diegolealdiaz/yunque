@@ -5,15 +5,22 @@ import { describe, expect, it } from "vitest";
 
 /**
  * P-100, contraste: lee los tokens de app/globals.css y comprueba cada par de uso con la
- * fórmula de WCAG 2.2. Texto 4.5:1 sobre su fondo; chips, puntos y bordes de foco 3:1.
+ * fórmula de WCAG 2.2, en el tema claro y en el oscuro. Texto 4.5:1 sobre su fondo; chips,
+ * puntos y bordes de foco 3:1.
  */
 
 const css = readFileSync(path.join(process.cwd(), "app", "globals.css"), "utf8");
-const root = css.slice(css.indexOf(":root"), css.indexOf("@theme"));
+const DARK = ':root[data-theme="dark"]';
+const THEMES = {
+  claro: css.slice(css.indexOf(":root"), css.indexOf(DARK)),
+  oscuro: css.slice(css.indexOf(DARK), css.indexOf("@theme")),
+} as const;
+type ThemeName = keyof typeof THEMES;
+const THEME_NAMES: readonly ThemeName[] = ["claro", "oscuro"];
 
-function token(name: string): string {
-  const match = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`).exec(root);
-  if (!match?.[1]) throw new Error(`falta el token --${name}`);
+function token(theme: ThemeName, name: string): string {
+  const match = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`).exec(THEMES[theme]);
+  if (!match?.[1]) throw new Error(`falta el token --${name} en el tema ${theme}`);
   return match[1];
 }
 
@@ -44,6 +51,13 @@ const TEXT_PAIRS: readonly [string, string][] = [
   ["hold", "hold-tint"],
   ["pending", "pending-tint"],
   ["surface", "ink"],
+  ["brand", "paper"],
+  ["brand", "surface"],
+  ["brand", "shell"],
+  ["on-brand", "brand"],
+  ["on-brand", "brand-grad-start"],
+  ["ink-2", "shell"],
+  ["ink-3", "shell"],
 ];
 
 const GRAPHIC_PAIRS: readonly [string, string][] = [
@@ -57,17 +71,20 @@ const GRAPHIC_PAIRS: readonly [string, string][] = [
   ["focus", "surface"],
   ["control", "surface"],
   ["control", "paper"],
+  ["focus", "shell"],
 ];
 
-describe("contraste de los tokens (P-100)", () => {
+describe.each(THEME_NAMES)("contraste del tema %s (P-100)", (theme) => {
   it.each(TEXT_PAIRS)("texto --%s sobre --%s cumple 4.5:1", (fg, bg) => {
-    expect(contrast(token(fg), token(bg))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(token(theme, fg), token(theme, bg))).toBeGreaterThanOrEqual(4.5);
   });
 
   it.each(GRAPHIC_PAIRS)("marca --%s sobre --%s cumple 3:1", (fg, bg) => {
-    expect(contrast(token(fg), token(bg))).toBeGreaterThanOrEqual(3);
+    expect(contrast(token(theme, fg), token(theme, bg))).toBeGreaterThanOrEqual(3);
   });
+});
 
+describe("fórmula de contraste", () => {
   it("la fórmula da los valores de referencia", () => {
     expect(contrast("#000000", "#ffffff")).toBeCloseTo(21, 5);
     expect(contrast("#777777", "#ffffff")).toBeCloseTo(4.48, 1);

@@ -47,7 +47,7 @@ export function VerdictChip({
   const label = verdict === "en_proceso" ? "EN PROCESO" : VERDICT_LABEL[verdict];
   const chip = (
     <span
-      className={`inline-flex h-6 items-center gap-1.5 rounded-[var(--radius-control)] px-2 text-[12px] font-medium whitespace-nowrap ${className}`}
+      className={`inline-flex h-6 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium whitespace-nowrap ${className}`}
     >
       <Icon className="shrink-0" />
       <span className="font-semibold tracking-wide">{label}</span>
@@ -82,11 +82,7 @@ export function VerdictChip({
   }
   return (
     <span className="group relative inline-flex">
-      <span
-        tabIndex={0}
-        aria-describedby={tooltipId}
-        className="inline-flex rounded-[var(--radius-control)]"
-      >
+      <span tabIndex={0} aria-describedby={tooltipId} className="inline-flex rounded-full">
         {chip}
       </span>
       <span

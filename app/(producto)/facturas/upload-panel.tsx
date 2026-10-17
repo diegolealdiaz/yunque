@@ -122,10 +122,7 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
         />
       </label>
       {uploads.length > 0 ? (
-        <ul
-          aria-live="polite"
-          className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface text-[13px]"
-        >
+        <ul aria-live="polite" className="divide-y divide-line card text-[13px]">
           {uploads.map((u) => (
             <li key={u.key} className="flex items-center gap-3 px-3 py-2">
               <span className="min-w-0 flex-1 truncate text-ink">{u.name}</span>

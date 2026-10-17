@@ -73,7 +73,7 @@ export function ApprovalChecklist({
         type="submit"
         disabled={!complete || disabledReason !== null || pending || formAction === null}
         aria-describedby="approval-status"
-        className="h-9 w-full rounded-[var(--radius-control)] bg-ink px-4 text-[13px] font-medium text-surface disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-3"
+        className="h-9 w-full btn-primary px-4 text-[13px]"
       >
         {pending ? "Aprobando…" : "Aprobar"}
       </button>

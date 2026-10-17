@@ -118,10 +118,7 @@ export function DocumentViewer({
         </p>
       ) : null}
       {pages.map((page, index) => (
-        <figure
-          key={page.src}
-          className="relative overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface"
-        >
+        <figure key={page.src} className="relative overflow-hidden card">
           <Image
             src={page.src}
             width={page.width}
@@ -152,9 +149,7 @@ export function DocumentViewer({
         </figure>
       ))}
       <section aria-label="Texto leído del documento">
-        <h3 className="mb-1 text-[12px] font-medium tracking-wide text-ink-2 uppercase">
-          Texto leído
-        </h3>
+        <h3 className="mb-1 caps">Texto leído</h3>
         {text === "" ? (
           <p className="text-[13px] text-ink-3">
             El documento es una imagen sin capa de texto; el agente lo leyó de la página.

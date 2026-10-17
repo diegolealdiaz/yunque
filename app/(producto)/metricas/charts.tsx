@@ -14,8 +14,8 @@ import { drillHref } from "./drill";
  * colores de la interfaz siguen siendo los del veredicto.
  */
 
-const frame = "rounded-[var(--radius-card)] border border-line bg-surface p-4";
-const heading = "text-[12px] font-medium tracking-wide text-ink-2 uppercase";
+const frame = "card p-4";
+const heading = "caps";
 
 /** Un tono de verde por moneda, del más fuerte al más claro; lo de antes, en gris. */
 const SLICE_TONES = [

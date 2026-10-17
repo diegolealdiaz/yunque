@@ -149,7 +149,7 @@ export function PolicyEditor({
       ))}
 
       {actions ? (
-        <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3 shadow-sm">
+        <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-2 card px-4 py-3">
           {actions}
         </div>
       ) : null}

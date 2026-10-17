@@ -6,7 +6,6 @@ import type { InboxRow } from "@/src/usecases";
 
 import { DataTable } from "../../_components/data-table";
 import { AlertIcon, ChevronIcon } from "../../_components/icons";
-import { PageHeader } from "../../_components/page-header";
 import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
 import { inboxView } from "../../_data/inbox";
@@ -25,11 +24,22 @@ function invoiceHref(row: InboxRow): string {
 
 function SectionTitle({ title, count, note }: { title: string; count: number; note?: string }) {
   return (
-    <div className="mb-2 flex items-baseline justify-between">
-      <h2 className="text-[12px] font-semibold tracking-wide text-ink-2 uppercase">
-        {title} <span className="num">({count})</span>
+    <div className="mb-3 flex items-baseline justify-between gap-3">
+      <h2 className="flex items-baseline gap-2.5 text-[18px] font-semibold tracking-tight text-ink">
+        {title}
+        <span className="num font-mono text-[13px] font-normal text-ink-3">{count}</span>
       </h2>
-      {note ? <span className="text-[12px] text-ink-3">{note}</span> : null}
+      {note ? <span className="text-[13px] text-ink-3">{note}</span> : null}
+    </div>
+  );
+}
+
+/** Una línea del desglose: etiqueta a la izquierda, cifra en mono a la derecha. */
+function LedgerLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex h-10 items-center justify-between gap-4 border-b border-line last:border-b-0">
+      <dt className="text-[13px] text-ink-3">{label}</dt>
+      <dd className="num font-mono text-[13px] text-ink">{value}</dd>
     </div>
   );
 }
@@ -38,18 +48,34 @@ export default async function PendientesPage() {
   const inbox = await inboxView();
   const waiting = inbox.waiting.length;
   const resolvedToday = inbox.paid.length + inbox.stopped.length;
+  const first = inbox.waiting[0];
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        title="Pendientes"
-        meta={
-          <span>
-            Hoy, {calendarDate(inbox.today)} ·{" "}
-            {waiting === 1 ? "1 espera tu decisión" : `${String(waiting)} esperan tu decisión`}
-          </span>
-        }
-      />
+      {/* La cifra principal de la pantalla: cuántas esperan a una persona. */}
+      <header className="flex flex-col gap-6 border-b border-line pb-7 md:flex-row md:items-end md:gap-14">
+        <div className="shrink-0">
+          <p className="caps">Pendientes · hoy, {calendarDate(inbox.today)}</p>
+          <h1 className="mt-2 flex items-baseline gap-3.5">
+            <span className="hero-figure num font-mono text-[64px] leading-[68px] font-bold tracking-tight">
+              {waiting}
+            </span>
+            <span className="text-[18px] font-medium text-ink-2">
+              {waiting === 1 ? "espera tu decisión" : "esperan tu decisión"}
+            </span>
+          </h1>
+          {first ? (
+            <p className="mt-1.5 text-[13px] text-ink-3">
+              La más urgente:{" "}
+              {first.expired ? "espera vencida" : dueRelative(first.dueDate, inbox.today)}.
+            </p>
+          ) : null}
+        </div>
+        <dl className="w-full md:max-w-md md:flex-1">
+          <LedgerLine label="Pagadas hoy por el agente" value={String(inbox.paid.length)} />
+          <LedgerLine label="Frenadas hoy" value={String(inbox.stopped.length)} />
+        </dl>
+      </header>
 
       <section aria-labelledby="esperan">
         <div id="esperan">
@@ -61,8 +87,8 @@ export default async function PendientesPage() {
             { header: "Estado", hideHeader: true, width: "2.5rem", card: "hidden" },
             { header: "Beneficiario", flexible: true, card: "title" },
             { header: "Monto", align: "right", width: "11rem", card: "aside" },
-            { header: "Vence", width: "10rem", from: "xl" },
-            { header: "Veredicto", width: "18.5rem" },
+            { header: "Vence", width: "10.5rem", from: "xl" },
+            { header: "Veredicto", width: "20.5rem" },
             { header: "Acción", hideHeader: true, width: "6.5rem", card: "hidden" },
           ]}
           rows={inbox.waiting.map((row) => ({
@@ -127,12 +153,12 @@ export default async function PendientesPage() {
         {inbox.stopped.length === 0 ? (
           <p className="text-[13px] text-ink-3">Ninguna factura frenada hoy.</p>
         ) : (
-          <ul className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface">
+          <ul className="card divide-y divide-line overflow-hidden">
             {inbox.stopped.map((row) => (
               <li key={row.invoiceId}>
                 <Link
                   href={invoiceHref(row)}
-                  className="flex h-[var(--row-height)] items-center gap-3 px-3 text-[13px] hover:bg-surface-hover"
+                  className="flex h-[var(--row-height)] items-center gap-3 px-4 text-[13px] hover:bg-surface-hover"
                 >
                   <VerdictChip
                     verdict={row.verdict}

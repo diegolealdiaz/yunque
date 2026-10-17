@@ -34,7 +34,7 @@ export function CorrectionForm({
 }) {
   const [state, action, pending] = useActionState(correctAction, null);
   return (
-    <details className="rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+    <details className="card p-4 text-[13px]">
       <summary className="cursor-pointer font-medium text-ink">Corregir campos…</summary>
       <form action={action} className="mt-3 space-y-2">
         <input type="hidden" name="invoiceId" value={invoiceId} />
@@ -72,7 +72,7 @@ export function CorrectionForm({
         <button
           type="submit"
           disabled={pending || disabledReason !== null}
-          className="h-8 rounded-[var(--radius-control)] bg-ink px-3 font-medium text-surface disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-3"
+          className="h-8 btn-primary px-3"
         >
           {pending ? "Reevaluando…" : "Corregir y reevaluar"}
         </button>

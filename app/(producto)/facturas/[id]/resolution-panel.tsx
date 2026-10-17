@@ -51,7 +51,7 @@ export function ResolutionPanel({
     <div className="space-y-4">
       <ApproverPicker approvers={approvers} approver={approver} path={`/facturas/${invoiceId}`} />
 
-      <div className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
+      <div className="card p-4">
         <ApprovalChecklist
           items={checklist}
           signature={signatureSummary}
@@ -65,7 +65,7 @@ export function ResolutionPanel({
       </div>
       <ActionOutcome state={approved} />
 
-      <details className="rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+      <details className="card p-4 text-[13px]">
         <summary className="cursor-pointer font-medium text-ink">Rechazar…</summary>
         <form action={reject} className="mt-3 space-y-2">
           {Object.entries(hidden).map(([name, value]) => (

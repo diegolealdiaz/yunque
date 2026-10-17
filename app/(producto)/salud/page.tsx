@@ -42,7 +42,7 @@ export default async function SaludPage() {
           </span>
         }
       />
-      <ul className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface">
+      <ul className="divide-y divide-line card">
         {rows.map((row) => (
           <li key={row.key} className="flex items-start gap-3 px-4 py-3">
             <span

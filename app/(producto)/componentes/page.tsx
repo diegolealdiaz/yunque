@@ -109,7 +109,7 @@ rules:
 function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-[12px] font-medium tracking-wide text-ink-2 uppercase">{title}</h2>
+      <h2 className="caps">{title}</h2>
       {children}
     </section>
   );
@@ -249,9 +249,7 @@ export default function ComponentsPage() {
               highlights={FIELDS}
             />
             <div className="space-y-1">
-              <h3 className="mb-2 text-[12px] font-medium tracking-wide text-ink-2 uppercase">
-                Campos leídos
-              </h3>
+              <h3 className="mb-2 caps">Campos leídos</h3>
               {FIELDS.map((field) => (
                 <EvidenceTarget key={field.id} id={field.id}>
                   <span className="grid grid-cols-[6rem_1fr_auto] items-center gap-2 text-[13px]">
@@ -268,7 +266,7 @@ export default function ComponentsPage() {
 
       <div className="grid gap-10 lg:grid-cols-2">
         <Section title="6. Checklist de aprobación">
-          <div className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
+          <div className="card p-4">
             <ApprovalChecklist
               items={[
                 {
@@ -288,7 +286,7 @@ export default function ComponentsPage() {
         </Section>
 
         <Section title="7. Línea de tiempo">
-          <div className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
+          <div className="card p-4">
             <Timeline
               timeZone="America/Bogota"
               entries={[
