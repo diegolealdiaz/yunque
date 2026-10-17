@@ -29,7 +29,7 @@
 | R21 | Entregables del hackathon: repo público con README de flujos y arquitectura, video, demo en vivo | README por el marco de cuatro pasos, Vercel, video (pasos 33 y 34 del plan) | Cubierto |
 | R22 | Pagos en varias monedas contra límites en USD | Tasas de cambio (`src/domain/fx.ts`), Reglas, detalle | Cubierto con tasas fijas por empresa, a la vista en Reglas y en el detalle (D22). Planeado para producción: tasas diarias de un proveedor oficial, guardadas en cada decisión |
 | R23 | Probar el agente con una factura propia sin abrir la demo al abuso | Correo real de entrada (`/api/correo/entrante`, `src/usecases/inbound-email.ts`), "Probar con tu factura" en Facturas | Cubierto en la demo con código de acceso, dirección que vence, topes antes de gastar e interruptor (D23). Planeado para producción: dirección fija por empresa y remitentes autorizados |
-| R24 | Avisar a la persona cuando una factura necesita su decisión | Bot de Telegram como notificador y canal de entrada (`/api/telegram`, `src/usecases/telegram.ts`) | Cubierto en la demo para chats conectados con el acceso de jurado (D24). Aprobar desde el chat queda para producción, con identidad verificada |
+| R24 | Avisar a la persona cuando una factura necesita su decisión | Bot de Telegram como notificador y canal de entrada (`/api/telegram`, `src/usecases/telegram.ts`) | Cubierto en la demo para chats conectados con el acceso de cliente (D24). Aprobar desde el chat queda para producción, con identidad verificada |
 
 ## 2. Ajustes que salen de la matriz
 
@@ -54,12 +54,12 @@
 
 ## 4. Veredicto
 
-La arquitectura cubre el reto completo. Los seis ajustes que salieron de la matriz ya están incorporados en `arquitectura.md`; cinco entran en la demo y `/api/decide` es el último en el orden de recorte. El más importante para el jurado era A1, porque "saldo insuficiente" aparece literal en la lista de casos trampa y el diseño solo tenía presupuesto.
+La arquitectura cubre el reto completo. Los seis ajustes que salieron de la matriz ya están incorporados en `arquitectura.md`; cinco entran en la demo y `/api/decide` es el último en el orden de recorte. El más importante era A1, porque "saldo insuficiente" aparece literal en la lista de casos trampa y el diseño solo tenía presupuesto.
 
 La forma elegida, modelo que extrae y código que decide, es la única de las consideradas que satisface a la vez los tres criterios de éxito y la restricción descalificante. Las alternativas que parecen "más agente" sacrifican seguridad o explicabilidad; las que parecen "más seguras" sacrifican la capacidad de leer facturas reales. La diferencia frente a otras soluciones no está en el pipeline, que es conocido, sino en tres cosas que se muestran en vivo: evidencia literal por campo, replay al cambiar reglas, y la aprobación que firma el contenido exacto.
 
 ## 5. Riesgos de interpretación
 
-- **"Agente" como palabra.** Un jurado puede esperar un bucle de modelo con herramientas. Respuesta en el pitch: el agente es el sistema que decide solo dentro de las reglas y pide permiso fuera de ellas; el modelo es uno de sus roles, no su cerebro. Mostrar el lote decidiendo 33 facturas sin tocar nada.
+- **"Agente" como palabra.** Un cliente puede esperar un bucle de modelo con herramientas. Respuesta en el pitch: el agente es el sistema que decide solo dentro de las reglas y pide permiso fuera de ellas; el modelo es uno de sus roles, no su cerebro. Mostrar el lote decidiendo 33 facturas sin tocar nada.
 - **Sobreescalado.** Si el agente escala demasiado, la autonomía cae. Calibrar los umbrales de confianza sobre el set hasta el punto de cero falsos "pagar" con el mínimo de escalados.
 - **Demo sin red.** Resultados del set precargados y explicación por plantilla que no depende del modelo.

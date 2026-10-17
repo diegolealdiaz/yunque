@@ -169,8 +169,8 @@
 ## Fase 6. Despliegue
 
 ### Paso 29. Producción [núcleo]
-- **Construye:** Vercel con Turso y Blob; empresa por visitante con cookie firmada; topes de subida, páginas y facturas por visitante y globales; `maxDuration` por ruta medido; archivos privados servidos solo a su empresa; reinicio de demo por empresa. Correo real para jurados (D23): cuenta de Postmark con su webhook de entrada apuntando a `/api/correo/entrante`, código de acceso entregado a los jurados por fuera del repo, y límite de gasto en la clave de OpenRouter.
-- **Hecho cuando:** la URL pública procesa una factura de punta a punta; dos navegadores ven empresas distintas; superar un tope responde con mensaje claro; un correo con una factura adjunta a la dirección de un jurado aparece decidido en su lista.
+- **Construye:** Vercel con Turso y Blob; empresa por visitante con cookie firmada; topes de subida, páginas y facturas por visitante y globales; `maxDuration` por ruta medido; archivos privados servidos solo a su empresa; reinicio de demo por empresa. Correo real para clientes (D23): cuenta de Postmark con su webhook de entrada apuntando a `/api/correo/entrante`, código de acceso entregado a los clientes por fuera del repo, y límite de gasto en la clave de OpenRouter.
+- **Hecho cuando:** la URL pública procesa una factura de punta a punta; dos navegadores ven empresas distintas; superar un tope responde con mensaje claro; un correo con una factura adjunta a la dirección de un cliente aparece decidido en su lista.
 - **Prueba:** P-121 a P-126, P-131 a P-134.
 
 ### Paso 30. Regresión en CI [núcleo]
@@ -186,7 +186,7 @@
 - **Prueba:** P-127, P-128.
 
 ### Paso 32. Telegram [recorte]
-- **Construye:** bot como notificador y canal de entrada (D24): enlace de conexión de un solo uso con el acceso de jurado, webhook con secreto, deduplicación y cupo por `update_id`, descarga acotada del archivo, mismo caso de uso, avisos con HTML escapado por la cola. Al desplegar: crear el bot con @BotFather y registrar el webhook con su `secret_token`.
+- **Construye:** bot como notificador y canal de entrada (D24): enlace de conexión de un solo uso con el acceso de cliente, webhook con secreto, deduplicación y cupo por `update_id`, descarga acotada del archivo, mismo caso de uso, avisos con HTML escapado por la cola. Al desplegar: crear el bot con @BotFather y registrar el webhook con su `secret_token`.
 - **Hecho cuando:** una factura enviada por Telegram recibe su veredicto por la cola de avisos; una escalada de otro canal avisa al chat conectado; el mismo update dos veces procesa una vez.
 - **Prueba:** P-129, P-130, P-135 a P-138.
 

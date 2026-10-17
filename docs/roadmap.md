@@ -1,6 +1,6 @@
 # Funcionalidades: qué construir y en qué orden
 
-> Cada funcionalidad se evalúa con tres preguntas: ¿mueve un criterio del jurado (autonomía, seguridad, explicabilidad)? ¿la hace alguien más? ¿demuestra oficio en dos minutos de demo? Las que no responden sí a ninguna, no entran.
+> Cada funcionalidad se evalúa con tres preguntas: ¿mueve un criterio del reto (autonomía, seguridad, explicabilidad)? ¿la hace alguien más? ¿demuestra oficio en dos minutos de demo? Las que no responden sí a ninguna, no entran.
 
 ## Nivel 1: núcleo de la demo. Sin esto no hay entrega
 
@@ -10,7 +10,7 @@
 | Catálogo de 18 reglas con formulario y vista YAML | Seguridad | Reglas como datos versionados, no como código |
 | Detalle de decisión con traza por regla: valor, umbral, cita del documento | Explicabilidad | Casi nadie en el mercado explica así una decisión de pago |
 | Cola de pendientes con checklist y firma del contenido exacto | Seguridad | Aprobar no es un botón; es verificar cosas concretas |
-| Métricas: autonomía, falsos "pagar" en cero, tasa de escalado, costo por factura | Los tres | El jurado no tiene que creernos; lo ve medido |
+| Métricas: autonomía, falsos "pagar" en cero, tasa de escalado, costo por factura | Los tres | El cliente no tiene que creernos; lo ve medido |
 
 ## Nivel 2: diferenciadores. Cada uno es un momento del pitch
 
@@ -31,7 +31,7 @@
 
 | Funcionalidad | Por qué importa | Esfuerzo |
 |---|---|---|
-| **Puerta de regresión en CI** con tolerancia cero a falsos "pagar" | Un jurado técnico sabe lo que significa que el repo no deje mergear un pago indebido | Bajo |
+| **Puerta de regresión en CI** con tolerancia cero a falsos "pagar" | Un cliente técnico sabe lo que significa que el repo no deje mergear un pago indebido | Bajo |
 | **Set adversarial en tests** | Cinco facturas diseñadas para engañar al agente, todas frenadas o escaladas, en CI | Bajo |
 | **Tabla de llamadas al modelo** con prompt, salida, tokens y costo | Costo por decisión por debajo de un centavo, demostrado | Bajo |
 | **Salud con frescura** en `/api/health` | Base, política cargada y proveedor del modelo; antigüedad del pendiente más viejo | Bajo |
@@ -53,7 +53,7 @@
 
 ## Nivel 5: después del hackathon. Se mencionan como camino
 
-- Buzón de correo real por reenvío a una dirección fija por empresa, con remitentes autorizados. La demo ya trae una versión para jurados, con código de acceso y dirección que vence (D23).
+- Buzón de correo real por reenvío a una dirección fija por empresa, con remitentes autorizados. La demo ya trae una versión para clientes, con código de acceso y dirección que vence (D23).
 - Verificación del cambio de cuenta bancaria con el beneficiario por un canal distinto al que trajo la factura.
 - Cadenas de aprobación con varios aprobadores, roles y separación de funciones.
 - Retenciones de impuestos locales y factura electrónica como evidencia de matching.
@@ -65,7 +65,7 @@
 | Idea | Por qué no |
 |---|---|
 | Extensión de navegador | Canal sin impacto en la decisión |
-| Chat conversacional con el agente | Vistoso, pero mueve la atención del jurado hacia el modelo y lejos de las reglas |
+| Chat conversacional con el agente | Vistoso, pero mueve la atención del cliente hacia el modelo y lejos de las reglas |
 | OCR especializado de terceros | Otro proveedor; el set de la demo no lo necesita |
 | Múltiples agentes de modelo conversando | Latencia, costo y explicabilidad degradada |
 | Ejecución real de pagos | Fuera del alcance del reto |

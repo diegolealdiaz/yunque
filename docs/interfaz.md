@@ -9,7 +9,7 @@ La interfaz tiene tres públicos y una sola forma:
 | Público | Qué necesita en los primeros diez segundos |
 |---|---|
 | Persona de finanzas | Qué hay que resolver hoy, y por qué el agente no lo resolvió solo |
-| Jurado | Ver al agente decidir, ver la regla que aplicó, ver que una persona manda |
+| Cliente que evalúa Yunque | Ver al agente decidir, ver la regla que aplicó, ver que una persona manda |
 | Quien integra Yunque | Que todo lo que ve en pantalla exista también como dato y como API |
 
 De ahí salen los principios.
@@ -46,7 +46,7 @@ Lo que el mercado hace y no copiamos:
 
 - **Chat como interfaz principal.** Un chat esconde el estado y obliga a preguntar. Yunque muestra el estado. Un chat de consulta puede llegar después, nunca como puerta de entrada.
 - **Pantalla única con todo (documento, chat, historial, campos, contabilidad).** Produce saturación. Yunque separa en tres columnas con una sola pregunta por columna: qué dice el documento, qué decidió el agente, qué hago yo.
-- **Tablero de gráficos como inicio.** Las métricas importan al jurado y al gerente, no a quien procesa. Van en su pantalla.
+- **Tablero de gráficos como inicio.** Las métricas importan al gerente, no a quien procesa. Van en su pantalla.
 - **Asistente con nombre y avatar.** Personificar al agente invita a confiar por simpatía. Yunque se presenta como sistema con reglas, no como colega.
 
 ## 4. Navegación
@@ -74,7 +74,7 @@ Barra lateral fija, cinco destinos, en este orden de uso:
 - **Pendientes** es el inicio. Muestra un contador cuando hay trabajo.
 - **Facturas** es el archivo completo, con filtros por veredicto, canal, beneficiario y periodo, y el botón "Procesar facturas de ejemplo".
 - **Reglas** es la política vigente: formulario, YAML plegado, versiones.
-- **Métricas** es para el gerente y el jurado.
+- **Métricas** es para el gerente.
 - **Bitácora** es el registro de eventos de todo el sistema, filtrable.
 - El pie de la barra muestra el estado de los tres interruptores de control y la salud del sistema. Están ahí siempre porque son el argumento de seguridad del producto.
 - "Reiniciar demo" vivirá (paso 29) en el menú de la empresa, visible en modo demo, oculto en producción.
@@ -161,7 +161,7 @@ Debajo, tres columnas con una pregunta cada una.
 
 Tabla densa con filtros arriba y los botones de acción en el encabezado: "Subir factura" (abre un diálogo) y, en la demo, "Procesar facturas de ejemplo (33)" y "Revisar correo de ejemplo (5)", con el número de casos y una línea que dice qué simulan.
 
-"Probar con tu factura" (D23, D24) aparece solo si el correo real o Telegram están encendidos. Abre un diálogo: sin acceso, pide el código que tienen los jurados; con él, dice cuándo vence el acceso y muestra una sección por canal. "Por correo": la dirección personal con un botón "Copiar" y cuántos correos admite por día. "Por Telegram": el botón "Conectar Telegram", que abre el bot con un enlace de un solo uso, si el chat ya está conectado y cuántas facturas admite por día. Yunque nunca responde ni reenvía correos. La factura que llega aparece en la lista por el canal Correo, y un correo que no se procesó (dirección vencida o tope alcanzado) queda en la Bitácora como "Correo no procesado", con el motivo.
+"Probar con tu factura" (D23, D24) aparece solo si el correo real o Telegram están encendidos. Abre un diálogo: sin acceso, pide el código que tienen los clientes; con él, dice cuándo vence el acceso y muestra una sección por canal. "Por correo": la dirección personal con un botón "Copiar" y cuántos correos admite por día. "Por Telegram": el botón "Conectar Telegram", que abre el bot con un enlace de un solo uso, si el chat ya está conectado y cuántas facturas admite por día. Con un chat conectado, las facturas de ejemplo no se avisan una por una: al terminar el lote, el progreso dice "resumen enviado a Telegram". Yunque nunca responde ni reenvía correos. La factura que llega aparece en la lista por el canal Correo, y un correo que no se procesó (dirección vencida o tope alcanzado) queda en la Bitácora como "Correo no procesado", con el motivo.
 
 Columnas: estado (punto de color y texto en tinta: ámbar espera a una persona, rojo falló o se rechazó, verde aprobada, gris en curso), referencia, beneficiario, monto con moneda, vence, canal, veredicto con regla, actualizada. Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
 
@@ -188,7 +188,7 @@ Reglas                       Demo sin inicio de sesión · Firmas como [ Ana Tor
 - "Como código" es la misma política en YAML para auditarla o editarla entera; editar uno actualiza el otro. Una línea explica que ahí los montos van en centavos y las tolerancias en puntos básicos.
 - Las claves protegidas van en una línea con candado y sin edición.
 - La pestaña "Tasas de cambio" muestra, de solo lectura, cuánto vale 1 USD en cada moneda y desde qué fecha (D22). No se editan aquí porque cambiarlas cambiaría qué se paga. El detalle de una factura en otra moneda dice con qué tasa se convirtió a USD para los límites.
-- "Ver qué cambiaría" ejecuta el replay sobre el histórico y abre el resultado en un diálogo, desde el que se puede guardar. Es la pantalla que más impresiona al jurado y vale la pena pulirla.
+- "Ver qué cambiaría" ejecuta el replay sobre el histórico y abre el resultado en un diálogo, desde el que se puede guardar. Es la pantalla que más convence a un cliente y vale la pena pulirla.
 - Como la demo no tiene inicio de sesión, el aprobador que firma se elige en el encabezado. Sin elegirlo, los interruptores y el guardado quedan desactivados.
 - Los interruptores de pagos, modo de prueba y el agente (decide o solo recomienda) están arriba, separados del formulario, porque no son política sino control.
 

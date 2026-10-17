@@ -39,11 +39,11 @@ Si el navegador recarga en bucle con `npm run dev`, usa `npm run build && npm ru
 
 Pendiente (paso 29 del [plan](docs/plan.md)): Vercel para la app, Turso para la base y Vercel Blob para los archivos (hoy se guardan en `data/files`). Producción exige `OPENROUTER_API_KEY` y `DEMO_MODE=true`: todavía no hay inicio de sesión. Las migraciones se aplican a Turso con `DATABASE_URL` y `DATABASE_AUTH_TOKEN` puestos y `npm run db:migrate`. Ponle a la clave de OpenRouter un límite de gasto.
 
-## Correo y Telegram para los jurados (opcional)
+## Correo y Telegram para clientes (opcional)
 
-Los jurados pueden probar el agente con una factura propia: por correo, o enviándola a un bot de Telegram que además les avisa cuando una factura necesita su decisión. En Facturas, "Probar con tu factura" pide un código de acceso y abre los dos canales por 72 horas. Las protecciones y el porqué están en las decisiones D23 y D24 de [Decisiones](docs/decisiones.md).
+Los clientes pueden probar el agente con una factura propia: por correo, o enviándola a un bot de Telegram que además les avisa cuando una factura necesita su decisión. En Facturas, "Probar con tu factura" pide un código de acceso y abre los dos canales por 72 horas. Las protecciones y el porqué están en las decisiones D23 y D24 de [Decisiones](docs/decisiones.md).
 
-**Código de acceso.** Elige uno de al menos 12 caracteres, guárdalo en `DEMO_ACCESS_CODE` y entrégaselo a los jurados por fuera del repo.
+**Código de acceso.** Elige uno de al menos 12 caracteres, guárdalo en `DEMO_ACCESS_CODE` y entrégaselo a los clientes por fuera del repo.
 
 **Correo** (Postmark):
 

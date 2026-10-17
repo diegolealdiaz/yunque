@@ -27,7 +27,7 @@
 | Seguridad | escape, inyección, archivos, cookie, topes | mezcla de niveles anteriores, marcados `@seguridad` | CI |
 | Manual | lista previa al pitch | persona | antes del pitch |
 
-Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` con `EVAL_SOURCE=ideal`. Planeados: `test:api`, `test:e2e` y `test:seguridad`. `tests/api` tiene las rutas de los canales de jurado (P-140); `tests/e2e` sigue vacía.
+Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` con `EVAL_SOURCE=ideal`. Planeados: `test:api`, `test:e2e` y `test:seguridad`. `tests/api` tiene las rutas de los canales de cliente (P-140); `tests/e2e` sigue vacía.
 
 ## 3. Catálogo de pruebas
 
@@ -178,12 +178,12 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-132 | Correo real: un token desconocido o mal formado se ignora sin escribir nada; un token real en mayúsculas se reconoce | pipeline, `@seguridad` |
 | P-133 | Correo real: una dirección vencida no procesa y deja "Correo no procesado" en la bitácora una sola vez, sin remitente ni asunto; el reintento del proveedor recibe la misma respuesta; pasado el máximo de rechazos del día no se escribe nada | pipeline, `@seguridad` |
 | P-134 | Correo real: una ráfaga de correos no pasa del tope por dirección ni del tope de la demo; el primer adjunto que por contenido es PDF o imagen entra por el canal Correo, aunque otro adjunto se llame .pdf; un reintento del proveedor no duplica la factura; superado el tope de facturas, el correo admitido queda en la bitácora sin procesarse; sin adjunto válido entra como mensaje sin factura; una fecha ilegible toma la hora de llegada | pipeline |
-| P-135 | Telegram (D24): un chat desconocido recibe "bot privado" y no escribe nada; un grupo se ignora; el enlace de conexión se genera con el acceso de jurado, conecta una sola vez y vence; `/salir` desconecta | pipeline, `@seguridad` |
+| P-135 | Telegram (D24): un chat desconocido recibe "bot privado" y no escribe nada; un grupo se ignora; el enlace de conexión se genera con el acceso de cliente, conecta una sola vez y vence; `/salir` desconecta | pipeline, `@seguridad` |
 | P-136 | Telegram: el cupo del chat aguanta una ráfaga; un archivo que no es PDF ni imagen no se procesa; uno más grande que el tope se rechaza sin descargarlo; sin chats conectados el aviso queda simulado | pipeline |
-| P-137 | Telegram: con un chat conectado se avisan las escaladas, las frenadas y las aprobaciones, no los pagos que el agente hizo solo | pipeline |
+| P-137 | Telegram: con un chat conectado se avisan las escaladas, las frenadas y las aprobaciones de facturas que entregó una persona (subida, correo real, bot), no los pagos que el agente hizo solo ni las facturas de ejemplo; lo que llegó por el bot siempre recibe su respuesta; las facturas de ejemplo llegan en un solo resumen por chat, con botón a Pendientes | pipeline |
 | P-138 | Cliente de Telegram: envía HTML con el botón y sin vista previa; un rechazo de Telegram sale como error tipado sin el token del bot; una descarga que pasa del tope se corta, y una que Telegram anuncia grande ni se pide; una respuesta con otra forma no se usa | unidad, `@seguridad` |
-| P-139 | Acceso de jurado: sin acceso, las acciones de jurado se rechazan; tras 5 intentos fallidos en 15 minutos el código no se revisa, ni el correcto, hasta que pasa la ventana; el acceso dura lo configurado y no se extiende | pipeline, `@seguridad` |
-| P-140 | Rutas de los canales de jurado, invocadas como en Next con una base temporal: `/api/acceso` exige el mismo origen, limita intentos (429) y da acceso; `/api/telegram/enlace` solo con acceso; `/api/correo/entrante` exige la contraseña, ignora lo inválido y admite el correo a una dirección real; `/api/telegram` exige el secreto, responde «privado» a un chat desconocido y conecta con el enlace | API, `@seguridad` |
+| P-139 | Acceso de cliente: sin acceso, las acciones de cliente se rechazan; tras 5 intentos fallidos en 15 minutos el código no se revisa, ni el correcto, hasta que pasa la ventana; el acceso dura lo configurado y no se extiende | pipeline, `@seguridad` |
+| P-140 | Rutas de los canales de cliente, invocadas como en Next con una base temporal: `/api/acceso` exige el mismo origen, limita intentos (429) y da acceso; `/api/telegram/enlace` solo con acceso; `/api/correo/entrante` exige la contraseña, ignora lo inválido y admite el correo a una dirección real; `/api/telegram` exige el secreto, responde «privado» a un chat desconocido y conecta con el enlace; `/api/lote/resumen` exige el mismo origen y no manda nada sin facturas de ejemplo | API, `@seguridad` |
 
 ## 4. Matriz de fronteras por regla (P-20)
 
