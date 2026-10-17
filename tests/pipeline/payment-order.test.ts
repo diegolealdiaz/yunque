@@ -1,7 +1,6 @@
 import { openPdf } from "clawpdf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { DbError } from "@/src/db/errors";
 import * as repos from "@/src/db/repositories";
 import {
   paymentOrderHash,
@@ -17,6 +16,8 @@ import { datasetCase, openPipeline, type Pipeline } from "./helpers";
  * P-111: la orden de pago en PDF sale de lo que la decisión registró (el vendor dado de
  * alta), no del texto leído; es determinista y solo existe para facturas pagadas con orden.
  */
+
+const TZ = "America/Bogota";
 
 let p: Pipeline;
 const ids = new Map<string, string>();
@@ -50,7 +51,7 @@ async function pdfText(bytes: Uint8Array): Promise<string> {
 describe("orden de pago en PDF (P-111)", () => {
   it("lleva los datos del vendor registrado, el monto, la política y la huella", async () => {
     const invoiceId = ids.get("nube_oct") ?? "";
-    const sheet = await loadPaymentOrder(p.t.db, p.organizationId, invoiceId);
+    const sheet = await loadPaymentOrder(p.t.db, p.organizationId, invoiceId, TZ);
     if (!sheet) throw new Error("la factura pagada debería tener orden");
     const decision = await repos.getLatestDecision(p.t.db, p.organizationId, invoiceId);
     const vendors = await repos.listVendors(p.t.db, p.organizationId);
@@ -72,7 +73,7 @@ describe("orden de pago en PDF (P-111)", () => {
   });
 
   it("es determinista y la huella cambia si cambia cualquier dato de la orden", async () => {
-    const sheet = await loadPaymentOrder(p.t.db, p.organizationId, ids.get("nube_oct") ?? "");
+    const sheet = await loadPaymentOrder(p.t.db, p.organizationId, ids.get("nube_oct") ?? "", TZ);
     if (!sheet) throw new Error("sin orden");
     expect(await renderPaymentOrder(sheet)).toEqual(await renderPaymentOrder(sheet));
     const altered = {
@@ -87,13 +88,11 @@ describe("orden de pago en PDF (P-111)", () => {
 
   it("no hay orden para una escalada ni para la factura de otra empresa", async () => {
     expect(
-      await loadPaymentOrder(p.t.db, p.organizationId, ids.get("sobre_umbral") ?? ""),
+      await loadPaymentOrder(p.t.db, p.organizationId, ids.get("sobre_umbral") ?? "", TZ),
     ).toBeNull();
     const other = p.t.newId();
     const org = await repos.getOrganization(p.t.db, p.organizationId);
     await repos.createOrganization(p.t.db, { ...org, id: other, demo_visitor_id: "otra-orden" });
-    await expect(loadPaymentOrder(p.t.db, other, ids.get("nube_oct") ?? "")).rejects.toBeInstanceOf(
-      DbError,
-    );
+    expect(await loadPaymentOrder(p.t.db, other, ids.get("nube_oct") ?? "", TZ)).toBeNull();
   });
 });

@@ -13,6 +13,8 @@ import {
   usdMicros,
 } from "@/src/ui/format";
 
+const TZ = "America/Bogota";
+
 describe("formatos de pantalla", () => {
   it("vencimientos relativos al día de negocio", () => {
     expect(dueRelative("2026-10-17", "2026-10-17")).toBe("vence hoy");
@@ -24,10 +26,10 @@ describe("formatos de pantalla", () => {
   });
 
   it("instantes en hora de Bogotá, fechas de calendario sin correrse de día", () => {
-    expect(instant("2026-10-17T14:12:00.000Z")).toBe("17 oct, 09:12");
+    expect(instant("2026-10-17T14:12:00.000Z", TZ)).toBe("17 oct, 09:12");
     // 03:30 UTC del 18 todavía es el 17 en Bogotá.
-    expect(instant("2026-10-18T03:30:00.000Z")).toBe("17 oct, 22:30");
-    expect(clock("2026-10-17T14:12:00.000Z")).toBe("09:12");
+    expect(instant("2026-10-18T03:30:00.000Z", TZ)).toBe("17 oct, 22:30");
+    expect(clock("2026-10-17T14:12:00.000Z", TZ)).toBe("09:12");
     expect(calendarDate("2026-10-18")).toBe("18 oct 2026");
   });
 
@@ -48,7 +50,7 @@ describe("formatos de pantalla", () => {
   });
 
   it("la bitácora: instante con segundos y datos del evento sin interpretar", () => {
-    expect(auditInstant("2026-10-17T14:12:05.000Z")).toBe("17 oct 2026, 09:12:05");
+    expect(auditInstant("2026-10-17T14:12:05.000Z", TZ)).toBe("17 oct 2026, 09:12:05");
     expect(eventData({ verdict: "frenar", pages: 2, retry: true, actor: null })).toBe(
       "verdict: frenar · pages: 2 · retry: sí · actor: —",
     );

@@ -144,6 +144,7 @@ function drillTitle(drill: Drill): string {
 function extraColumns(
   drill: Drill,
   view: MetricsView,
+  timeZone: string,
 ): {
   readonly columns: readonly Column[];
   readonly cells: (id: Ulid) => readonly ReactNode[];
@@ -202,7 +203,7 @@ function extraColumns(
           columns: [{ header: "Espera desde", width: "9rem" }],
           cells: (id) => {
             const w = waiting.get(id);
-            return [w ? instant(w.since) : ""];
+            return [w ? instant(w.since, timeZone) : ""];
           },
         };
     }
@@ -216,9 +217,17 @@ function extraColumns(
   };
 }
 
-function DrillTable({ drill, view }: { readonly drill: Drill; readonly view: MetricsView }) {
+function DrillTable({
+  drill,
+  view,
+  timeZone,
+}: {
+  readonly drill: Drill;
+  readonly view: MetricsView;
+  readonly timeZone: string;
+}) {
   const ids = drillInvoiceIds(view, drill);
-  const extra = extraColumns(drill, view);
+  const extra = extraColumns(drill, view, timeZone);
   return (
     <section id="detalle" aria-labelledby="detalle-titulo" className="space-y-3 scroll-mt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -314,7 +323,7 @@ export default async function MetricasPage({
         <BudgetChartCard budget={view.budget} />
         <RulesChartCard rules={view.rules} periodKey={view.budget.periodKey} />
       </div>
-      {drill ? <DrillTable drill={drill} view={view} /> : null}
+      {drill ? <DrillTable drill={drill} view={view} timeZone={config.displayTimeZone} /> : null}
     </div>
   );
 }

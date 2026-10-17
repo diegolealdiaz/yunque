@@ -28,6 +28,8 @@ export type PaymentOrderSheet = {
   readonly decisionId: Ulid;
   readonly order: PaymentOrderDraft;
   readonly decidedAt: string;
+  /** Zona en la que se muestra la hora de la decisión (`DISPLAY_TIMEZONE`). */
+  readonly timeZone: string;
   /** "el agente" o el nombre de quien aprobó. */
   readonly decidedBy: string;
   readonly policyVersion: number;
@@ -88,7 +90,10 @@ function rows(sheet: PaymentOrderSheet): readonly (readonly [string, string])[] 
     ["Monto", formatMoney(order.amount)],
     ["Programada para", calendarDate(order.scheduled_for)],
     ["Cuenta origen", order.source_account_id],
-    ["Decidida por", `${sheet.decidedBy} · ${auditInstant(sheet.decidedAt)} (hora de Bogotá)`],
+    [
+      "Decidida por",
+      `${sheet.decidedBy} · ${auditInstant(sheet.decidedAt, sheet.timeZone)} (${sheet.timeZone})`,
+    ],
     ["Política", `v${String(sheet.policyVersion)} · ${sheet.policyHash}`],
     ["Documento", sheet.documentHash],
     ["Huella de la orden", paymentOrderHash(sheet)],

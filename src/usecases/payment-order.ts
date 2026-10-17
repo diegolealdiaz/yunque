@@ -8,6 +8,8 @@ import {
 import type { Ulid } from "@/src/domain";
 import type { PaymentOrderSheet } from "@/src/documents/payment-order";
 
+import { isNotFound } from "./errors";
+
 /**
  * Lo que va en la orden de pago en PDF de una factura, o null si no hay orden: la factura no
  * está pagada, se decidió en modo de prueba (sin orden) o no es de esta empresa. Todo sale
@@ -17,8 +19,13 @@ export async function loadPaymentOrder(
   db: Database,
   organizationId: Ulid,
   invoiceId: Ulid,
+  timeZone: string,
 ): Promise<PaymentOrderSheet | null> {
-  const invoice = await getInvoice(db, organizationId, invoiceId);
+  const invoice = await getInvoice(db, organizationId, invoiceId).catch((error: unknown) => {
+    if (isNotFound(error)) return null;
+    throw error;
+  });
+  if (!invoice) return null;
   const decision = await getLatestDecision(db, organizationId, invoice.id);
   const order = decision?.verdict === "pagar" ? decision.payment_order : null;
   if (!decision || !order) return null;
@@ -32,6 +39,7 @@ export async function loadPaymentOrder(
     decisionId: decision.id,
     order,
     decidedAt: decision.decided_at,
+    timeZone,
     decidedBy: decision.actor.kind === "humano" ? decision.actor.name : "el agente",
     policyVersion: policy.version,
     policyHash: decision.policy_hash,

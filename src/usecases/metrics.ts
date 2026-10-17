@@ -12,6 +12,7 @@ import {
 import {
   money,
   periodKey,
+  sum,
   toUsd,
   type Currency,
   type Decision,
@@ -197,7 +198,10 @@ export async function loadMetrics(
       invoiceIds: slice.invoiceIds,
     }))
     .sort((a, b) => b.committed.amount - a.committed.amount);
-  const fromInvoices = byCurrency.reduce((acc, s) => acc + s.committed.amount, 0);
+  const fromInvoices = sum(
+    byCurrency.map((s) => s.committed),
+    budget.currency,
+  ).amount;
 
   return {
     metrics: computeMetrics(measured.map((m) => m.row)),

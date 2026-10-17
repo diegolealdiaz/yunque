@@ -94,10 +94,6 @@ export function isSupportedCurrency(value: string): value is Currency {
   return CurrencySchema.safeParse(value).success;
 }
 
-export function isSupportedRail(value: string): value is Rail {
-  return RailSchema.safeParse(value).success;
-}
-
 /** Verdadero si la ruta sirve para pagar en esa moneda. */
 export function railSupportsCurrency(rail: Rail, currency: Currency): boolean {
   return CURRENCY_SPECS[currency].rails.includes(rail);

@@ -3,14 +3,13 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-import { getCurrentPolicy } from "@/src/db/repositories";
 import { PolicyError, type Controls, type FindingCode, type Verdict } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
 import {
-  CorrectionError,
   UseCaseError,
   candidateFromYaml,
   changeControls,
+  loadCurrentPolicy,
   previewPolicyChange,
   savePolicy,
 } from "@/src/usecases";
@@ -51,7 +50,7 @@ async function context() {
     (await cookies()).get(APPROVER_COOKIE)?.value,
     ctx.config.secrets.session,
   );
-  const current = await getCurrentPolicy(ctx.db, ctx.organization.id);
+  const current = await loadCurrentPolicy(ctx.db, ctx.organization.id);
   if (!current) throw new PolicyError(["La empresa no tiene política vigente"]);
   return { ...ctx, approver, current };
 }
@@ -100,7 +99,7 @@ export async function saveAction(_previous: SaveState, form: FormData): Promise<
     if (error instanceof PolicyError) {
       return { ok: false, message: error.problems.join(" · "), action: "Corrige el YAML" };
     }
-    if (error instanceof CorrectionError || error instanceof UseCaseError) {
+    if (error instanceof UseCaseError) {
       return { ok: false, message: error.message, action: error.action };
     }
     throw error;
@@ -126,7 +125,7 @@ export async function controlsAction(_previous: SaveState, form: FormData): Prom
     for (const path of ["/reglas", "/pendientes", "/facturas"]) revalidatePath(path);
     return { ok: true, message: `Guardado como v${String(version.version)}.`, action: null };
   } catch (error) {
-    if (error instanceof CorrectionError) {
+    if (error instanceof UseCaseError) {
       return { ok: false, message: error.message, action: error.action };
     }
     throw error;

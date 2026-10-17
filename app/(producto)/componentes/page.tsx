@@ -290,6 +290,7 @@ export default function ComponentsPage() {
         <Section title="7. Línea de tiempo">
           <div className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
             <Timeline
+              timeZone="America/Bogota"
               entries={[
                 {
                   id: "1",

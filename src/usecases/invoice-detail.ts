@@ -40,6 +40,8 @@ import { PageLayoutSchema, locateEvidence, type Box, type FileStorage } from "@/
  * Solo lee y ordena; no recalcula nada del motor (docs/practicas.md 75).
  */
 
+import { isNotFound } from "./errors";
+
 export type DetailField = {
   readonly name: ExtractedFieldName;
   /** Valor normalizado tal como lo guardó la extracción: texto o entero. */
@@ -78,6 +80,8 @@ export type InvoiceDetail = {
   readonly policyVersion: number | null;
   /** Hay una versión de política más nueva que la de la decisión: se puede reevaluar. */
   readonly newerPolicy: boolean;
+  /** Aprobadores de la política vigente: quiénes pueden resolver una escalada hoy. */
+  readonly approvers: readonly string[];
   /** Mínimo de confianza de la política con que se decidió, para el punto de cada campo. */
   readonly minConfidence: number;
   readonly extraction: ExtractionRecord | null;
@@ -248,6 +252,7 @@ export async function loadInvoiceDetail(
     approval,
     policyVersion: policy?.version ?? null,
     newerPolicy: policy !== null && current !== null && current.version > policy.version,
+    approvers: current?.content.protected.approvers ?? [],
     minConfidence: (policy ?? current)?.content.rules.field_low_confidence.min_confidence ?? 0.85,
     extraction,
     payeeName: vendor?.name ?? readName,
@@ -277,4 +282,21 @@ export async function loadInvoiceDetail(
         : null,
     pages,
   };
+}
+
+/**
+ * Llave de almacenamiento de la imagen de una página (D11), o null si la factura no existe,
+ * no es de esta empresa o no tiene esa página: las tres se responden igual.
+ */
+export async function invoicePageKey(
+  db: Database,
+  organizationId: Ulid,
+  invoiceId: Ulid,
+  page: number,
+): Promise<string | null> {
+  const invoice = await getInvoice(db, organizationId, invoiceId).catch((error: unknown) => {
+    if (isNotFound(error)) return null;
+    throw error;
+  });
+  return invoice?.page_keys[page - 1] ?? null;
 }

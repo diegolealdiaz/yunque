@@ -50,7 +50,7 @@ export default async function BitacoraPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const filters = FiltersSchema.parse(await searchParams);
-  const { db, organization } = await appContext();
+  const { config, db, organization } = await appContext();
   const limit = filters.n ?? AUDIT_PAGE;
   const log = await loadAuditLog(db, organization.id, {
     ...(filters.tipo ? { type: filters.tipo } : {}),
@@ -137,7 +137,7 @@ export default async function BitacoraPage({
           ...(event.invoice_id ? { href: `/facturas/${event.invoice_id}` } : {}),
           cells: [
             <span key="t" className="num text-ink-2">
-              {auditInstant(event.occurred_at)}
+              {auditInstant(event.occurred_at, config.displayTimeZone)}
             </span>,
             <span key="a" className={event.actor.kind === "agente" ? "text-ink-2" : "font-medium"}>
               {event.actor.kind === "agente" ? "El agente" : event.actor.name}

@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 
-import { getCurrentPolicy, listEvents, listPolicyVersions } from "@/src/db/repositories";
 import { formatMoney, money, policyEditToYaml } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
+import { loadPolicyHistory } from "@/src/usecases";
 import { instant } from "@/src/ui/format";
 
 import { ApproverPicker } from "../../_components/approver-picker";
@@ -25,22 +25,7 @@ export const maxDuration = 60;
  */
 export default async function ReglasPage() {
   const { config, db, organization } = await appContext();
-  const [current, versions, events] = await Promise.all([
-    getCurrentPolicy(db, organization.id),
-    listPolicyVersions(db, organization.id),
-    listEvents(db, organization.id, { limit: 100 }),
-  ]);
-  // La última reevaluación queda en la bitácora: es lo que pasó al guardar, no un aviso efímero.
-  const replay = events.find((e) => e.type === "policy.replayed");
-  const replayed = replay
-    ? {
-        who: replay.actor.kind === "humano" ? replay.actor.name : "el agente",
-        at: replay.occurred_at,
-        version: Number(replay.data["version"]),
-        reevaluated: Number(replay.data["evaluated"]) - Number(replay.data["skipped"] ?? 0),
-        changed: Number(replay.data["changed"]),
-      }
-    : null;
+  const { current, versions, lastReplay: replayed } = await loadPolicyHistory(db, organization.id);
   if (!current) {
     return (
       <EmptyState
@@ -64,7 +49,7 @@ export default async function ReglasPage() {
         meta={
           <span>
             Política v{current.version} · firmada por {current.signed_by} ·{" "}
-            {instant(current.signed_at)}
+            {instant(current.signed_at, config.displayTimeZone)}
           </span>
         }
       />
@@ -75,8 +60,8 @@ export default async function ReglasPage() {
           className="rounded-[var(--radius-control)] bg-surface-sunken px-3 py-2 text-[13px] text-ink-2"
         >
           Última reevaluación: v{replayed.version} guardada por {replayed.who} ·{" "}
-          {instant(replayed.at)} · {replayed.reevaluated} facturas abiertas reevaluadas,{" "}
-          {replayed.changed} cambiaron de veredicto.
+          {instant(replayed.at, config.displayTimeZone)} · {replayed.reevaluated} facturas abiertas
+          reevaluadas, {replayed.changed} cambiaron de veredicto.
         </p>
       ) : null}
 
@@ -117,7 +102,7 @@ export default async function ReglasPage() {
             <li key={v.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
               <span className="w-10 font-medium text-ink">v{v.version}</span>
               <span className="text-ink-2">{v.signed_by}</span>
-              <span className="text-ink-3">{instant(v.signed_at)}</span>
+              <span className="text-ink-3">{instant(v.signed_at, config.displayTimeZone)}</span>
               <span className="font-mono text-[12px] text-ink-3">
                 {v.content_hash.slice(0, 10)}…
               </span>

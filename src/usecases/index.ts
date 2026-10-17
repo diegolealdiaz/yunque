@@ -16,6 +16,9 @@ export * from "./notifications";
 export * from "./payment-order";
 export * from "./invoice-reader";
 export * from "./policy";
+export * from "./policy-view";
 export * from "./process-invoice";
 export * from "./resolve-escalation";
 export { APPROVAL_TTL_DAYS } from "./record-decision";
+// La regla que decidió una decisión: la pantalla la nombra al contar cómo quedó.
+export { decidingFinding } from "@/src/engine";

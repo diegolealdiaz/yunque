@@ -266,23 +266,6 @@ export const auditEvents = sqliteTable(
   ],
 );
 
-/** Cola outbox del lote: una fila por factura pendiente de procesar. */
-export const jobs = sqliteTable(
-  "jobs",
-  {
-    id: id("id").primaryKey(),
-    organizationId: id("organization_id").references(() => organizations.id),
-    invoiceId: id("invoice_id").references(() => invoices.id),
-    status: text("status").notNull(),
-    attempts: integer("attempts").notNull().default(0),
-    lastError: text("last_error"),
-    lockedAt: text("locked_at"),
-    createdAt: timestamp("created_at"),
-    updatedAt: timestamp("updated_at"),
-  },
-  (t) => [index("jobs_org_status_idx").on(t.organizationId, t.status)],
-);
-
 /** Outbox de notificaciones con llave de idempotencia y reintentos. */
 export const notifications = sqliteTable(
   "notifications",

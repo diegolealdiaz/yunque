@@ -12,16 +12,20 @@ import {
 } from "@/src/db/repositories";
 import {
   PolicyError,
+  add,
   applyPolicyEdit,
   parsePolicy,
   periodKey,
   policyEditFromYaml,
   toUsd,
+  zero,
   type Controls,
+  type Currency,
   type Decision,
   type Finding,
   type FindingCode,
   type Invoice,
+  type Money,
   type Policy,
   type PolicyVersion,
   type Ulid,
@@ -31,7 +35,7 @@ import { decidingFinding, evaluate, type PayeeMatch, type PriorInvoice } from "@
 import { resolvePayee } from "@/src/resolve";
 
 import { businessDateOf, engineNow } from "./business-day";
-import { CorrectionError, readingFor, reevaluateWithCurrentPolicy } from "./correct-invoice";
+import { readingFor, reevaluateWithCurrentPolicy } from "./correct-invoice";
 import { readEvaluationContext, type DecideDeps } from "./decide";
 import { UseCaseError } from "./errors";
 
@@ -117,8 +121,8 @@ export async function previewPolicyChange(
   // Lo que los `pagar` anteriores del mismo replay ya comprometerían, en USD y por moneda.
   // En modo de prueba el replay no reserva nada, así que tampoco se acumula aquí.
   const dryRun = input.candidate.controls.dry_run;
-  let committedUsd = 0;
-  const spent = new Map<string, number>();
+  let committedUsd = zero("USD");
+  const spent = new Map<Currency, Money>();
   // Facturas que el replay pagaría antes: para las siguientes ya cuentan como pagadas en el
   // historial (primer pago, monto atípico, duplicados), igual que después de guardar.
   const predicted = new Map<Ulid, PriorInvoice["outcome"]>();
@@ -148,11 +152,11 @@ export async function previewPolicyChange(
       ...context,
       ledger: context.ledger && {
         ...context.ledger,
-        committed: context.ledger.committed + committedUsd,
+        committed: context.ledger.committed + committedUsd.amount,
       },
       balances: context.balances.map((b) => ({
         ...b,
-        available: b.available - (spent.get(b.currency) ?? 0),
+        available: b.available - (spent.get(b.currency)?.amount ?? 0),
       })),
       prior: context.prior.map((row) => {
         const outcome = predicted.get(row.invoice_id);
@@ -162,11 +166,9 @@ export async function previewPolicyChange(
     if (evaluation.verdict === "pagar") {
       predicted.set(invoice.id, dryRun ? "simulada" : "pagar");
       if (!dryRun && decision.amount) {
-        committedUsd += toUsd(decision.amount, organization.fx).amount;
-        spent.set(
-          decision.amount.currency,
-          (spent.get(decision.amount.currency) ?? 0) + decision.amount.amount,
-        );
+        const { currency } = decision.amount;
+        committedUsd = add(committedUsd, toUsd(decision.amount, organization.fx));
+        spent.set(currency, add(spent.get(currency) ?? zero(currency), decision.amount));
       }
     }
     const before = summary(decision);
@@ -187,10 +189,10 @@ async function authorize(exec: Executor, organizationId: Ulid, signer: string | 
   const current = await getCurrentPolicy(exec, organizationId);
   if (!current) throw new PolicyError(["La empresa no tiene política vigente"]);
   if (signer === null || !current.content.protected.approvers.includes(signer)) {
-    throw new CorrectionError(
+    throw new UseCaseError(
       "not_authorized",
       "Quien firma la política no está en la lista de aprobadores",
-      "Elige un aprobador de la lista",
+      { action: "Elige un aprobador de la lista" },
     );
   }
   return { current, signer };

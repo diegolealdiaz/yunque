@@ -87,14 +87,6 @@ export function isLessThan(a: Money, b: Money): boolean {
   return compare(a, b) === -1;
 }
 
-export function isZero(a: Money): boolean {
-  return a.amount === 0;
-}
-
-export function isNegative(a: Money): boolean {
-  return a.amount < 0;
-}
-
 /**
  * Igualdad estructural. A diferencia de `compare`, con monedas distintas devuelve `false`
  * en vez de lanzar: dos montos en monedas distintas nunca son el mismo dinero.

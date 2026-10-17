@@ -2,12 +2,11 @@
  * Formatos de pantalla (docs/interfaz.md §6 y §7). Funciones puras: la interfaz nunca
  * calcula montos ni veredictos, solo los presenta.
  *
- * - Fechas en UTC en base; en pantalla, en la zona de la empresa.
+ * - Fechas en UTC en base; en pantalla, en la zona de la empresa (`DISPLAY_TIMEZONE`). La
+ *   zona se pasa siempre: es la misma que fija el día de negocio, y no hay un valor fijo aquí.
  * - Relativas en listas ("vence en 2 días"), absolutas en detalle y bitácora.
  * - Montos con el código ISO al final; los formatea el dominio (`formatMoney`).
  */
-
-export const DISPLAY_TIME_ZONE = "America/Bogota";
 
 const DAY_MS = 86_400_000;
 
@@ -54,13 +53,13 @@ export function calendarDate(isoDate: string): string {
 }
 
 /** Instante en la zona de la empresa: "16 oct, 09:12". */
-export function instant(iso: string, timeZone: string = DISPLAY_TIME_ZONE): string {
+export function instant(iso: string, timeZone: string): string {
   const get = dateParts(new Date(iso), { timeZone, day: "numeric", month: "short", ...CLOCK });
   return `${get("day")} ${get("month")}, ${get("hour")}:${get("minute")}`;
 }
 
 /** Instante absoluto con segundos, para la bitácora: "16 oct 2026, 09:12:05". */
-export function auditInstant(iso: string, timeZone: string = DISPLAY_TIME_ZONE): string {
+export function auditInstant(iso: string, timeZone: string): string {
   const get = dateParts(new Date(iso), {
     timeZone,
     day: "numeric",
@@ -73,7 +72,7 @@ export function auditInstant(iso: string, timeZone: string = DISPLAY_TIME_ZONE):
 }
 
 /** Solo la hora en la zona de la empresa: "09:12". */
-export function clock(iso: string, timeZone: string = DISPLAY_TIME_ZONE): string {
+export function clock(iso: string, timeZone: string): string {
   return new Intl.DateTimeFormat("es-CO", {
     timeZone,
     hour: "2-digit",

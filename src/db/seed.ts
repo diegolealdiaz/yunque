@@ -223,15 +223,11 @@ function historyStatus(entry: HistorySeedEntry): InvoiceStatus {
 }
 
 /**
- * Siembra el historial en una sola transacción: por cada entrada, una factura en su estado
- * final, su decisión y su evento; después, el periodo de presupuesto con lo ya comprometido.
+ * Siembra el historial en la transacción de quien llama: por cada entrada, una factura en su
+ * estado final, su decisión y su evento; después, el periodo de presupuesto ya comprometido.
  * Las facturas del historial no tienen archivo: su hash es sintético y su archivo queda
  * `pendiente`. Sus decisiones no llevan hallazgos y su explicación lo dice.
  */
-export async function seedHistory(db: Database, options: HistorySeedOptions): Promise<void> {
-  await withWriteTransaction(db, (tx) => seedHistoryWith(tx, options));
-}
-
 async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promise<void> {
   const { organization, policyVersion, newId } = options;
   const policy = policyVersion.content;

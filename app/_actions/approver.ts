@@ -3,8 +3,8 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-import { getCurrentPolicy } from "@/src/db/repositories";
 import { APPROVER_COOKIE, VISITOR_COOKIE_MAX_AGE_S, signApprover } from "@/src/session";
+import { loadCurrentPolicy } from "@/src/usecases";
 
 import { appContext } from "../_data/context";
 
@@ -16,7 +16,7 @@ import { appContext } from "../_data/context";
 export async function chooseApprover(form: FormData): Promise<void> {
   const { config, db, organization } = await appContext();
   const name = form.get("approver");
-  const policy = await getCurrentPolicy(db, organization.id);
+  const policy = await loadCurrentPolicy(db, organization.id);
   if (typeof name !== "string" || !policy?.content.protected.approvers.includes(name)) return;
   (await cookies()).set(APPROVER_COOKIE, signApprover(name, config.secrets.session), {
     httpOnly: true,

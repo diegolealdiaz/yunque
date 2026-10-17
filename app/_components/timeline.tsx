@@ -15,13 +15,20 @@ export type TimelineEntry = {
   readonly actor: string;
 };
 
-export function Timeline({ entries }: { readonly entries: readonly TimelineEntry[] }) {
+export function Timeline({
+  entries,
+  timeZone,
+}: {
+  readonly entries: readonly TimelineEntry[];
+  /** Zona de la empresa (`DISPLAY_TIMEZONE`). */
+  readonly timeZone: string;
+}) {
   return (
     <ol className="space-y-2 text-[13px]">
       {entries.map((entry) => (
         <li key={entry.id} className="grid grid-cols-[3rem_1fr] gap-2">
           <time dateTime={entry.at} className="num text-ink-3">
-            {clock(entry.at)}
+            {clock(entry.at, timeZone)}
           </time>
           <span>
             <span className="text-ink">{entry.label}</span>

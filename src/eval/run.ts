@@ -142,6 +142,7 @@ export async function runEvaluation(options: RunEvaluationOptions): Promise<Eval
       limits: LIMITS,
       newId,
       now,
+      // El dataset está fechado en hora de Bogotá: la evaluación no depende del despliegue.
       timeZone: "America/Bogota",
       businessDate: src.manifest.today,
     };

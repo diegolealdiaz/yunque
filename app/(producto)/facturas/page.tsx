@@ -247,7 +247,7 @@ export default async function FacturasPage({
               <VerdictChip key="v" verdict="en_proceso" />
             ),
             <span key="u" className="text-ink-3">
-              {instant(row.updatedAt)}
+              {instant(row.updatedAt, config.displayTimeZone)}
             </span>,
           ],
         }))}

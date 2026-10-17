@@ -10,7 +10,6 @@ import {
   type Decision,
   type ExtractedFieldName,
 } from "@/src/domain";
-import { decidingFinding } from "@/src/engine";
 import { FIELD_LABEL, RULE_SHORT_LABEL, VERDICT_LABEL } from "@/src/ui/labels";
 import {
   ApprovalError,
@@ -18,6 +17,7 @@ import {
   approveEscalation,
   correctAndReevaluate,
   currentBusinessDate,
+  decidingFinding,
   reevaluateWithCurrentPolicy,
   rejectEscalation,
   type ResolutionDeps,

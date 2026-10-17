@@ -1,5 +1,4 @@
-import { DbError } from "@/src/db/errors";
-import { getInvoice } from "@/src/db/repositories";
+import { invoicePageKey } from "@/src/usecases";
 
 import { appContext } from "../../../../../_data/context";
 import { fileStorage } from "../../../../../_data/storage";
@@ -26,11 +25,7 @@ export async function GET(
   const { id, n } = await params;
   const page = /^[1-9][0-9]?$/.test(n) ? Number(n) : 0;
   const { db, organization } = await appContext();
-  const invoice = await getInvoice(db, organization.id, id).catch((error: unknown) => {
-    if (error instanceof DbError && error.code === "not_found") return null;
-    throw error;
-  });
-  const key = invoice?.page_keys[page - 1];
+  const key = page === 0 ? null : await invoicePageKey(db, organization.id, id, page);
   const extension = key?.split(".").pop() ?? "";
   const type = TYPES[extension];
   if (!key || !type) return notFound();

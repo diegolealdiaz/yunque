@@ -4,9 +4,9 @@ import * as repos from "@/src/db/repositories";
 import { PolicyError, policyEditToYaml, type Policy } from "@/src/domain";
 import { decidingFinding } from "@/src/engine";
 import {
-  CorrectionError,
   candidateFromYaml,
   changeControls,
+  loadPolicyHistory,
   previewPolicyChange,
   processInvoice,
   savePolicy,
@@ -162,6 +162,15 @@ describe("ver qué cambiaría (P-107)", () => {
     expect(
       events.some((e) => e.type === "policy.replayed" && e.data["changed"] === result.changed),
     ).toBe(true);
+    const history = await loadPolicyHistory(p.t.db, p.organizationId);
+    expect(history.current?.version).toBe(2);
+    expect(history.versions.map((v) => v.version)).toEqual([2, 1]);
+    expect(history.lastReplay).toMatchObject({
+      who: SIGNER,
+      version: 2,
+      changed: result.changed,
+      reevaluated: result.evaluated - result.skipped,
+    });
   }, 120_000);
 });
 
@@ -226,7 +235,7 @@ describe("guardar y reproducir (P-106, P-29)", () => {
         signedBy: "Alguien Más",
         note: null,
       }),
-    ).rejects.toBeInstanceOf(CorrectionError);
+    ).rejects.toMatchObject({ code: "not_authorized" });
   });
 
   it("no pisa lo que otra persona guardó: se rechaza si la versión editada ya no es la vigente", async () => {

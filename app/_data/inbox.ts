@@ -1,8 +1,8 @@
 import { cache } from "react";
 
-import { getCurrentPolicy } from "@/src/db/repositories";
 import {
   currentBusinessDate,
+  loadCurrentPolicy,
   loadInbox,
   startOfBusinessDay,
   type HealthStatus,
@@ -51,7 +51,7 @@ export const shellState = cache(async (): Promise<ShellState> => {
   const { db, organization } = await appContext();
   const [inbox, policy, health] = await Promise.all([
     inboxView(),
-    getCurrentPolicy(db, organization.id),
+    loadCurrentPolicy(db, organization.id),
     healthReport(() => Promise.resolve(organization.id)),
   ]);
   return {

@@ -3,17 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { DbError } from "@/src/db/errors";
-import { formatMoney, isSupportedCurrency, money } from "@/src/domain";
-import { getCurrentPolicy } from "@/src/db/repositories";
+import { EXTRACTED_FIELD_NAMES, formatMoney, isSupportedCurrency, money } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
 import { calendarDate, instant, usdMicros } from "@/src/ui/format";
 import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
 import { timelineLines } from "@/src/ui/timeline";
-import { EXTRACTED_FIELD_NAMES } from "@/src/domain";
 import {
   approvalOffer,
   editableValue,
+  isNotFound,
   loadInvoiceDetail,
   type DetailField,
   type InvoiceDetail,
@@ -120,11 +118,13 @@ function DecisionPanel({
   detail,
   resolution,
   approver,
+  timeZone,
 }: {
   readonly detail: InvoiceDetail;
   readonly resolution: Resolution | null;
   /** Aprobador elegido (cookie verificada), o null. */
   readonly approver: string | null;
+  readonly timeZone: string;
 }) {
   const { decision, invoice, approval } = detail;
   if (!decision) {
@@ -137,7 +137,7 @@ function DecisionPanel({
     return (
       <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
         <p className="font-medium text-hold">
-          Rechazada por {approval.approver} · {instant(approval.created_at)}
+          Rechazada por {approval.approver} · {instant(approval.created_at, timeZone)}
         </p>
         <p className="text-ink-2">Motivo: {approval.reason}</p>
         <p className="text-ink-3">El rechazo es final: la factura no se pagará.</p>
@@ -150,7 +150,7 @@ function DecisionPanel({
       <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
         <p className="font-medium text-pay">
           {decision.actor.kind === "humano"
-            ? `Aprobada por ${decision.actor.name} · ${instant(decision.decided_at)}`
+            ? `Aprobada por ${decision.actor.name} · ${instant(decision.decided_at, timeZone)}`
             : "Pagada por el agente dentro de las reglas."}
         </p>
         {order ? (
@@ -219,15 +219,14 @@ function DecisionPanel({
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { db, organization } = await appContext();
+  const { config, db, organization } = await appContext();
   const detail = await loadInvoiceDetail(db, fileStorage(), organization.id, id).catch(
     (error: unknown) => {
-      if (error instanceof DbError && error.code === "not_found") notFound();
+      if (isNotFound(error)) notFound();
       throw error;
     },
   );
   const { invoice, decision } = detail;
-  const { config } = await appContext();
   const offer =
     invoice.status === "esperando_aprobacion"
       ? await approvalOffer(
@@ -236,7 +235,6 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           invoice.id,
         )
       : null;
-  const policy = offer ? await getCurrentPolicy(db, organization.id) : null;
   const approver = verifyApprover(
     (await cookies()).get(APPROVER_COOKIE)?.value,
     config.secrets.session,
@@ -251,7 +249,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         signatureSummary: detail.signatureSummary ?? "sin contenido para firmar",
         checklist: offer.checklist,
         blocked: offer.blocked,
-        approvers: policy?.content.protected.approvers ?? [],
+        approvers: detail.approvers,
         approver,
         editable: EXTRACTED_FIELD_NAMES.map((name) => ({
           name,
@@ -410,11 +408,19 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </Column>
 
           <Column title="Tu decisión" className="lg:col-start-2 lg:row-start-1 xl:col-start-3">
-            <DecisionPanel detail={detail} resolution={resolution} approver={approver} />
+            <DecisionPanel
+              detail={detail}
+              resolution={resolution}
+              approver={approver}
+              timeZone={config.displayTimeZone}
+            />
             <div>
               <SubTitle>Línea de tiempo</SubTitle>
               <div className="mt-2">
-                <Timeline entries={timelineLines(detail.timeline)} />
+                <Timeline
+                  entries={timelineLines(detail.timeline)}
+                  timeZone={config.displayTimeZone}
+                />
               </div>
               <Link
                 href={`/bitacora?factura=${detail.invoice.reference}`}

@@ -89,6 +89,7 @@ describe("componentes base (P-100, P-110)", () => {
           rows={[{ key: "1", cells: [<span key="p">{HOSTILE}</span>] }]}
         />
         <Timeline
+          timeZone="America/Bogota"
           entries={[{ id: "1", at: "2026-10-17T14:00:00.000Z", label: HOSTILE, actor: HOSTILE }]}
         />
         <EmptyState title={HOSTILE} />

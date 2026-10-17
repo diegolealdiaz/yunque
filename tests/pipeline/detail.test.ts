@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { DbError } from "@/src/db/errors";
 import { timelineLines } from "@/src/ui/timeline";
-import { loadInvoiceDetail, pngSize, processInvoice } from "@/src/usecases";
+import { invoicePageKey, loadInvoiceDetail, pngSize, processInvoice } from "@/src/usecases";
 
 import { datasetCase, openPipeline, type Pipeline } from "./helpers";
 
@@ -89,6 +89,18 @@ describe("detalle de una decisión (P-102)", () => {
     await expect(
       loadInvoiceDetail(p.t.db, p.storage, p.t.newId(), ids.get("nube_oct") ?? ""),
     ).rejects.toBeInstanceOf(DbError);
+  });
+
+  it("la imagen de una página solo existe para la empresa dueña y para páginas reales", async () => {
+    const id = ids.get("nube_oct") ?? "";
+    expect(await invoicePageKey(p.t.db, p.organizationId, id, 1)).toMatch(/\.png$/);
+    expect(await invoicePageKey(p.t.db, p.organizationId, id, 2)).toBeNull();
+    expect(await invoicePageKey(p.t.db, p.t.newId(), id, 1)).toBeNull();
+  });
+
+  it("trae los aprobadores de la política vigente para resolver la escalada", async () => {
+    const detail = await load("sobre_umbral");
+    expect(detail.approvers).toEqual(p.policyVersion.content.protected.approvers);
   });
 
   it("pngSize lee el tamaño de la cabecera y rechaza lo que no es PNG", () => {

@@ -24,7 +24,7 @@ const STATUS_STYLE: Readonly<Record<HealthStatus, string>> = {
 };
 
 export default async function SaludPage() {
-  const { organization } = await appContext();
+  const { config, organization } = await appContext();
   const report = await healthReport(() => Promise.resolve(organization.id));
   const now = new Date(report.checkedAt);
   const rows = healthRows(report, now);
@@ -33,7 +33,7 @@ export default async function SaludPage() {
     <div className="max-w-3xl space-y-6">
       <PageHeader
         title="Salud"
-        meta={<span>Revisada {instant(report.checkedAt)}</span>}
+        meta={<span>Revisada {instant(report.checkedAt, config.displayTimeZone)}</span>}
         actions={
           <span
             className={`inline-flex h-6 items-center rounded-[var(--radius-control)] px-2 text-[12px] font-semibold ${STATUS_STYLE[report.status]}`}

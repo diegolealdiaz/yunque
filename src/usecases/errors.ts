@@ -7,6 +7,13 @@
  * la factura se convierte en una decisión `escalar` con el error como hallazgo.
  */
 
+import { DbError } from "@/src/db/errors";
+
+/** La entidad pedida no existe o no es de esta empresa: las pantallas responden 404. */
+export function isNotFound(error: unknown): boolean {
+  return error instanceof DbError && error.code === "not_found";
+}
+
 export type UseCaseErrorCode =
   /** La entrega no es un documento aceptable: vacía, muy grande, tipo no soportado. */
   | "rejected_document"
@@ -21,7 +28,9 @@ export type UseCaseErrorCode =
   /** Se alcanzó el tope de facturas del día, por visitante o global. */
   | "limit_reached"
   /** La política vigente ya no es la que se editó: otra persona guardó antes. */
-  | "policy_changed";
+  | "policy_changed"
+  /** Quien firma no está en la lista de aprobadores de la política vigente. */
+  | "not_authorized";
 
 export type Severity = "error" | "warning";
 
