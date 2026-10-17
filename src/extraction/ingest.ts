@@ -3,6 +3,7 @@ import { PdfBudgetError, PdfError, createEngine, type PdfEngine } from "clawpdf"
 import { documentHash, type Sha256, type SourceKind } from "@/src/domain";
 
 import { IngestError } from "./errors";
+import { readPageLayout, type PageLayout } from "./layout";
 import { MIME_BY_TYPE, parseChannelPayload, sniffType, type ChannelPayload } from "./sniff";
 import type { FileStorage } from "./storage";
 
@@ -37,6 +38,11 @@ export type IngestedPage = {
   readonly text: string;
   /** Llave del PNG en el almacenamiento. */
   readonly pngKey: string;
+  /**
+   * Llave del JSON con el texto y la caja de cada carácter (`PageLayout`), para enmarcar las
+   * citas sobre la imagen. Null si la página no tiene capa de texto o PDFium no dio posiciones.
+   */
+  readonly layoutKey: string | null;
   readonly width: number;
   readonly height: number;
 };
@@ -165,11 +171,27 @@ async function ingestPdf(
       } catch (error) {
         throw pdfFailure(error);
       }
+      // Las posiciones son un extra para la pantalla: si fallan, la factura se procesa igual.
+      let layout: PageLayout | null = null;
+      try {
+        layout = text === "" ? null : readPageLayout(pdf, n);
+      } catch {
+        layout = null;
+      }
       // Si una escritura falla a mitad, quedan PNG sin factura bajo el prefijo del hash;
       // la siguiente ingesta del mismo documento los sobrescribe con las mismas llaves.
       const pngKey = `${prefix}/${hash}/pagina-${String(n)}.png`;
       await storage.put(pngKey, png, "image/png");
-      pages.push({ page: n, text, pngKey, width, height });
+      let layoutKey: string | null = null;
+      if (layout) {
+        layoutKey = `${prefix}/${hash}/texto-${String(n)}.json`;
+        await storage.put(
+          layoutKey,
+          new TextEncoder().encode(JSON.stringify(layout)),
+          "application/json",
+        );
+      }
+      pages.push({ page: n, text, pngKey, layoutKey, width, height });
     }
     const text = pages
       .map((p) => p.text)
@@ -208,7 +230,7 @@ async function ingestImage(
   const pngKey = `${prefix}/${hash}/pagina-1.${type === "png" ? "png" : "jpg"}`;
   await storage.put(pngKey, bytes, MIME_BY_TYPE[type]);
   return {
-    pages: [{ page: 1, text: "", pngKey, width: 0, height: 0 }],
+    pages: [{ page: 1, text: "", pngKey, layoutKey: null, width: 0, height: 0 }],
     text: "",
     has_text_layer: false,
   };

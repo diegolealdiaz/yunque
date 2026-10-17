@@ -5,6 +5,7 @@
 export * from "./detector";
 export * from "./errors";
 export * from "./ingest";
+export * from "./layout";
 export * from "./model";
 export * from "./prices";
 export * from "./prompt";
