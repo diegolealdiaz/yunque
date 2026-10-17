@@ -1,7 +1,8 @@
 import { ReceiptKeySchema } from "@/src/domain";
-import { assertWithinDailyLimits, processInvoice, startOfBusinessDay } from "@/src/usecases";
+import { processInvoice } from "@/src/usecases";
 
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
+import { assertDemoLimits } from "../../_data/limits";
 import { deliverNotificationsAfterResponse } from "../../_data/notify";
 import { processingContext } from "../../_data/process";
 
@@ -52,16 +53,7 @@ export async function POST(request: Request): Promise<Response> {
         { status: 413 },
       );
     }
-    await assertWithinDailyLimits(
-      db,
-      organization.id,
-      {
-        perOrganization: config.demo.maxInvoicesPerVisitorPerDay,
-        global: config.demo.maxInvoicesPerDay,
-      },
-      startOfBusinessDay(new Date(), config.displayTimeZone).toISOString(),
-      receiptKey.data,
-    );
+    await assertDemoLimits(config, db, organization.id, receiptKey.data);
     const result = await processInvoice(deps, {
       organizationId: organization.id,
       channel: "upload",

@@ -1,77 +1,63 @@
 import { after } from "next/server";
 
-import { getConfig } from "@/src/config";
-import { getDatabase } from "@/src/db/client";
 import { createUlidGenerator } from "@/src/domain";
 import { verifyWebhookAuth } from "@/src/session";
-import {
-  InboundEmailSchema,
-  UseCaseError,
-  admitInboundEmail,
-  assertWithinDailyLimits,
-  inboundPayload,
-  processInvoice,
-  recordRejectedEmail,
-  startOfBusinessDay,
-} from "@/src/usecases";
+import { InboundEmailSchema, admitInboundEmail, processInboundEmail } from "@/src/usecases";
 
-import { deliverNotificationsAfterResponse } from "../../../_data/notify";
+import { readBodyCapped } from "../../../_data/http";
+import { inboundContext } from "../../../_data/inbound";
+import { businessDayStart, demoInvoiceLimits } from "../../../_data/limits";
+import { deliverNotifications } from "../../../_data/notify";
 import { processingDeps } from "../../../_data/process";
 
 /**
  * Webhook del correo real (D23): el proveedor (Postmark) lo llama con cada correo que llega
- * a una dirección de la demo. Responde enseguida y procesa la factura después: el proveedor
- * no espera la lectura del modelo, y una respuesta 200 evita que reintente.
+ * a una dirección de la demo. La ruta solo autentica, valida el cuerpo y delega:
  *
- * Nada se procesa sin pasar, en orden: el interruptor de la configuración, la contraseña del
- * webhook, una dirección vigente y los topes del día. Yunque nunca responde el correo.
+ * 1. `admitInboundEmail` decide y reserva el cupo antes de responder.
+ * 2. La respuesta sale enseguida con 200: el proveedor no espera la lectura del modelo y no
+ *    reintenta. Un cuerpo inválido también recibe 200, porque reintentarlo no lo arregla.
+ * 3. `processInboundEmail` procesa la factura después de responder.
+ *
+ * Yunque nunca responde el correo.
  */
 
 /** La lectura corre después de responder, dentro del plazo de la función. */
 export const maxDuration = 90;
 
-/** El cuerpo trae los adjuntos en base64: un tercio más que el tope de archivo, y margen. */
-const MAX_BODY_FACTOR = 2;
+/**
+ * Tope del cuerpo: el proveedor manda los adjuntos en base64 (cuatro bytes por cada tres),
+ * y un correo puede traer más de un adjunto. Dos veces el tope de archivo cubre el adjunto
+ * válido más grande con holgura; el megabyte extra es para cuerpo, cabeceras y JSON.
+ */
+const maxBodyBytes = (maxUploadBytes: number) => maxUploadBytes * 2 + 1_000_000;
 
 const newId = createUlidGenerator();
 
-const notFound = () =>
-  Response.json(
-    { error: { code: "not_found", message: "El correo de entrada está apagado", action: "" } },
-    { status: 404 },
-  );
+const status = (value: string, code = 200) => Response.json({ status: value }, { status: code });
 
 export async function POST(request: Request): Promise<Response> {
-  const config = getConfig();
-  const inbound = config.inboundEmail;
-  if (inbound === null || !config.demo.enabled) return notFound();
+  const context = await inboundContext();
+  if (context === null) return status("not_found", 404);
+  const { config, inbound, db } = context;
   if (!verifyWebhookAuth(request.headers.get("authorization"), inbound.webhookSecret)) {
-    return Response.json(
-      { error: { code: "unauthorized", message: "Credenciales inválidas", action: "" } },
-      { status: 401 },
-    );
+    return status("unauthorized", 401);
   }
 
-  const maxBody = config.demo.maxUploadBytes * MAX_BODY_FACTOR + 1_000_000;
-  if (Number(request.headers.get("content-length") ?? 0) > maxBody) {
-    return Response.json({ status: "too_large" });
-  }
-  const raw = await request.text();
-  if (raw.length > maxBody) return Response.json({ status: "too_large" });
+  const raw = await readBodyCapped(request, maxBodyBytes(config.demo.maxUploadBytes));
+  if (raw === null) return status("too_large");
   let json: unknown;
   try {
     json = JSON.parse(raw);
   } catch {
-    return Response.json({ status: "invalid" });
+    return status("invalid");
   }
   const parsed = InboundEmailSchema.safeParse(json);
-  // Un cuerpo que no es un correo del proveedor no se reintenta: 200 y nada más.
-  if (!parsed.success) return Response.json({ status: "invalid" });
+  if (!parsed.success) return status("invalid");
   const email = parsed.data;
 
-  const db = await getDatabase(config.database);
   const now = new Date();
-  const since = startOfBusinessDay(now, config.displayTimeZone).toISOString();
+  const since = businessDayStart(config, now);
   const admission = await admitInboundEmail(db, {
     email,
     limits: { maxPerAddressPerDay: inbound.maxPerAddressPerDay, maxPerDay: inbound.maxPerDay },
@@ -79,49 +65,24 @@ export async function POST(request: Request): Promise<Response> {
     since,
     newId,
   });
-  if (admission.kind !== "accepted") return Response.json({ status: admission.kind });
+  if (admission.kind !== "accepted") return status(admission.kind);
 
   const { organizationId, receiptKey } = admission;
   after(async () => {
-    try {
-      await assertWithinDailyLimits(
-        db,
-        organizationId,
-        {
-          perOrganization: config.demo.maxInvoicesPerVisitorPerDay,
-          global: config.demo.maxInvoicesPerDay,
-        },
-        since,
-        receiptKey,
-      );
-      const { bytes, originalName } = inboundPayload(email, {
-        now,
-        maxBytes: config.demo.maxUploadBytes,
-      });
-      await processInvoice(processingDeps(config, db), {
-        organizationId,
-        channel: "inbox",
-        receiptKey,
-        bytes,
-        originalName,
-      });
-      deliverNotificationsAfterResponse(organizationId);
-    } catch (error) {
-      if (error instanceof UseCaseError && error.code === "limit_reached") {
-        await recordRejectedEmail(db, {
-          organizationId,
-          messageId: email.MessageID,
-          reason: "invoice_limit",
-          now,
-          newId,
-        }).catch((e: unknown) => {
-          console.error(e);
-        });
-        return;
-      }
-      // No hay a quién mostrárselo: queda en el log. Una entrega rechazada no deja factura.
-      console.error(error);
+    const outcome = await processInboundEmail(processingDeps(config, db), {
+      email,
+      organizationId,
+      receiptKey,
+      invoiceLimits: demoInvoiceLimits(config),
+      since,
+      now,
+    });
+    if (outcome.kind === "processed") {
+      await deliverNotifications(organizationId);
+    } else if (outcome.reason === "failed") {
+      // Queda en la bitácora de la empresa; aquí, el detalle técnico para el log.
+      console.error("No se pudo procesar un correo admitido", { receiptKey, error: outcome.error });
     }
   });
-  return Response.json({ status: "accepted" });
+  return status("accepted");
 }

@@ -10,9 +10,11 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
  */
 
 const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
-export const INBOUND_TOKEN = /^[a-z2-7]{12}$/;
 
-/** Token nuevo para una dirección: 12 caracteres base32, 60 bits de azar. */
+/**
+ * Token nuevo para una dirección: 12 caracteres base32, 60 bits de azar. Cumple
+ * `InboundTokenSchema` del dominio. 256 es múltiplo de 32, así que el módulo no sesga.
+ */
 export function newInboundToken(): string {
   return Array.from(randomBytes(12), (b) => BASE32[b % 32]).join("");
 }
@@ -29,8 +31,9 @@ export function sameSecret(given: string, expected: string): boolean {
  * (`https://yunque:<secreto>@…`). Vale solo si la contraseña coincide; el usuario se ignora.
  */
 export function verifyWebhookAuth(header: string | null, secret: string): boolean {
-  if (header === null || !header.startsWith("Basic ")) return false;
-  const decoded = Buffer.from(header.slice("Basic ".length), "base64").toString("utf8");
+  // El esquema de autenticación no distingue mayúsculas (RFC 7235).
+  if (header === null || !/^basic /i.test(header)) return false;
+  const decoded = Buffer.from(header.slice("basic ".length), "base64").toString("utf8");
   const colon = decoded.indexOf(":");
   if (colon < 0) return false;
   return sameSecret(decoded.slice(colon + 1), secret);

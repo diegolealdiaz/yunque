@@ -26,12 +26,12 @@ export function sniffType(bytes: Uint8Array): SniffedType | null {
   return null;
 }
 
-export const MIME_BY_TYPE: Record<SniffedType, string> = {
+export const MIME_BY_TYPE = {
   pdf: "application/pdf",
   png: "image/png",
   jpeg: "image/jpeg",
   json: "application/json",
-};
+} as const satisfies Record<SniffedType, string>;
 
 /** Adjunto embebido en un correo o un chat: la factura en PDF o una foto de ella. */
 const AttachmentSchema = z.strictObject({

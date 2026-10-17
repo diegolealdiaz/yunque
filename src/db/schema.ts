@@ -303,6 +303,30 @@ export const inboundAddresses = sqliteTable(
   (t) => [index("inbound_addresses_org_expires_idx").on(t.organizationId, t.expiresAt)],
 );
 
+/**
+ * Recibos del correo de entrada (D23): uno por correo que llega a una dirección conocida,
+ * con el id que le da el proveedor. Un recibo admitido ocupa cupo del día; se escribe en la
+ * misma transacción que cuenta el cupo, así una ráfaga de correos no pasa del tope.
+ */
+export const inboundReceipts = sqliteTable(
+  "inbound_receipts",
+  {
+    messageId: text("message_id").primaryKey(),
+    organizationId: id("organization_id").references(() => organizations.id),
+    token: text("token")
+      .notNull()
+      .references(() => inboundAddresses.token),
+    status: text("status").notNull(),
+    reason: text("reason"),
+    receivedAt: timestamp("received_at"),
+  },
+  (t) => [
+    index("inbound_receipts_token_idx").on(t.token, t.status, t.receivedAt),
+    index("inbound_receipts_org_idx").on(t.organizationId, t.status, t.receivedAt),
+    index("inbound_receipts_received_idx").on(t.status, t.receivedAt),
+  ],
+);
+
 /** Cada llamada al modelo, con costo y latencia. */
 export const llmCalls = sqliteTable(
   "llm_calls",

@@ -83,3 +83,27 @@ export function forbiddenOrigin(): Response {
     { status: 403 },
   );
 }
+
+/**
+ * Lee el cuerpo como texto sin pasar de `maxBytes`: corta en cuanto lo supera, aunque la
+ * petición no diga su largo. Null si es más grande.
+ */
+export async function readBodyCapped(request: Request, maxBytes: number): Promise<string | null> {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (declared > maxBytes) return null;
+  if (!request.body) return "";
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  const reader = request.body.getReader();
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks));
+}

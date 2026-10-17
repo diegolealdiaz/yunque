@@ -57,6 +57,13 @@
       "when": 1792272496844,
       "tag": "0007_direcciones_de_correo",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792273575124,
+      "tag": "0008_recibos_de_correo",
+      "breakpoints": true
     }
   ]
 }

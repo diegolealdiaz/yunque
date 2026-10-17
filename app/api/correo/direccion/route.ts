@@ -3,6 +3,8 @@ import { z } from "zod";
 import { newInboundToken } from "@/src/session";
 import { requestInboundAddress } from "@/src/usecases";
 
+import { getConfig } from "@/src/config";
+
 import { appContext } from "../../../_data/context";
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../../_data/http";
 
@@ -16,9 +18,10 @@ const RequestSchema = z.strictObject({ codigo: z.string().min(1).max(200) });
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return forbiddenOrigin();
   try {
-    const { config, db, organization } = await appContext();
-    const inbound = config.inboundEmail;
-    if (inbound === null || !config.demo.enabled) {
+    // Primero el interruptor: con el correo apagado no se siembra ninguna empresa.
+    const settings = getConfig();
+    const inbound = settings.demo.enabled ? settings.inboundEmail : null;
+    if (inbound === null) {
       return Response.json(
         {
           error: {
@@ -30,6 +33,7 @@ export async function POST(request: Request): Promise<Response> {
         { status: 404 },
       );
     }
+    const { db, organization } = await appContext();
     const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
     const view = await requestInboundAddress(db, {
       organizationId: organization.id,

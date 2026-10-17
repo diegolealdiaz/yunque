@@ -19,6 +19,7 @@ export * from "./finding";
 export * from "./fx";
 export * from "./hash";
 export * from "./ids";
+export * from "./inbound";
 export * from "./invoice";
 export * from "./llm-call";
 export * from "./money";

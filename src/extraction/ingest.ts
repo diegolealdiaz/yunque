@@ -292,7 +292,7 @@ export function receiveDocument(input: IngestInput, limits: IngestLimits): Recei
       documentBytes = new Uint8Array(Buffer.from(payload.attachment.data_base64, "base64"));
       assertSize(documentBytes, limits);
       const attached = sniffType(documentBytes);
-      if (attached === null || attached === "json") {
+      if (attached !== "pdf" && attached !== "png" && attached !== "jpeg") {
         throw new IngestError(
           "unsupported_type",
           "El adjunto no es un PDF ni una imagen PNG o JPEG",

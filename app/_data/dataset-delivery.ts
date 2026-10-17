@@ -2,7 +2,9 @@ import { readFile } from "node:fs/promises";
 
 import { getConfig } from "@/src/config";
 import type { Channel, ReceiptKey } from "@/src/domain";
-import { assertWithinDailyLimits, processInvoice, startOfBusinessDay } from "@/src/usecases";
+import { processInvoice } from "@/src/usecases";
+
+import { assertDemoLimits } from "./limits";
 
 import { deliverNotificationsAfterResponse } from "./notify";
 import { processingContext } from "./process";
@@ -19,16 +21,7 @@ export async function deliverDatasetFile(input: {
   readonly receiptKey: ReceiptKey;
 }): Promise<Response> {
   const { config, db, organization, deps } = await processingContext();
-  await assertWithinDailyLimits(
-    db,
-    organization.id,
-    {
-      perOrganization: config.demo.maxInvoicesPerVisitorPerDay,
-      global: config.demo.maxInvoicesPerDay,
-    },
-    startOfBusinessDay(new Date(), config.displayTimeZone).toISOString(),
-    input.receiptKey,
-  );
+  await assertDemoLimits(config, db, organization.id, input.receiptKey);
   const bytes = new Uint8Array(await readFile(input.file));
   const result = await processInvoice(deps, {
     organizationId: organization.id,
