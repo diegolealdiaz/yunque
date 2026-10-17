@@ -73,6 +73,7 @@ describe("errores por etapa (P-82)", () => {
     // Un 401 no se reintenta y no hay segunda pasada que valga: el respaldo también falla.
     const calls = await repos.listLlmCalls(p.t.db, p.organizationId, decision.invoice_id);
     expect(calls.every((c) => c.status === "error")).toBe(true);
+    expect(calls[0]?.error).toContain("401");
   });
 
   it("sin clave del modelo: la factura escala como ilegible y el Detector frena las inyecciones", async () => {

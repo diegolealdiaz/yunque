@@ -3,6 +3,8 @@ import {
   appendEvent,
   debitBalance,
   enqueueNotification,
+  findInvoicesBySemanticKey,
+  getCurrentPolicy,
   insertDecision,
   insertExtraction,
   reserveBudget,
@@ -33,6 +35,24 @@ import type {
  * - la decisión, sus eventos y sus avisos en la cola.
  */
 
+/**
+ * Lo que la evaluación dio por cierto cambió antes de escribir: otra versión de política
+ * quedó vigente, u otra factura del mismo cobro se registró en paralelo. No se escribió
+ * nada; el caso de uso reevalúa con datos frescos.
+ */
+export class DecisionRaceError extends Error {
+  readonly reason: "policy_changed" | "duplicate_recorded";
+  constructor(reason: DecisionRaceError["reason"]) {
+    super(
+      reason === "policy_changed"
+        ? "La política cambió mientras se decidía"
+        : "Otra factura del mismo cobro se registró mientras se decidía",
+    );
+    this.name = "DecisionRaceError";
+    this.reason = reason;
+  }
+}
+
 /** Cuánto vive un escalado sin resolver antes de vencer y pedir recordatorio. */
 export const APPROVAL_TTL_DAYS = 7;
 
@@ -45,9 +65,21 @@ export type Reservation = {
   readonly amount: number;
 };
 
+/**
+ * Guarda contra el duplicado en paralelo: dos archivos distintos del mismo cobro que se
+ * evalúan a la vez no se ven entre sí, porque la llave semántica se escribe con la decisión.
+ */
+export type DuplicateGuard = {
+  readonly semanticKey: string;
+  /** Inicio de la ventana de duplicados de la política (ISO). */
+  readonly since: string;
+};
+
 export type DecisionRecord = {
   readonly invoice: Invoice;
   readonly decision: Decision;
+  /** Solo en un `pagar`: el último chequeo de duplicados, ya dentro de la transacción. */
+  readonly duplicateGuard: DuplicateGuard | null;
   readonly patch: InvoicePatch;
   readonly extraction: StoredExtraction | null;
   readonly reservation: Reservation | null;
@@ -101,14 +133,33 @@ export function notificationsFor(input: {
 }
 
 /**
- * Escribe la decisión y todo lo que arrastra. Un `DbError` de `budget_exceeded` o
- * `insufficient_balance` significa que otra decisión comprometió lo que quedaba entre la
- * lectura y la escritura: no queda nada escrito y el caso de uso reevalúa con datos frescos.
+ * Escribe la decisión y todo lo que arrastra. Las escrituras se serializan, así que lo que
+ * otra decisión confirmó antes ya se ve aquí. Si algo de lo evaluado cambió, no se escribe
+ * nada y el caso de uso reevalúa con datos frescos:
+ * - `DecisionRaceError`: otra política vigente u otro registro del mismo cobro;
+ * - `DbError` de `budget_exceeded` o `insufficient_balance`: otra decisión comprometió lo
+ *   que quedaba de presupuesto o de saldo.
  */
 export async function recordDecision(db: Database, record: DecisionRecord): Promise<void> {
   const { invoice, decision } = record;
   const at = decision.decided_at;
   await withWriteTransaction(db, async (tx) => {
+    // El interruptor de pagos y los límites se consultan en cada decisión, no al empezar.
+    const policy = await getCurrentPolicy(tx, invoice.organization_id);
+    if (policy?.id !== decision.policy_version_id) throw new DecisionRaceError("policy_changed");
+    const guard = record.duplicateGuard;
+    if (guard) {
+      const others = await findInvoicesBySemanticKey(
+        tx,
+        invoice.organization_id,
+        guard.semanticKey,
+        guard.since,
+        invoice.id,
+      );
+      if (others.some((other) => other.status !== "rechazada")) {
+        throw new DecisionRaceError("duplicate_recorded");
+      }
+    }
     await transitionInvoice(
       tx,
       invoice.organization_id,

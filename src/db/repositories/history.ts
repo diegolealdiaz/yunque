@@ -30,7 +30,7 @@ export type PriorInvoiceRow = {
   readonly semantic_key: string | null;
   readonly amount: Money | null;
   readonly received_at: string;
-  readonly outcome: Verdict | "aprobada" | "rechazada" | "pendiente";
+  readonly outcome: Verdict | "simulada" | "aprobada" | "rechazada" | "pendiente";
 };
 
 export type PriorInvoiceQuery = {
@@ -47,9 +47,14 @@ const MAX_PRIOR = 500;
 
 /**
  * Resultado conocido de una factura previa. `esperando_aprobacion` cuenta como escalada;
- * una factura sin decisión todavía cuenta como pendiente.
+ * una factura sin decisión todavía cuenta como pendiente; un `pagar` en modo de prueba es
+ * `simulada`, para que un pago que nunca ocurrió no habilite el siguiente.
  */
-function outcomeOf(status: InvoiceStatus, verdict: Verdict | null): PriorInvoiceRow["outcome"] {
+function outcomeOf(
+  status: InvoiceStatus,
+  verdict: Verdict | null,
+  dryRun: boolean,
+): PriorInvoiceRow["outcome"] {
   switch (status) {
     case "aprobada":
     case "rechazada":
@@ -57,6 +62,7 @@ function outcomeOf(status: InvoiceStatus, verdict: Verdict | null): PriorInvoice
     case "esperando_aprobacion":
       return "escalar";
     case "decidida":
+      if (verdict === "pagar" && dryRun) return "simulada";
       return verdict ?? "pendiente";
     case "recibida":
     case "procesando":
@@ -128,6 +134,7 @@ export async function listPriorInvoices(
       vendorId: decisions.vendorId,
       amount: decisions.amount,
       amountCurrency: decisions.amountCurrency,
+      dryRun: decisions.dryRun,
     })
     .from(decisions)
     .where(and(eq(decisions.organizationId, organizationId), inArray(decisions.invoiceId, ids)))
@@ -156,7 +163,7 @@ export async function listPriorInvoices(
           ? money(d.amount, currency)
           : null,
       received_at: row.receivedAt,
-      outcome: outcomeOf(status.data, verdict?.success ? verdict.data : null),
+      outcome: outcomeOf(status.data, verdict?.success ? verdict.data : null, d?.dryRun ?? false),
     };
   });
 }

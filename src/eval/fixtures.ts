@@ -15,9 +15,10 @@ import {
  * Fixtures del Lector: respuestas reales del modelo grabadas en disco, para que la
  * evaluación y CI corran sin red y siempre igual.
  *
- * - La llave es el hash de lo que se le pidió al modelo: versión de prompt, modelo y cada
- *   parte del mensaje (texto tal cual, imágenes por su hash). El mensaje de sistema no
- *   entra porque lleva el canario, que cambia en cada proceso.
+ * - La llave es el hash de lo que se le pidió al modelo: versión de prompt, modelo, mensaje
+ *   de sistema con el canario reemplazado por el marcador (cambia en cada proceso), y cada
+ *   parte del mensaje (texto tal cual, imágenes por su hash). Cambiar el prompt sin subir
+ *   la versión deja las fixtures sin coincidir, en vez de reproducirlas viejas.
  * - Al grabar, el canario de la sesión se reemplaza por un marcador; al reproducir, el
  *   marcador vuelve a ser el canario vigente. Así una inyección que filtró el canario en
  *   vivo se sigue detectando al reproducir.
@@ -44,6 +45,7 @@ export function fixtureKey(request: ModelRequest): string {
     canonicalJson({
       prompt_version: PROMPT_VERSION,
       model: request.model,
+      system: withoutCanary(request.system, canaryOf(request)),
       parts: request.parts.map((p) =>
         p.type === "text" ? p.text : `imagen:${p.mediaType}:${sha256Hex(p.bytes)}`,
       ),
@@ -52,19 +54,24 @@ export function fixtureKey(request: ModelRequest): string {
 }
 
 function canaryOf(request: ModelRequest): string | null {
-  return request.system.match(CANARY_PATTERN)?.[0] ?? null;
+  return CANARY_PATTERN.exec(request.system)?.[0] ?? null;
+}
+
+function withoutCanary(text: string, canary: string | null): string {
+  return canary === null ? text : text.replaceAll(canary, CANARY_MARK);
 }
 
 /** Fixtures de una versión de prompt en un directorio: un archivo JSON por llave. */
 export class FixtureStore {
   constructor(private readonly root: string = FIXTURES_DIR) {}
 
-  private dir(): string {
+  /** Directorio de las fixtures de la versión de prompt vigente. */
+  directory(): string {
     return path.join(this.root, PROMPT_VERSION);
   }
 
   private file(key: string): string {
-    return path.join(this.dir(), `${key}.json`);
+    return path.join(this.directory(), `${key}.json`);
   }
 
   async get(key: string): Promise<Fixture | null> {
@@ -78,14 +85,14 @@ export class FixtureStore {
   }
 
   async put(key: string, fixture: Fixture): Promise<void> {
-    await mkdir(this.dir(), { recursive: true });
+    await mkdir(this.directory(), { recursive: true });
     await writeFile(this.file(key), `${JSON.stringify(FixtureSchema.parse(fixture), null, 2)}\n`);
   }
 
   /** Cuántas fixtures hay grabadas para la versión de prompt vigente. */
   async count(): Promise<number> {
     try {
-      return (await readdir(this.dir())).filter((n) => n.endsWith(".json")).length;
+      return (await readdir(this.directory())).filter((n) => n.endsWith(".json")).length;
     } catch {
       return 0;
     }
@@ -136,7 +143,7 @@ export function recordingClient(
       await store.put(fixtureKey(request), {
         model: request.model,
         prompt_version: PROMPT_VERSION,
-        text: canary === null ? response.text : response.text.replaceAll(canary, CANARY_MARK),
+        text: withoutCanary(response.text, canary),
         input_tokens: response.inputTokens,
         output_tokens: response.outputTokens,
         latency_ms: Math.max(0, now() - started),

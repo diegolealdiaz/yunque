@@ -36,6 +36,13 @@
       "when": 1792245669869,
       "tag": "0004_recepcion_y_cache_de_lectura",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792248217490,
+      "tag": "0005_error_de_llamada",
+      "breakpoints": true
     }
   ]
 }

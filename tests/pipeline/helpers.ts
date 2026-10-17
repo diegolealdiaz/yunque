@@ -72,7 +72,11 @@ export type Pipeline = {
 };
 
 export async function openPipeline(
-  overrides: { reader?: InvoiceReader | null } = {},
+  overrides: {
+    reader?: InvoiceReader | null;
+    /** Envuelve al Lector real: sirve para cambiar el mundo mientras una factura se lee. */
+    wrapReader?: (reader: InvoiceReader, t: TestDatabase) => InvoiceReader;
+  } = {},
 ): Promise<Pipeline> {
   const t = await openTestDatabase();
   const [data, dataset] = await Promise.all([loadSeedData(), loadDatasetSources()]);
@@ -103,6 +107,7 @@ export async function openPipeline(
         })
       : overrides.reader;
   const organizationId = seeded.organization.id;
+  const finalReader = reader && overrides.wrapReader ? overrides.wrapReader(reader, t) : reader;
   return {
     t,
     organizationId,
@@ -112,7 +117,7 @@ export async function openPipeline(
     deps: {
       db: t.db,
       storage,
-      reader,
+      reader: finalReader,
       limits: LIMITS,
       newId: t.newId,
       now: t.now,

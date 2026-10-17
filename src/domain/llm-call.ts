@@ -26,6 +26,8 @@ export const LlmCallSchema = z.strictObject({
   cost_usd_micros: z.number().int().min(0),
   latency_ms: z.number().int().min(0),
   status: LlmCallStatusSchema,
+  /** Motivo del intento fallido; null si salió bien. Nunca lleva texto del documento. */
+  error: z.string().max(1000).nullable(),
   trace_id: z.string().min(1).max(100),
   created_at: z.iso.datetime(),
 });

@@ -8,6 +8,8 @@ import type { Metrics } from "./metrics";
  * - Exactitud de los campos críticos (a quién, cuánto, en qué moneda, qué factura): 99 %.
  * - Escalado sobre las facturas normales: como máximo el valor calibrado en el paso 18.
  *   Hasta entonces, el del Lector ideal: ninguna normal escala.
+ * - Ninguna factura normal frenada: sin esto, un sistema que lo frena todo pasaría la puerta.
+ * - Explicabilidad completa: cada decisión con explicación, valor observado y umbral.
  * - Con fixtures, ninguna petición sin grabar.
  */
 export const EVAL_THRESHOLDS = {
@@ -15,6 +17,8 @@ export const EVAL_THRESHOLDS = {
   minCriticalFieldAccuracy: 0.99,
   criticalFields: ["payee_name", "total", "currency", "invoice_number"],
   maxNormalEscalationRate: 0,
+  maxNormalStoppedRate: 0,
+  minExplainability: 1,
 } as const;
 
 export type GateResult = { readonly passed: boolean; readonly failures: readonly string[] };
@@ -26,9 +30,20 @@ export function evaluateGate(metrics: Metrics, missingFixtures: number): GateRes
   }
   for (const field of EVAL_THRESHOLDS.criticalFields) {
     const accuracy = metrics.field_accuracy[field];
-    if (accuracy && accuracy.rate < EVAL_THRESHOLDS.minCriticalFieldAccuracy) {
+    if (!accuracy) {
+      // Un campo crítico sin medir no se da por bueno.
+      failures.push(`exactitud de ${field}: no se midió`);
+    } else if (accuracy.rate < EVAL_THRESHOLDS.minCriticalFieldAccuracy) {
       failures.push(`exactitud de ${field}: ${String(accuracy.hits)}/${String(accuracy.total)}`);
     }
+  }
+  if (metrics.stopped_on_normals.rate > EVAL_THRESHOLDS.maxNormalStoppedRate) {
+    const st = metrics.stopped_on_normals;
+    failures.push(`normales frenadas: ${String(st.hits)}/${String(st.total)}`);
+  }
+  if (metrics.explainability.rate < EVAL_THRESHOLDS.minExplainability) {
+    const ex = metrics.explainability;
+    failures.push(`explicabilidad: ${String(ex.hits)}/${String(ex.total)}`);
   }
   if (metrics.escalation_on_normals.rate > EVAL_THRESHOLDS.maxNormalEscalationRate) {
     const e = metrics.escalation_on_normals;

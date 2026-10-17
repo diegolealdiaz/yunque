@@ -99,6 +99,7 @@ export function createModelReader(options: ModelReaderOptions): InvoiceReader {
                 cost_usd_micros: call.cost_usd_micros,
                 latency_ms: call.latency_ms,
                 status: call.status,
+                error: call.error?.slice(0, 1000) ?? null,
                 trace_id: context.traceId,
                 created_at: options.now().toISOString(),
               }),

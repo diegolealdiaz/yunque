@@ -46,6 +46,7 @@ export function formatReport(result: EvaluationResult, gate: GateResult): string
   lines.push(
     `Escalado            ${share(m.escalation)} · sobre normales ${share(m.escalation_on_normals)}`,
   );
+  lines.push(`Normales frenadas   ${share(m.stopped_on_normals)}`);
   lines.push(`Explicabilidad      ${share(m.explainability)}`, "");
 
   lines.push("Exactitud por campo");

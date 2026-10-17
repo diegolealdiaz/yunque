@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { Sha256Schema } from "./hash";
+import { Sha256Schema, sha256Hex } from "./hash";
 import { ReferenceSchema, UlidSchema } from "./ids";
 
 /**
@@ -64,6 +64,18 @@ export const ReceiptKeySchema = z
   .string()
   .regex(/^[a-z]+:[A-Za-z0-9._:-]{1,190}$/, { error: "Llave de recepción inválida" });
 export type ReceiptKey = z.infer<typeof ReceiptKeySchema>;
+
+const SAFE_RECEIPT_ID = /^[A-Za-z0-9._:-]{1,190}$/;
+
+/**
+ * Llave de recepción para un canal y el identificador que ese canal da a la entrega. Un
+ * identificador con caracteres no seguros (el Message-ID de un correo trae `<`, `@` y `>`)
+ * se reemplaza por su hash: la llave sigue siendo estable para la misma entrega.
+ */
+export function receiptKeyFor(channel: Channel, id: string): ReceiptKey {
+  const safe = SAFE_RECEIPT_ID.test(id) ? id : `h-${sha256Hex(id).slice(0, 40)}`;
+  return ReceiptKeySchema.parse(`${channel}:${safe}`);
+}
 
 export const FileStateSchema = z.enum(["pendiente", "subida"]);
 

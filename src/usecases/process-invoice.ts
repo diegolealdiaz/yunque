@@ -18,6 +18,7 @@ import {
 } from "@/src/db/repositories";
 import {
   EXTRACTED_FIELD_NAMES,
+  ReceiptKeySchema,
   isPresent,
   isSupportedCurrency,
   money,
@@ -67,8 +68,9 @@ import { resolvePayee } from "@/src/resolve";
 
 import { businessDateOf, engineNow } from "./business-day";
 import { UseCaseError } from "./errors";
-import { readWithoutModel, type InvoiceReader } from "./invoice-reader";
+import { READ_DEADLINE_MS, readWithoutModel, type InvoiceReader } from "./invoice-reader";
 import {
+  DecisionRaceError,
   approvalExpiry,
   notificationsFor,
   recordDecision,
@@ -87,16 +89,19 @@ import {
  *
  * Garantías:
  * - Idempotencia por entrega: la misma `receiptKey` dos veces devuelve la factura existente
- *   sin volver a procesarla. El mismo archivo por otra entrega es otra factura, y el motor
- *   la frena como duplicada (la caché del Lector evita pagar el modelo dos veces).
+ *   sin volver a procesarla, salvo que haya quedado `fallida` o abandonada en `procesando`:
+ *   entonces la entrega repetida es el reintento. El mismo archivo por otra entrega es otra
+ *   factura, y el motor la frena como duplicada. Por subida o lote la caché del Lector evita
+ *   pagar el modelo otra vez; por correo o chat el cuerpo entra al prompt y se vuelve a leer.
  * - Antes de registrar la factura, los fallos son excepciones tipadas (`UseCaseError`):
  *   entrega rechazada, empresa o política ausentes. No queda nada a medias.
  * - Después de registrarla, cualquier fallo de una etapa termina en `escalar` con el
  *   hallazgo `processing_error` y su evento. Nunca en `pagar`, nunca en un estado intermedio;
  *   si ni eso se puede escribir, la factura pasa a `fallida` para reintentarla.
  * - La decisión, su extracción, la reserva de presupuesto, el débito de saldo, los eventos y
- *   los avisos se escriben en una sola transacción. Si otra decisión gastó el presupuesto
- *   entre la lectura y la escritura, se reevalúa una vez con datos frescos.
+ *   los avisos se escriben en una sola transacción. Si entre la evaluación y la escritura
+ *   otra decisión gastó el presupuesto, registró el mismo cobro o cambió la política, se
+ *   reevalúa con datos frescos: la política se consulta en cada intento, no al empezar.
  * - El modelo solo lee. El veredicto sale del motor, puro; la cuenta de la orden de pago
  *   sale del vendor registrado.
  */
@@ -149,6 +154,9 @@ export type ProcessInvoiceResult =
 
 const LECTOR_OFF = "El Lector está apagado: falta la clave del modelo";
 
+/** Cómo se reintenta una factura fallida: la misma entrega vuelve a procesarse. */
+const RETRY_ACTION = "Vuelve a enviar la misma factura por el mismo canal para reintentarla";
+
 // ---------------------------------------------------------------------------
 // Etapas. Cada error dentro de una etapa sale envuelto con el nombre de la etapa, que es
 // lo que la persona lee en el hallazgo.
@@ -199,9 +207,10 @@ export async function processInvoice(
 ): Promise<ProcessInvoiceResult> {
   const { db } = deps;
   const traceId = input.traceId ?? `tr-${deps.newId()}`;
+  assertReceiptKey(input.receiptKey);
 
   const existing = await findInvoiceByReceiptKey(db, input.organizationId, input.receiptKey);
-  if (existing) return alreadyReceived(db, existing);
+  if (existing && !isRetryable(existing, deps.now())) return alreadyReceived(db, existing);
 
   const organization = await loadOrganization(db, input.organizationId);
   const policyVersion = await getCurrentPolicy(db, organization.id);
@@ -212,6 +221,12 @@ export async function processInvoice(
   }
 
   const received = receive(input, deps.limits, organization.id);
+  if (existing && existing.document_hash !== received.document_hash) {
+    throw new UseCaseError("rejected_document", "Esa entrega ya existe con otro documento", {
+      action: "Usa una llave de recepción nueva para un documento distinto",
+      severity: "warning",
+    });
+  }
   try {
     await storeOriginal(received, deps.storage);
   } catch (error) {
@@ -222,9 +237,11 @@ export async function processInvoice(
     });
   }
 
-  const registered = await registerInvoice(deps, { organization, received, input, traceId });
-  if (registered.kind === "already_received") return registered;
-  const invoice = registered.invoice;
+  const started = existing
+    ? await reclaimForRetry(deps, existing, traceId)
+    : await registerInvoice(deps, { organization, received, input, traceId });
+  if (started.kind === "already_received") return started;
+  const invoice = started.invoice;
 
   try {
     return await decide(deps, { organization, policyVersion, invoice, received, traceId });
@@ -232,6 +249,81 @@ export async function processInvoice(
     const failure = error instanceof StageFailure ? error : new StageFailure("record", error);
     return escalateOnFailure(deps, { organization, policyVersion, invoice, failure, traceId });
   }
+}
+
+/** Una llave mal formada se rechaza antes de tocar nada, con un error que dice qué hacer. */
+function assertReceiptKey(key: string): void {
+  if (!ReceiptKeySchema.safeParse(key).success) {
+    throw new UseCaseError("rejected_document", "La llave de recepción no es válida", {
+      action: "Construye la llave con receiptKeyFor(canal, identificador)",
+      severity: "warning",
+    });
+  }
+}
+
+/**
+ * Cuánto puede seguir una factura en `procesando` antes de darla por abandonada: el plazo
+ * de lectura más un margen para normalizar y registrar. Pasado eso, la función que la
+ * procesaba murió (por ejemplo, por el tope de duración de la ruta).
+ */
+export const STALE_PROCESSING_MS = READ_DEADLINE_MS + 60_000;
+
+/** Una entrega repetida se vuelve a procesar si quedó fallida o abandonada en `procesando`. */
+function isRetryable(invoice: Invoice, now: Date): boolean {
+  if (invoice.status === "fallida") return true;
+  return (
+    invoice.status === "procesando" &&
+    now.getTime() - Date.parse(invoice.updated_at) > STALE_PROCESSING_MS
+  );
+}
+
+/**
+ * Retoma una factura para reintentarla: la abandonada pasa primero a `fallida` con su
+ * evento, y de `fallida` vuelve a `procesando`. Ambas transiciones por comparación y
+ * cambio: si otra petición la retomó antes, gana esa y aquí se devuelve la existente.
+ */
+async function reclaimForRetry(
+  deps: ProcessInvoiceDeps,
+  invoice: Invoice,
+  traceId: string,
+): Promise<ProcessInvoiceResult | { readonly kind: "registered"; readonly invoice: Invoice }> {
+  const at = deps.now().toISOString();
+  try {
+    await withWriteTransaction(deps.db, async (tx) => {
+      if (invoice.status === "procesando") {
+        await transitionInvoice(
+          tx,
+          invoice.organization_id,
+          invoice.id,
+          "procesando",
+          "fallida",
+          at,
+        );
+        await appendEvent(
+          tx,
+          event(deps, {
+            type: "invoice.failed",
+            invoice,
+            data: { reason: "abandonada en procesando", stale_ms: STALE_PROCESSING_MS },
+            traceId,
+            at,
+          }),
+        );
+      }
+      await transitionInvoice(tx, invoice.organization_id, invoice.id, "fallida", "procesando", at);
+      await appendEvent(
+        tx,
+        event(deps, { type: "invoice.processing", invoice, data: { retry: true }, traceId, at }),
+      );
+    });
+  } catch (error) {
+    if (error instanceof DbError && error.code === "stale_state") {
+      const current = await getInvoice(deps.db, invoice.organization_id, invoice.id);
+      return alreadyReceived(deps.db, current);
+    }
+    throw error;
+  }
+  return { kind: "registered", invoice: { ...invoice, status: "procesando", updated_at: at } };
 }
 
 async function loadOrganization(db: Database, organizationId: Ulid): Promise<Organization> {
@@ -436,29 +528,70 @@ async function decide(deps: ProcessInvoiceDeps, args: DecideArgs): Promise<Proce
     }),
   ];
 
-  // Una reserva puede perder la carrera contra otra decisión simultánea: se reevalúa una
-  // sola vez con ledger y saldos frescos, y esa vez el motor ya ve el presupuesto gastado.
+  // Lo evaluado puede cambiar antes de escribir: otra decisión gastó el presupuesto, otra
+  // factura del mismo cobro se registró, o cambió la política. Cada intento relee todo, así
+  // que el siguiente ya lo ve (el motor frena por presupuesto o duplicado, o aplica la
+  // política nueva). Si se pierde una y otra vez, la factura escala por error de registro.
   for (let attempt = 1; ; attempt++) {
-    const context = await inStage("evaluate", () =>
+    const { context, policyVersion } = await inStage("evaluate", () =>
       evaluationContext(deps, { ...args, doc, read, payee, today }),
     );
     const evaluation = await inStage("evaluate", () => evaluate(context));
     const record = await inStage("record", () =>
-      buildRecord(deps, { ...args, doc, read, payee, context, evaluation, pipelineEvents }),
+      buildRecord(deps, {
+        ...args,
+        policyVersion,
+        doc,
+        read,
+        payee,
+        context,
+        evaluation,
+        pipelineEvents,
+      }),
     );
     try {
       await inStage("record", () => recordDecision(deps.db, record));
     } catch (error) {
       const cause = error instanceof StageFailure ? error.cause : error;
-      const lostRace =
-        cause instanceof DbError &&
-        (cause.code === "budget_exceeded" || cause.code === "insufficient_balance");
-      if (lostRace && attempt === 1) continue;
+      if (isLostRace(cause) && attempt < MAX_RECORD_ATTEMPTS) continue;
       throw error;
     }
-    const saved = await getInvoice(deps.db, organization.id, invoice.id);
-    return { kind: "decided", invoice: saved, decision: record.decision, evaluation };
+    return {
+      kind: "decided",
+      invoice: savedInvoice(record),
+      decision: record.decision,
+      evaluation,
+    };
   }
+}
+
+/** Intentos de evaluar y registrar antes de rendirse a otras decisiones simultáneas. */
+const MAX_RECORD_ATTEMPTS = 3;
+
+/** Verdadero si el registro falló porque otra escritura cambió lo que se había evaluado. */
+function isLostRace(error: unknown): boolean {
+  if (error instanceof DecisionRaceError) return true;
+  return (
+    error instanceof DbError &&
+    (error.code === "budget_exceeded" || error.code === "insufficient_balance")
+  );
+}
+
+/** La factura tal como quedó tras registrar la decisión, sin volver a leerla. */
+function savedInvoice(record: DecisionRecord): Invoice {
+  const { invoice, decision, patch } = record;
+  return {
+    ...invoice,
+    status: statusFor(decision.verdict),
+    text: patch.text === undefined ? invoice.text : patch.text,
+    page_keys: patch.page_keys ?? invoice.page_keys,
+    semantic_key: patch.semantic_key === undefined ? invoice.semantic_key : patch.semantic_key,
+    approval_expires_at:
+      patch.approval_expires_at === undefined
+        ? invoice.approval_expires_at
+        : patch.approval_expires_at,
+    updated_at: decision.decided_at,
+  };
 }
 
 /** Llave semántica del cobro. Con el vendor resuelto se usa su nombre registrado. */
@@ -479,7 +612,11 @@ function semanticKeyOf(extraction: Extraction, payee: PayeeMatch): string | null
   }
 }
 
-/** Todo lo que el motor necesita, leído de la base. El periodo del mes se crea si falta. */
+/**
+ * Todo lo que el motor necesita, leído de la base en cada intento, incluida la política
+ * vigente: el interruptor de pagos se consulta en cada decisión, no al empezar. El periodo
+ * de presupuesto del mes se crea si falta.
+ */
 async function evaluationContext(
   deps: ProcessInvoiceDeps,
   args: DecideArgs & {
@@ -488,8 +625,14 @@ async function evaluationContext(
     readonly payee: PayeeMatch;
     readonly today: string;
   },
-): Promise<EvaluationContext> {
-  const { organization, policyVersion, invoice, read, payee } = args;
+): Promise<{ readonly context: EvaluationContext; readonly policyVersion: PolicyVersion }> {
+  const { organization, invoice, read, payee } = args;
+  const policyVersion = await getCurrentPolicy(deps.db, organization.id);
+  if (!policyVersion) {
+    throw new UseCaseError("policy_missing", "La empresa se quedó sin política vigente", {
+      action: "Guarda una política en la pantalla de Reglas y reintenta",
+    });
+  }
   const policy = policyVersion.content;
   const now = engineNow(args.today);
   const { budget } = policy.limits;
@@ -516,18 +659,21 @@ async function evaluationContext(
     }),
   ]);
   return {
-    extraction: read.record.extraction,
-    verification: read.verification,
-    payee,
-    policy,
-    fx: organization.fx,
-    ledger,
-    balances,
-    prior,
-    invoice_id: invoice.id,
-    document_hash: invoice.document_hash,
-    semantic_key: key,
-    now,
+    policyVersion,
+    context: {
+      extraction: read.record.extraction,
+      verification: read.verification,
+      payee,
+      policy,
+      fx: organization.fx,
+      ledger,
+      balances,
+      prior,
+      invoice_id: invoice.id,
+      document_hash: invoice.document_hash,
+      semantic_key: key,
+      now,
+    },
   };
 }
 
@@ -563,6 +709,7 @@ function buildRecord(
 ): DecisionRecord {
   const { organization, policyVersion, invoice, doc, read, payee, context, evaluation } = args;
   const policy = policyVersion.content;
+  const duplicateWindowDays = policy.rules.duplicate_invoice.window_days;
   const extraction = read.record.extraction;
   const now = deps.now();
   const at = now.toISOString();
@@ -653,6 +800,13 @@ function buildRecord(
   return {
     invoice,
     decision,
+    duplicateGuard:
+      decision.verdict === "pagar" && context.semantic_key !== null
+        ? {
+            semanticKey: context.semantic_key,
+            since: new Date(context.now.getTime() - duplicateWindowDays * 86_400_000).toISOString(),
+          }
+        : null,
     patch: {
       text: doc.has_text_layer ? doc.text.slice(0, 200_000) : null,
       page_keys: doc.pages.map((p) => p.pngKey),
@@ -693,7 +847,10 @@ async function escalateOnFailure(
     readonly traceId: string;
   },
 ): Promise<ProcessInvoiceResult> {
-  const { organization, policyVersion, invoice, failure, traceId } = args;
+  const { organization, invoice, failure, traceId } = args;
+  // La decisión se registra con la política vigente: la del inicio pudo cambiar mientras tanto.
+  const policyVersion =
+    (await getCurrentPolicy(deps.db, organization.id).catch(() => null)) ?? args.policyVersion;
   const error = describeError(failure.cause);
   const now = deps.now();
   const at = now.toISOString();
@@ -738,50 +895,49 @@ async function escalateOnFailure(
     decided_at: at,
   };
   const errorData = { stage: failure.stage, code: error.code };
-  try {
-    await recordDecision(deps.db, {
-      invoice,
-      decision,
-      patch: { approval_expires_at: approvalExpiry("escalar", now) },
-      extraction: null,
-      reservation: null,
-      events: [
-        event(deps, {
-          type: "invoice.escalated",
-          invoice,
-          decisionId: decision.id,
-          data: {
-            verdict: "escalar",
-            deciding_rule: "processing_error",
-            findings: ["processing_error"],
-            error: errorData,
-            policy_version: policyVersion.version,
-            policy_hash: policyVersion.content_hash,
-          },
-          traceId,
-          at,
-        }),
-      ],
-      notifications: notificationsFor({
-        decision,
+  const record: DecisionRecord = {
+    invoice,
+    decision,
+    duplicateGuard: null,
+    patch: { approval_expires_at: approvalExpiry("escalar", now) },
+    extraction: null,
+    reservation: null,
+    events: [
+      event(deps, {
+        type: "invoice.escalated",
         invoice,
-        channel: invoice.channel,
-        newId: deps.newId,
-        nowIso: at,
+        decisionId: decision.id,
+        data: {
+          verdict: "escalar",
+          deciding_rule: "processing_error",
+          findings: ["processing_error"],
+          error: errorData,
+          policy_version: policyVersion.version,
+          policy_hash: policyVersion.content_hash,
+        },
+        traceId,
+        at,
       }),
-    });
+    ],
+    notifications: notificationsFor({
+      decision,
+      invoice,
+      channel: invoice.channel,
+      newId: deps.newId,
+      nowIso: at,
+    }),
+  };
+  try {
+    await recordDecision(deps.db, record);
   } catch (recordError) {
     await markFailed(deps, { invoice, errorData, traceId, at }, recordError);
-  }
-  const saved = await getInvoice(deps.db, organization.id, invoice.id);
-  if (saved.status !== statusFor("escalar")) {
     throw new UseCaseError("record_failed", "La factura quedó marcada como fallida", {
-      action: "Reintenta el procesamiento desde la lista de facturas",
+      action: RETRY_ACTION,
       retryable: true,
       cause: failure,
     });
   }
-  return { kind: "decided", invoice: saved, decision, evaluation: null };
+  return { kind: "decided", invoice: savedInvoice(record), decision, evaluation: null };
 }
 
 /**
@@ -815,7 +971,7 @@ async function markFailed(
     });
   } catch (error) {
     throw new UseCaseError("record_failed", "No se pudo registrar el resultado de la factura", {
-      action: "Revisa la salud del sistema y reintenta",
+      action: RETRY_ACTION,
       retryable: true,
       cause: error,
     });

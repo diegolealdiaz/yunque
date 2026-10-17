@@ -1,4 +1,4 @@
-import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -29,7 +29,12 @@ function row(
     group: "normal",
     expected: { verdict: expected, rule: null },
     actual: { verdict: actual, rule: null },
-    fields: [{ field: "total", expected: "100", actual: id === "mal-leida" ? "999" : "100" }],
+    fields: [
+      { field: "total", expected: "100", actual: id === "mal-leida" ? "999" : "100" },
+      { field: "payee_name", expected: "NUBE ANDINA SAS", actual: "NUBE ANDINA SAS" },
+      { field: "currency", expected: "COP", actual: "COP" },
+      { field: "invoice_number", expected: "F2291", actual: "F2291" },
+    ],
     explained: true,
     cost_usd_micros: 1000,
     latency_ms: 10,
@@ -54,6 +59,15 @@ describe("métricas y puerta (P-90, P-92)", () => {
     expect(gate.passed).toBe(false);
     expect(gate.failures.join(" ")).toContain("falsos pagar: falso");
     expect(gate.failures.join(" ")).toContain("exactitud de total");
+  });
+
+  it("frenar facturas normales, explicar a medias o no medir un campo crítico también falla", () => {
+    const stopped = computeMetrics([row("frenada", "pagar", "frenar")]);
+    expect(evaluateGate(stopped, 0).failures).toContain("normales frenadas: 1/1");
+    const unexplained = computeMetrics([{ ...row("ok", "pagar", "pagar"), explained: false }]);
+    expect(evaluateGate(unexplained, 0).failures).toContain("explicabilidad: 0/1");
+    const unmeasured = computeMetrics([{ ...row("ok", "pagar", "pagar"), fields: [] }]);
+    expect(evaluateGate(unmeasured, 0).failures).toContain("exactitud de total: no se midió");
   });
 
   it("una petición sin fixture hace fallar la puerta (P-65)", () => {
@@ -109,8 +123,9 @@ describe("set de regresión de punta a punta (P-90, P-92, P-93)", () => {
     recorded = await runEvaluation({ source: "ideal", recordTo: new FixtureStore(dir) });
   }, 120_000);
 
+  const copies: string[] = [];
   afterAll(async () => {
-    await rm(dir, { recursive: true, force: true });
+    for (const d of [dir, ...copies]) await rm(d, { recursive: true, force: true });
   });
 
   it("P-90 el informe trae seguridad, autonomía, escalado, exactitud, costo y latencia", () => {
@@ -161,13 +176,13 @@ describe("set de regresión de punta a punta (P-90, P-92, P-93)", () => {
     expect(evaluateGate(relaxed.metrics, 0).passed).toBe(false);
   }, 120_000);
 
-  it("P-93 una fixture rota o ausente pone la puerta en rojo", async () => {
-    const files = await readdir(path.join(dir, PROMPT_VERSION));
-    const [first, second] = files;
-    if (!first || !second) throw new Error("faltan fixtures grabadas");
-    const fixture = path.join(dir, PROMPT_VERSION, first);
+  it("P-93 una fixture rota pone la puerta en rojo por sus decisiones, no solo por faltantes", async () => {
+    const files = (await readdir(path.join(dir, PROMPT_VERSION))).sort();
+    const broken = new FixtureStore(await copyFixtures(files));
+    const [first] = files;
+    if (!first) throw new Error("faltan fixtures grabadas");
     await writeFile(
-      fixture,
+      path.join(broken.directory(), first),
       JSON.stringify({
         model: "anthropic/claude-haiku-5.5",
         prompt_version: PROMPT_VERSION,
@@ -177,10 +192,31 @@ describe("set de regresión de punta a punta (P-90, P-92, P-93)", () => {
         latency_ms: 0,
       }),
     );
-    await rm(path.join(dir, PROMPT_VERSION, second));
-    const broken = await runEvaluation({ source: "fixtures", fixtures: new FixtureStore(dir) });
-    const gate = evaluateGate(broken.metrics, broken.missing_fixtures.length);
-    expect(broken.missing_fixtures.length).toBeGreaterThan(0);
-    expect(gate.passed).toBe(false);
+    const result = await runEvaluation({ source: "fixtures", fixtures: broken });
+    // El Lector reintenta con la pista de error y ese reintento tampoco está grabado; pero
+    // aun sin contar faltantes, la lectura rota ya degrada las decisiones y la puerta cae.
+    expect(evaluateGate(result.metrics, 0).passed).toBe(false);
   }, 120_000);
+
+  it("P-93 una fixture ausente pone la puerta en rojo", async () => {
+    const files = (await readdir(path.join(dir, PROMPT_VERSION))).sort();
+    const partial = new FixtureStore(await copyFixtures(files));
+    const [first] = files;
+    if (!first) throw new Error("faltan fixtures grabadas");
+    await rm(path.join(partial.directory(), first));
+    const result = await runEvaluation({ source: "fixtures", fixtures: partial });
+    expect(result.missing_fixtures.length).toBeGreaterThan(0);
+    expect(evaluateGate(result.metrics, result.missing_fixtures.length).passed).toBe(false);
+  }, 120_000);
+
+  /** Copia las fixtures grabadas a un directorio nuevo, para romperlas sin tocar las originales. */
+  async function copyFixtures(files: readonly string[]): Promise<string> {
+    const target = await mkdtemp(path.join(os.tmpdir(), "yunque-eval-copia-"));
+    copies.push(target);
+    await mkdir(path.join(target, PROMPT_VERSION), { recursive: true });
+    for (const file of files) {
+      await copyFile(path.join(dir, PROMPT_VERSION, file), path.join(target, PROMPT_VERSION, file));
+    }
+    return target;
+  }
 });

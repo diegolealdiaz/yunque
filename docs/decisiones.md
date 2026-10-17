@@ -75,9 +75,9 @@
 
 **Opciones.** (a) Hash del archivo único: la segunda entrega se descarta sin decisión. (b) Sin unicidad: cada reintento crea otra factura. (c) Una llave de recepción por entrega (id del correo, update de Telegram, caso del lote, llave de idempotencia de quien sube), única por organización, y el hash del archivo como índice no único.
 
-**Decisión.** (c). La misma entrega dos veces devuelve la factura existente sin procesarla otra vez. El mismo archivo por otra entrega es otra factura que el motor frena con `duplicate_invoice`; la caché del Lector evita pagar el modelo dos veces por el mismo documento.
+**Decisión.** (c). La misma entrega dos veces devuelve la factura existente sin procesarla otra vez. El mismo archivo por otra entrega es otra factura que el motor frena con `duplicate_invoice`. Por subida o lote la caché del Lector evita pagar el modelo otra vez; por correo o chat el cuerpo del mensaje entra al prompt, así que se vuelve a leer (D12). Una entrega que quedó `fallida` o abandonada en `procesando` se reintenta reenviándola con la misma llave. Antes de registrar un `pagar`, la transacción vuelve a buscar el mismo cobro: dos archivos distintos del mismo cobro procesados a la vez no se pagan los dos.
 
-**Consecuencia.** El duplicado exacto aparece en pendientes como frenado, con su traza. Cada canal debe entregar una llave estable; la subida en pantalla genera una por archivo elegido.
+**Consecuencia.** El duplicado exacto aparece en pendientes como frenado, con su traza. Cada canal debe entregar una llave estable con `receiptKeyFor(canal, id)`, que convierte en hash los identificadores con caracteres no seguros como el Message-ID de un correo; la subida en pantalla genera una por archivo elegido.
 
 ## D14. Caché del Lector compartible en la demo
 

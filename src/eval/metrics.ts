@@ -44,6 +44,8 @@ export type Metrics = {
   readonly escalation: Ratio;
   /** Escalado sobre las facturas normales: la contra-métrica de la autonomía. */
   readonly escalation_on_normals: Ratio;
+  /** Facturas normales frenadas: un freno a un cobro legítimo también es un error. */
+  readonly stopped_on_normals: Ratio;
   readonly explainability: Ratio;
   readonly field_accuracy: Readonly<Record<string, Ratio>>;
   /** Matriz de confusión: esperado → obtenido → cantidad. */
@@ -99,6 +101,10 @@ export function computeMetrics(rows: readonly EvalRow[]): Metrics {
     escalation: ratio(rows.filter((r) => r.actual.verdict === "escalar").length, rows.length),
     escalation_on_normals: ratio(
       normals.filter((r) => r.actual.verdict === "escalar").length,
+      normals.length,
+    ),
+    stopped_on_normals: ratio(
+      normals.filter((r) => r.actual.verdict === "frenar").length,
       normals.length,
     ),
     explainability: ratio(rows.filter((r) => r.explained).length, rows.length),

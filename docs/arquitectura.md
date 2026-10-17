@@ -160,8 +160,10 @@ canal (subida | lote | bandeja | Telegram)
    │              por modelo (opcional; no puede alterar el veredicto)
    ▼
 8. Registro       En una transacción: Decision + AuditEvent + reserva atómica en Ledger (UPDATE
-   │              condicional; si no afecta filas, el veredicto pasa a frenar por budget_exceeded)
-   │              + descuento de saldo. Si pagar: orden de pago borrador en formato Blinka,
+   │              condicional) + descuento de saldo, comprobando que la política siga vigente y
+   │              que el mismo cobro no se haya registrado en paralelo. Si algo cambió, nada se
+   │              escribe y se reevalúa con datos frescos (el motor frena por presupuesto o
+   │              duplicado); si se pierde tres veces, escala por error de registro. Si pagar: orden de pago borrador en formato Blinka,
    │              etiquetada "preparada, no ejecutada". Transiciones con compare-and-swap
    │
    ▼

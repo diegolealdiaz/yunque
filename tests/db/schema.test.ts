@@ -18,7 +18,7 @@ const tableNames = Object.values(schema)
   .filter((v) => is(v, SQLiteTable))
   .map((t) => getTableName(t));
 
-const MIGRATIONS = 5;
+const MIGRATIONS = 6;
 
 /** Única tabla sin organization_id (D14): la caché por contenido lleva `scope` en su lugar. */
 const SCOPED_BY_CONTENT = "extraction_cache";

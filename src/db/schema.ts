@@ -322,6 +322,8 @@ export const llmCalls = sqliteTable(
     costUsdMicros: integer("cost_usd_micros"),
     latencyMs: integer("latency_ms").notNull(),
     status: text("status").notNull(),
+    /** Motivo del intento fallido: plazo vencido, error del proveedor, salida fuera de esquema. */
+    error: text("error"),
     traceId: text("trace_id").notNull(),
     createdAt: timestamp("created_at").default(sql`(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))`),
   },

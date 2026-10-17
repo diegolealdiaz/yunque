@@ -25,6 +25,7 @@ export async function insertLlmCall(exec: Executor, call: LlmCall): Promise<void
     costUsdMicros: c.cost_usd_micros,
     latencyMs: c.latency_ms,
     status: c.status,
+    error: c.error,
     traceId: c.trace_id,
     createdAt: c.created_at,
   });
@@ -57,6 +58,7 @@ export async function listLlmCalls(
         cost_usd_micros: row.costUsdMicros ?? 0,
         latency_ms: row.latencyMs,
         status: row.status,
+        error: row.error,
         trace_id: row.traceId,
         created_at: row.createdAt,
       },

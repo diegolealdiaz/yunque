@@ -51,8 +51,11 @@ export type PriorInvoice = {
   readonly semantic_key: string | null;
   readonly amount: Money | null;
   readonly received_at: string;
-  /** Resultado conocido: veredicto del agente o resolución humana. */
-  readonly outcome: Verdict | "aprobada" | "rechazada" | "pendiente";
+  /**
+   * Resultado conocido: veredicto del agente o resolución humana. `simulada` es un `pagar`
+   * decidido en modo de prueba: cuenta para duplicados, pero nunca como pago hecho.
+   */
+  readonly outcome: Verdict | "simulada" | "aprobada" | "rechazada" | "pendiente";
 };
 
 export type EvaluationContext = {
@@ -79,7 +82,7 @@ export type EvaluationContext = {
   readonly now: Date;
 };
 
-/** Verdadero si la factura anterior terminó en pago. */
+/** Verdadero si la factura anterior terminó en pago real (no simulado). */
 export function wasPaid(prior: PriorInvoice): boolean {
   return prior.outcome === "pagar" || prior.outcome === "aprobada";
 }

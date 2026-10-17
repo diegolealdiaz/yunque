@@ -28,7 +28,7 @@ import {
   type Verdict,
 } from "@/src/domain";
 
-import { withWriteTransaction, type Database } from "./client";
+import { withWriteTransaction, type Database, type Executor } from "./client";
 import {
   appendEvent,
   appendPolicyVersion,
@@ -109,80 +109,82 @@ export type SeedResult = {
 
 /** Crea una empresa completa en una sola transacción. */
 export async function seedOrganization(db: Database, options: SeedOptions): Promise<SeedResult> {
+  return withWriteTransaction(db, (tx) => seedOrganizationWith(tx, options));
+}
+
+async function seedOrganizationWith(tx: Executor, options: SeedOptions): Promise<SeedResult> {
   const { data, newId, systemHardCapUsdCents, visitorId } = options;
   const nowIso = options.now().toISOString();
   const [firstApprover] = data.company.approvers;
   const signedBy = options.signedBy ?? firstApprover;
   if (signedBy === undefined) throw new Error("La semilla necesita al menos un aprobador");
 
-  return db.transaction(async (tx) => {
-    const organization: Organization = {
-      id: newId(),
-      name: data.company.name,
-      reference_prefix: data.company.reference_prefix,
-      base_currency: "USD",
-      fx: data.company.fx,
-      demo_visitor_id: visitorId,
-      created_at: nowIso,
-    };
-    await createOrganization(tx, organization);
+  const organization: Organization = {
+    id: newId(),
+    name: data.company.name,
+    reference_prefix: data.company.reference_prefix,
+    base_currency: "USD",
+    fx: data.company.fx,
+    demo_visitor_id: visitorId,
+    created_at: nowIso,
+  };
+  await createOrganization(tx, organization);
 
-    for (const currency of CURRENCIES) {
-      await setBalance(tx, {
-        organization_id: organization.id,
-        currency,
-        available: data.company.balances[currency],
-        updated_at: nowIso,
-      });
-    }
-
-    const vendors: Vendor[] = [];
-    const vendorsByKey = new Map<string, Vendor>();
-    for (const seed of data.vendors) {
-      const vendor: Vendor = {
-        id: newId(),
-        organization_id: organization.id,
-        name: seed.name,
-        aliases: seed.aliases,
-        ...(seed.tax_id === undefined ? {} : { tax_id: seed.tax_id }),
-        country: seed.country,
-        account: seed.account,
-        verification: seed.verification,
-        agreement: seed.agreement,
-        created_at: nowIso,
-      };
-      await insertVendor(tx, vendor);
-      vendors.push(vendor);
-      vendorsByKey.set(seed.key, vendor);
-    }
-
-    const base = defaultPolicy({
-      systemHardCapUsdCents,
-      sourceAccountId: data.company.source_account_id,
-      approvers: data.company.approvers,
+  for (const currency of CURRENCIES) {
+    await setBalance(tx, {
+      organization_id: organization.id,
+      currency,
+      available: data.company.balances[currency],
+      updated_at: nowIso,
     });
-    const policy = { ...base, allowed_payees: vendors.map((v) => v.id) };
-    const version = await appendPolicyVersion(
-      tx,
-      organization.id,
-      { content: policy, signedBy, signedAt: nowIso, note: "Política inicial" },
-      newId,
-    );
+  }
 
-    await appendEvent(tx, {
+  const vendors: Vendor[] = [];
+  const vendorsByKey = new Map<string, Vendor>();
+  for (const seed of data.vendors) {
+    const vendor: Vendor = {
       id: newId(),
       organization_id: organization.id,
-      type: "policy.saved",
-      actor: { kind: "humano", name: signedBy },
-      invoice_id: null,
-      decision_id: null,
-      data: { version: version.version, content_hash: version.content_hash, seed: true },
-      trace_id: `seed-${organization.id}`,
-      occurred_at: nowIso,
-    });
+      name: seed.name,
+      aliases: seed.aliases,
+      ...(seed.tax_id === undefined ? {} : { tax_id: seed.tax_id }),
+      country: seed.country,
+      account: seed.account,
+      verification: seed.verification,
+      agreement: seed.agreement,
+      created_at: nowIso,
+    };
+    await insertVendor(tx, vendor);
+    vendors.push(vendor);
+    vendorsByKey.set(seed.key, vendor);
+  }
 
-    return { organization, vendors, vendorsByKey, policyVersionId: version.id };
+  const base = defaultPolicy({
+    systemHardCapUsdCents,
+    sourceAccountId: data.company.source_account_id,
+    approvers: data.company.approvers,
   });
+  const policy = { ...base, allowed_payees: vendors.map((v) => v.id) };
+  const version = await appendPolicyVersion(
+    tx,
+    organization.id,
+    { content: policy, signedBy, signedAt: nowIso, note: "Política inicial" },
+    newId,
+  );
+
+  await appendEvent(tx, {
+    id: newId(),
+    organization_id: organization.id,
+    type: "policy.saved",
+    actor: { kind: "humano", name: signedBy },
+    invoice_id: null,
+    decision_id: null,
+    data: { version: version.version, content_hash: version.content_hash, seed: true },
+    trace_id: `seed-${organization.id}`,
+    occurred_at: nowIso,
+  });
+
+  return { organization, vendors, vendorsByKey, policyVersionId: version.id };
 }
 
 // ---------------------------------------------------------------------------
@@ -227,110 +229,111 @@ function historyStatus(entry: HistorySeedEntry): InvoiceStatus {
  * `pendiente`. Sus decisiones no llevan hallazgos y su explicación lo dice.
  */
 export async function seedHistory(db: Database, options: HistorySeedOptions): Promise<void> {
+  await withWriteTransaction(db, (tx) => seedHistoryWith(tx, options));
+}
+
+async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promise<void> {
   const { organization, policyVersion, newId } = options;
   const policy = policyVersion.content;
-  await withWriteTransaction(db, async (tx) => {
-    for (const [i, entry] of options.entries.entries()) {
-      const vendor = options.vendorsByKey.get(entry.vendor_key);
-      if (!vendor)
-        throw new Error(`El historial nombra un vendor inexistente: ${entry.vendor_key}`);
-      const receivedAt = entry.received_at;
-      const receivedDay = receivedAt.slice(0, 10);
-      const amount = money(entry.amount, entry.currency);
-      const reference = await nextReference(
-        tx,
-        organization.id,
-        organization.reference_prefix,
-        new Date(receivedAt),
-      );
-      const documentHash = sha256Hex(`historial:${organization.id}:${String(i)}`);
-      const invoiceId = newId();
-      await insertInvoice(tx, {
-        id: invoiceId,
-        organization_id: organization.id,
-        reference,
-        channel: "batch",
-        receipt_key: `seed:historial-${String(i)}`,
-        source_kind: "pdf",
-        document_hash: documentHash,
-        file_key: `${organization.id}/historial/${String(i)}`,
-        file_state: "pendiente",
-        original_name: `historial-${entry.invoice_number}`,
-        mime_type: "application/pdf",
-        size_bytes: 0,
-        page_keys: [],
-        text: null,
-        semantic_key: semanticKey({
-          payeeName: vendor.name,
-          invoiceNumber: entry.invoice_number,
-          amount: entry.amount,
-          currency: entry.currency,
-        }),
-        status: historyStatus(entry),
-        approval_expires_at: null,
-        channel_meta: {},
-        received_at: receivedAt,
-        updated_at: receivedAt,
-      });
-      const paid = entry.verdict === "pagar";
-      const decision: Decision = {
-        id: newId(),
-        organization_id: organization.id,
-        invoice_id: invoiceId,
-        verdict: entry.verdict,
-        findings: [],
-        explanation: `Decisión del historial sembrado: ${entry.verdict}${
-          entry.resolution === null ? "" : `, ${entry.resolution} por una persona`
-        }.`,
-        summary: null,
-        scheduled_for: paid ? receivedDay : null,
-        payment_order: paid
-          ? paymentOrderFor({ vendor, amount, policy, scheduledFor: receivedDay, reference })
-          : null,
-        amount,
-        amount_usd: { amount: toUsd(amount, organization.fx).amount, currency: "USD" },
-        vendor_id: vendor.id,
-        policy_version_id: policyVersion.id,
-        policy_hash: policyVersion.content_hash,
-        document_hash: documentHash,
-        extraction_hash: null,
-        field_sources: {},
-        previous_decision_id: null,
-        dry_run: false,
-        actor: { kind: "agente" },
-        cost_usd_micros: 0,
-        latency_ms: 0,
-        decided_at: receivedAt,
-      };
-      await insertDecision(tx, decision);
-      await appendEvent(tx, {
-        id: newId(),
-        organization_id: organization.id,
-        type: entry.verdict === "escalar" ? "invoice.escalated" : "invoice.decided",
-        actor: { kind: "agente" },
-        invoice_id: invoiceId,
-        decision_id: decision.id,
-        data: { verdict: entry.verdict, resolution: entry.resolution, seed: true },
-        trace_id: `seed-${organization.id}`,
-        occurred_at: receivedAt,
-      });
-    }
+  for (const [i, entry] of options.entries.entries()) {
+    const vendor = options.vendorsByKey.get(entry.vendor_key);
+    if (!vendor) throw new Error(`El historial nombra un vendor inexistente: ${entry.vendor_key}`);
+    const receivedAt = entry.received_at;
+    const receivedDay = receivedAt.slice(0, 10);
+    const amount = money(entry.amount, entry.currency);
+    const reference = await nextReference(
+      tx,
+      organization.id,
+      organization.reference_prefix,
+      new Date(receivedAt),
+    );
+    const documentHash = sha256Hex(`historial:${organization.id}:${String(i)}`);
+    const invoiceId = newId();
+    await insertInvoice(tx, {
+      id: invoiceId,
+      organization_id: organization.id,
+      reference,
+      channel: "batch",
+      receipt_key: `seed:historial-${String(i)}`,
+      source_kind: "pdf",
+      document_hash: documentHash,
+      file_key: `${organization.id}/historial/${String(i)}`,
+      file_state: "pendiente",
+      original_name: `historial-${entry.invoice_number}`,
+      mime_type: "application/pdf",
+      size_bytes: 0,
+      page_keys: [],
+      text: null,
+      semantic_key: semanticKey({
+        payeeName: vendor.name,
+        invoiceNumber: entry.invoice_number,
+        amount: entry.amount,
+        currency: entry.currency,
+      }),
+      status: historyStatus(entry),
+      approval_expires_at: null,
+      channel_meta: {},
+      received_at: receivedAt,
+      updated_at: receivedAt,
+    });
+    const paid = entry.verdict === "pagar";
+    const decision: Decision = {
+      id: newId(),
+      organization_id: organization.id,
+      invoice_id: invoiceId,
+      verdict: entry.verdict,
+      findings: [],
+      explanation: `Decisión del historial sembrado: ${entry.verdict}${
+        entry.resolution === null ? "" : `, ${entry.resolution} por una persona`
+      }.`,
+      summary: null,
+      scheduled_for: paid ? receivedDay : null,
+      payment_order: paid
+        ? paymentOrderFor({ vendor, amount, policy, scheduledFor: receivedDay, reference })
+        : null,
+      amount,
+      amount_usd: { amount: toUsd(amount, organization.fx).amount, currency: "USD" },
+      vendor_id: vendor.id,
+      policy_version_id: policyVersion.id,
+      policy_hash: policyVersion.content_hash,
+      document_hash: documentHash,
+      extraction_hash: null,
+      field_sources: {},
+      previous_decision_id: null,
+      dry_run: false,
+      actor: { kind: "agente" },
+      cost_usd_micros: 0,
+      latency_ms: 0,
+      decided_at: receivedAt,
+    };
+    await insertDecision(tx, decision);
+    await appendEvent(tx, {
+      id: newId(),
+      organization_id: organization.id,
+      type: entry.verdict === "escalar" ? "invoice.escalated" : "invoice.decided",
+      actor: { kind: "agente" },
+      invoice_id: invoiceId,
+      decision_id: decision.id,
+      data: { verdict: entry.verdict, resolution: entry.resolution, seed: true },
+      trace_id: `seed-${organization.id}`,
+      occurred_at: receivedAt,
+    });
+  }
 
-    const { budget } = policy.limits;
-    const period = periodKey(new Date(`${options.today}T00:00:00.000Z`), budget.period);
-    const nowIso = `${options.today}T00:00:00.000Z`;
-    await ensureLedgerPeriod(tx, organization.id, period, budget.currency, budget.amount, nowIso);
-    if (options.committedUsdCents > 0) {
-      await reserveBudget(
-        tx,
-        organization.id,
-        period,
-        budget.currency,
-        options.committedUsdCents,
-        nowIso,
-      );
-    }
-  });
+  const { budget } = policy.limits;
+  const period = periodKey(new Date(`${options.today}T00:00:00.000Z`), budget.period);
+  const nowIso = `${options.today}T00:00:00.000Z`;
+  await ensureLedgerPeriod(tx, organization.id, period, budget.currency, budget.amount, nowIso);
+  if (options.committedUsdCents > 0) {
+    await reserveBudget(
+      tx,
+      organization.id,
+      period,
+      budget.currency,
+      options.committedUsdCents,
+      nowIso,
+    );
+  }
 }
 
 export type DatasetSeedOptions = SeedOptions &
@@ -339,23 +342,30 @@ export type DatasetSeedOptions = SeedOptions &
   };
 
 /**
- * Empresa lista para el dataset: semilla completa más historial y presupuesto comprometido.
- * La usan la base local, las pruebas del caso de uso y la copia de cada visitante de la demo.
+ * Empresa lista para el dataset: semilla completa más historial y presupuesto comprometido,
+ * todo en una transacción (si algo falla, no queda una empresa a medias). La usan la base
+ * local, las pruebas del caso de uso, la evaluación y la copia de cada visitante de la demo.
  */
 export async function seedDatasetOrganization(
   db: Database,
   options: DatasetSeedOptions,
 ): Promise<SeedResult & { readonly policyVersion: PolicyVersion }> {
-  const seeded = await seedOrganization(db, options);
-  const policyVersion = await getPolicyVersion(db, seeded.organization.id, seeded.policyVersionId);
-  await seedHistory(db, {
-    organization: seeded.organization,
-    vendorsByKey: seeded.vendorsByKey,
-    policyVersion,
-    entries: options.history,
-    committedUsdCents: options.committedUsdCents,
-    today: options.today,
-    newId: options.newId,
+  return withWriteTransaction(db, async (tx) => {
+    const seeded = await seedOrganizationWith(tx, options);
+    const policyVersion = await getPolicyVersion(
+      tx,
+      seeded.organization.id,
+      seeded.policyVersionId,
+    );
+    await seedHistoryWith(tx, {
+      organization: seeded.organization,
+      vendorsByKey: seeded.vendorsByKey,
+      policyVersion,
+      entries: options.history,
+      committedUsdCents: options.committedUsdCents,
+      today: options.today,
+      newId: options.newId,
+    });
+    return { ...seeded, policyVersion };
   });
-  return { ...seeded, policyVersion };
 }
