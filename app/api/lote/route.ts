@@ -17,7 +17,7 @@ import {
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
 
 /**
- * "Procesar periodo" (docs/arquitectura.md §5): el navegador pide las facturas del dataset
+ * "Procesar facturas de ejemplo" (docs/arquitectura.md §5): el navegador pide las facturas del dataset
  * una por petición y muestra el progreso, así ninguna petición supera el tiempo de una
  * función sin estado. El cliente nombra un caso de la lista cerrada de `verdad.json`; el
  * archivo lo elige el servidor, nunca una ruta que venga de afuera.

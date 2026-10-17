@@ -18,6 +18,8 @@ import { LIST_LIMIT, currentBusinessDate, loadInvoiceList } from "@/src/usecases
 
 import { DataTable } from "../../_components/data-table";
 import { PageHeader } from "../../_components/page-header";
+import { UploadDialog } from "../../_components/upload-dialog";
+import { StatusBadge } from "../../_components/status-badge";
 import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
 import { appContext } from "../../_data/context";
@@ -29,9 +31,9 @@ export const metadata = { title: "Facturas · Yunque" };
 
 /**
  * Facturas (docs/interfaz.md §5.3): el archivo completo, con filtros por veredicto, estado,
- * canal y texto, y los caminos de entrada de la pantalla: subir archivos, procesar el periodo
- * y, en la demo, leer la bandeja de correo simulada. Los filtros viven en la URL, así un
- * enlace (como "Ver las 15" de Pendientes) abre la lista ya filtrada.
+ * canal y texto, y los caminos de entrada de la pantalla: subir archivos y, en la demo,
+ * procesar las facturas de ejemplo y revisar el correo de ejemplo. Los filtros viven en la
+ * URL, así un enlace (como "Ver las 15" de Pendientes) abre la lista ya filtrada.
  */
 
 const FiltersSchema = z.object({
@@ -114,7 +116,7 @@ export default async function FacturasPage({
   const filtered = Boolean(filters.veredicto || filters.estado || filters.canal || filters.q);
 
   return (
-    <div className="max-w-7xl space-y-6">
+    <div className="flex flex-col gap-4 lg:h-full">
       <PageHeader
         title="Facturas"
         meta={
@@ -124,34 +126,39 @@ export default async function FacturasPage({
           </span>
         }
         actions={
-          config.demo.enabled ? (
-            <>
-              <DeliveryRunner
-                endpoint="/api/bandeja"
-                field="mensaje"
-                ids={mailbox.map((m) => m.id)}
-                label="Leer bandeja"
-                noun="correos"
-              />
-              <DeliveryRunner
-                endpoint="/api/lote"
-                field="caso"
-                ids={batch.map((c) => c.id)}
-                label="Procesar periodo"
-                noun="facturas"
-                primary
-              />
-            </>
-          ) : null
+          <>
+            <UploadDialog>
+              <UploadPanel maxBytes={config.demo.maxUploadBytes} />
+            </UploadDialog>
+            {config.demo.enabled ? (
+              <>
+                <DeliveryRunner
+                  endpoint="/api/bandeja"
+                  field="mensaje"
+                  ids={mailbox.map((m) => m.id)}
+                  label={`Revisar correo de ejemplo (${String(mailbox.length)})`}
+                  noun="correos"
+                />
+                <DeliveryRunner
+                  endpoint="/api/lote"
+                  field="caso"
+                  ids={batch.map((c) => c.id)}
+                  label={`Procesar facturas de ejemplo (${String(batch.length)})`}
+                  noun="facturas"
+                  primary
+                />
+              </>
+            ) : null}
+          </>
         }
       />
 
-      <details className="rounded-[var(--radius-card)] border border-line bg-surface p-4">
-        <summary className="cursor-pointer text-[13px] font-medium text-ink">Subir factura</summary>
-        <div className="mt-3">
-          <UploadPanel maxBytes={config.demo.maxUploadBytes} />
-        </div>
-      </details>
+      {config.demo.enabled ? (
+        <p className="-mt-2 text-[12px] text-ink-3">
+          Demo: los botones de ejemplo simulan las facturas que llegan en una quincena por PDF,
+          foto, correo y chat.
+        </p>
+      ) : null}
 
       <form className="flex flex-wrap items-end gap-3" role="search">
         <label className="flex flex-col gap-1 text-[12px] text-ink-3">
@@ -203,24 +210,24 @@ export default async function FacturasPage({
       </form>
 
       <DataTable
+        fill
         caption="Facturas, las más recientes primero"
         columns={[
-          { header: "Estado", width: "8.5rem" },
-          { header: "Referencia", width: "9rem" },
-          { header: "Beneficiario" },
-          { header: "Monto", align: "right", width: "11rem" },
-          { header: "Vence", width: "8.5rem" },
-          { header: "Canal", width: "8.5rem" },
-          { header: "Veredicto", width: "16rem" },
-          { header: "Actualizada", width: "7rem" },
+          { header: "Estado", width: "9.5rem", from: "2xl" },
+          { header: "Referencia", width: "10rem", from: "xl", card: "line" },
+          { header: "Beneficiario", flexible: true, card: "title" },
+          { header: "Monto", align: "right", width: "10rem", card: "aside" },
+          { header: "Vence", width: "8rem", from: "xl" },
+          { header: "Canal", width: "9.5rem", from: "3xl", card: "hidden" },
+          { header: "Veredicto", width: "18.5rem" },
+          { header: "Actualizada", width: "7.5rem", from: "2xl", card: "hidden" },
         ]}
         rows={rows.map((row) => ({
           key: row.invoiceId,
           href: `/facturas/${row.invoiceId}`,
+          label: row.reference,
           cells: [
-            <span key="s" className="text-ink-2">
-              {STATUS_LABEL[row.status]}
-            </span>,
+            <StatusBadge key="s" status={row.status} />,
             <span key="r" className="font-mono text-[12px]">
               {row.reference}
             </span>,
@@ -254,7 +261,7 @@ export default async function FacturasPage({
         empty={
           <EmptyState
             title={filtered ? "Ninguna factura con esos filtros." : "Todavía no hay facturas."}
-            detail={filtered ? null : "Sube una factura o procesa el periodo para empezar."}
+            detail={filtered ? null : "Sube una factura o procesa las de ejemplo para empezar."}
             action={filtered ? { label: "Quitar filtros", href: "/facturas" } : null}
           />
         }

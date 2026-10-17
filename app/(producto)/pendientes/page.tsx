@@ -40,7 +40,7 @@ export default async function PendientesPage() {
   const resolvedToday = inbox.paid.length + inbox.stopped.length;
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className="space-y-8">
       <PageHeader
         title="Pendientes"
         meta={
@@ -58,16 +58,17 @@ export default async function PendientesPage() {
         <DataTable
           caption="Facturas que esperan tu decisión, por vencimiento"
           columns={[
-            { header: "Estado", hideHeader: true, width: "2rem" },
-            { header: "Beneficiario" },
-            { header: "Monto", align: "right", width: "11rem" },
-            { header: "Vence", width: "10rem" },
-            { header: "Veredicto", width: "20rem" },
-            { header: "Acción", hideHeader: true, width: "6rem" },
+            { header: "Estado", hideHeader: true, width: "2.5rem", card: "hidden" },
+            { header: "Beneficiario", flexible: true, card: "title" },
+            { header: "Monto", align: "right", width: "11rem", card: "aside" },
+            { header: "Vence", width: "10rem", from: "xl" },
+            { header: "Veredicto", width: "18.5rem" },
+            { header: "Acción", hideHeader: true, width: "6.5rem", card: "hidden" },
           ]}
           rows={inbox.waiting.map((row) => ({
             key: row.invoiceId,
             href: invoiceHref(row),
+            label: row.reference,
             cells: [
               <AlertIcon key="i" className="text-escalate-solid" />,
               <span key="p" className="font-medium">
@@ -97,16 +98,24 @@ export default async function PendientesPage() {
             ],
           }))}
           empty={
-            <EmptyState
-              title={
-                resolvedToday === 0
-                  ? "Nada pendiente."
-                  : `Nada pendiente. El agente resolvió ${String(resolvedToday)} ${resolvedToday === 1 ? "factura" : "facturas"} hoy.`
-              }
-              action={
-                resolvedToday > 0 ? { label: "Ver las facturas de hoy", href: "/facturas" } : null
-              }
-            />
+            inbox.demo && resolvedToday === 0 ? (
+              <EmptyState
+                title="Hoy todavía no llega ninguna factura."
+                detail="Procesa el periodo de ejemplo para ver al agente pagar, frenar y escalar dentro de las reglas."
+                action={{ label: "Ir a Facturas y procesar las de ejemplo", href: "/facturas" }}
+              />
+            ) : (
+              <EmptyState
+                title={
+                  resolvedToday === 0
+                    ? "Nada pendiente."
+                    : `Nada pendiente. El agente resolvió ${String(resolvedToday)} ${resolvedToday === 1 ? "factura" : "facturas"} hoy.`
+                }
+                action={
+                  resolvedToday > 0 ? { label: "Ver las facturas de hoy", href: "/facturas" } : null
+                }
+              />
+            )
           }
         />
       </section>

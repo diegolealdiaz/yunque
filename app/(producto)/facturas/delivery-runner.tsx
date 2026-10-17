@@ -8,7 +8,7 @@ import { errorMessage } from "./api-responses";
 /**
  * Entrega en vivo de una lista cerrada del dataset, una por petición y en orden, refrescando
  * la tabla después de cada una para que las filas cambien de estado a la vista. La usan
- * "Procesar periodo" (el lote) y "Leer bandeja" (los correos). Repetirla no duplica nada:
+ * "Procesar facturas de ejemplo" (el lote) y "Revisar correo de ejemplo" (los correos). Repetirla no duplica nada:
  * cada entrega tiene su llave.
  */
 export function DeliveryRunner({
@@ -24,7 +24,7 @@ export function DeliveryRunner({
   /** Nombre del campo del cuerpo con el id: `caso` o `mensaje`. */
   readonly field: string;
   readonly ids: readonly string[];
-  /** Texto del botón en infinitivo: "Procesar periodo", "Leer bandeja". */
+  /** Texto del botón en infinitivo: "Procesar facturas de ejemplo (33)". */
   readonly label: string;
   /** Qué se procesa, en plural: "facturas", "correos". */
   readonly noun: string;

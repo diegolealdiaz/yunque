@@ -22,6 +22,8 @@ import { healthReport } from "./health";
 export type InboxView = Inbox & {
   /** Día de negocio para los vencimientos. En la demo, el del dataset. */
   readonly today: string;
+  /** Modo demo: sin trabajo del día, la bandeja guía a procesar el periodo de ejemplo. */
+  readonly demo: boolean;
 };
 
 export const inboxView = cache(async (): Promise<InboxView> => {
@@ -37,6 +39,7 @@ export const inboxView = cache(async (): Promise<InboxView> => {
       { demo: config.demo.enabled, timeZone: config.displayTimeZone },
       now,
     ),
+    demo: config.demo.enabled,
   };
 });
 

@@ -11,7 +11,7 @@ import {
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
 
 /**
- * "Leer bandeja": procesa un correo de la bandeja simulada por petición, como el lote. El
+ * "Revisar correo de ejemplo": procesa un correo de la bandeja simulada por petición, como el lote. El
  * navegador nombra el mensaje de una lista cerrada; el archivo lo elige el servidor. La
  * llave sale del Message-ID: un correo se recibe una sola vez aunque se lea dos veces.
  */

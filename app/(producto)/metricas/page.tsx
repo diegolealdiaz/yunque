@@ -306,7 +306,7 @@ export default async function MetricasPage({
   });
 
   return (
-    <div className="max-w-7xl space-y-6">
+    <div className="space-y-6">
       <PageHeader
         title="Métricas"
         meta={

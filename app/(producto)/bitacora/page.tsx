@@ -4,6 +4,7 @@ import { z } from "zod";
 import { EventTypeSchema, type EventType } from "@/src/domain";
 import { auditInstant, eventData } from "@/src/ui/format";
 import { EVENT_LABEL } from "@/src/ui/labels";
+import { eventDetail } from "@/src/ui/timeline";
 import { AUDIT_MAX, AUDIT_PAGE, loadAuditLog } from "@/src/usecases";
 
 import { DataTable } from "../../_components/data-table";
@@ -44,6 +45,26 @@ function moreHref(filters: z.infer<typeof FiltersSchema>, limit: number): string
   return `/bitacora?${params.toString()}`;
 }
 
+/**
+ * Detalle de un evento: primero en palabras (la regla, el canal, el costo); los datos
+ * crudos quedan debajo, tenues, y completos al pasar el ratón, para auditoría. En el
+ * teléfono solo va el detalle en palabras.
+ */
+function EventDetail({
+  readable,
+  raw,
+}: {
+  readonly readable: string | null;
+  readonly raw: string;
+}) {
+  return (
+    <span title={raw} className="flex max-w-[36rem] flex-col">
+      {readable ? <span className="truncate text-ink">{readable}</span> : null}
+      <span className="truncate font-mono text-[11px] text-ink-3 max-md:hidden">{raw}</span>
+    </span>
+  );
+}
+
 export default async function BitacoraPage({
   searchParams,
 }: {
@@ -61,7 +82,7 @@ export default async function BitacoraPage({
   const filtered = Boolean(filters.tipo || filters.factura || filters.persona);
 
   return (
-    <div className="max-w-7xl space-y-6">
+    <div className="flex flex-col gap-4 lg:h-full">
       <PageHeader
         title="Bitácora"
         meta={
@@ -124,16 +145,18 @@ export default async function BitacoraPage({
       </form>
 
       <DataTable
+        fill
         caption="Eventos de la bitácora, el más reciente primero"
         columns={[
-          { header: "Cuándo", width: "12rem" },
-          { header: "Quién", width: "9rem" },
-          { header: "Qué", width: "15rem" },
-          { header: "Factura", width: "10rem" },
-          { header: "Datos" },
+          { header: "Cuándo", width: "12rem", card: "aside" },
+          { header: "Quién", width: "9rem", from: "xl" },
+          { header: "Qué", width: "15rem", card: "title" },
+          { header: "Factura", width: "10.5rem" },
+          { header: "Detalle", flexible: true, from: "lg" },
         ]}
         rows={log.entries.map(({ event, invoiceReference }) => ({
           key: event.id,
+          label: `${EVENT_LABEL[event.type]}${invoiceReference ? ` de ${invoiceReference}` : ""}`,
           ...(event.invoice_id ? { href: `/facturas/${event.invoice_id}` } : {}),
           cells: [
             <span key="t" className="num text-ink-2">
@@ -144,18 +167,22 @@ export default async function BitacoraPage({
             </span>,
             <span key="w" className="flex flex-col">
               <span>{EVENT_LABEL[event.type]}</span>
-              <span className="font-mono text-[11px] text-ink-3">{event.type}</span>
+              <span className="font-mono text-[11px] text-ink-3 max-md:hidden">{event.type}</span>
             </span>,
             <span key="f" className="font-mono text-[12px]">
               {invoiceReference ?? <span className="font-sans text-ink-3">—</span>}
             </span>,
-            <span
+            <EventDetail
               key="d"
-              title={eventData(event.data)}
-              className="block max-w-[36rem] truncate font-mono text-[12px] text-ink-2"
-            >
-              {eventData(event.data)}
-            </span>,
+              readable={eventDetail({
+                id: event.id,
+                at: event.occurred_at,
+                type: event.type,
+                actor: "",
+                data: event.data,
+              })}
+              raw={eventData(event.data)}
+            />,
           ],
         }))}
         empty={
