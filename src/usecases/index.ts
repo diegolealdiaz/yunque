@@ -10,6 +10,7 @@ export * from "./inbox";
 export * from "./invoice-detail";
 export * from "./invoice-list";
 export * from "./invoice-reader";
+export * from "./policy";
 export * from "./process-invoice";
 export * from "./resolve-escalation";
 export { APPROVAL_TTL_DAYS } from "./record-decision";

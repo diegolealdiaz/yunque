@@ -232,6 +232,35 @@ export function correctedExtraction(
   return { extraction: parsed.data, changed };
 }
 
+/**
+ * La lectura que se vuelve a evaluar: la extracción guardada, verificada otra vez contra el
+ * texto del documento, más las señales de instrucciones sospechosas del Detector y de la
+ * decisión anterior. La usan la reevaluación y la vista previa de un cambio de política.
+ */
+export function readingFor(
+  invoice: Invoice,
+  previous: Decision,
+  record: ExtractionRecord,
+): Reading {
+  const verified = verifyExtraction(record.extraction, invoice.text);
+  return {
+    record,
+    verification: {
+      ...verified.report,
+      suspicions: [
+        ...verified.report.suspicions,
+        ...detectAll({
+          document: invoice.text ?? "",
+          channel: invoice.channel_meta["subject"] ?? null,
+        }),
+        ...carriedSuspicions(previous),
+      ],
+    },
+    cost_usd_micros: 0,
+    latency_ms: 0,
+  };
+}
+
 /** Señales de inyección de la decisión anterior, para que ninguna reevaluación las pierda. */
 function carriedSuspicions(previous: Decision): Suspicion[] {
   return previous.findings
@@ -322,23 +351,7 @@ async function reevaluate(
   const working: Invoice = { ...invoice, status: "procesando", updated_at: at };
   try {
     const extraction = record.extraction;
-    const verified = verifyExtraction(extraction, invoice.text);
-    const reading: Reading = {
-      record,
-      verification: {
-        ...verified.report,
-        suspicions: [
-          ...verified.report.suspicions,
-          ...detectAll({
-            document: invoice.text ?? "",
-            channel: invoice.channel_meta["subject"] ?? null,
-          }),
-          ...carriedSuspicions(previous),
-        ],
-      },
-      cost_usd_micros: 0,
-      latency_ms: 0,
-    };
+    const reading = readingFor(invoice, previous, record);
     const payee: PayeeMatch = await inStage("resolve", async () =>
       extraction.kind === "invoice"
         ? resolvePayee(extraction.fields, await listVendors(deps.db, invoice.organization_id))

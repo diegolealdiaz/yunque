@@ -29,8 +29,10 @@ import {
   type Finding,
   type Invoice,
   type Money,
+  type LedgerPeriod,
   type Organization,
   type PaymentOrderDraft,
+  type Policy,
   type PolicyVersion,
   type Ulid,
   type UlidGenerator,
@@ -266,29 +268,56 @@ async function evaluationContext(
   deps: DecideDeps,
   args: DecideArgs & { readonly today: string },
 ): Promise<{ readonly context: EvaluationContext; readonly policyVersion: PolicyVersion }> {
-  const { organization, invoice, reading, payee } = args;
-  const policyVersion = await getCurrentPolicy(deps.db, organization.id);
+  const policyVersion = await getCurrentPolicy(deps.db, args.organization.id);
   if (!policyVersion) {
     throw new UseCaseError("policy_missing", "La empresa se quedó sin política vigente", {
       action: "Guarda una política en la pantalla de Reglas y reintenta",
     });
   }
-  const policy = policyVersion.content;
-  const now = engineNow(args.today);
-  const { budget } = policy.limits;
-  const period = periodKey(now, budget.period);
+  const { budget } = policyVersion.content.limits;
   await withWriteTransaction(deps.db, (tx) =>
     ensureLedgerPeriod(
       tx,
-      organization.id,
-      period,
+      args.organization.id,
+      periodKey(engineNow(args.today), budget.period),
       budget.currency,
       budget.amount,
       deps.now().toISOString(),
     ),
   );
+  return {
+    policyVersion,
+    context: await readEvaluationContext(deps, { ...args, policy: policyVersion.content }),
+  };
+}
+
+/**
+ * El contexto del motor para una política dada, sin escribir nada: lo usa la decisión real
+ * (con la vigente) y la vista previa de un cambio de política (con la candidata). En la vista
+ * previa el presupuesto del periodo se lee con el límite de la candidata.
+ */
+export async function readEvaluationContext(
+  deps: Pick<DecideDeps, "db" | "now">,
+  args: {
+    readonly organization: Organization;
+    readonly invoice: Invoice;
+    readonly reading: Reading;
+    readonly payee: PayeeMatch;
+    readonly today: string;
+    readonly policy: Policy;
+    /**
+     * Solo en la vista previa: si el periodo todavía no existe, se evalúa como recién creado.
+     * En una decisión real un periodo ausente es un artefacto que falta y el motor frena.
+     */
+    readonly assumeNewPeriod?: boolean;
+  },
+): Promise<EvaluationContext> {
+  const { organization, invoice, reading, payee, policy } = args;
+  const now = engineNow(args.today);
+  const { budget } = policy.limits;
+  const period = periodKey(now, budget.period);
   const key = semanticKeyOf(reading.record.extraction, payee);
-  const [ledger, balances, prior] = await Promise.all([
+  const [stored, balances, prior] = await Promise.all([
     getLedgerPeriod(deps.db, organization.id, period, budget.currency),
     listBalances(deps.db, organization.id),
     listPriorInvoices(deps.db, organization.id, {
@@ -298,22 +327,32 @@ async function evaluationContext(
       excludeInvoiceId: invoice.id,
     }),
   ]);
+  // El límite que manda es el de la política que se evalúa; lo comprometido es lo de la base.
+  const ledger: LedgerPeriod | null = stored
+    ? { ...stored, limit: budget.amount }
+    : !args.assumeNewPeriod
+      ? null
+      : {
+          organization_id: organization.id,
+          period_key: period,
+          currency: budget.currency,
+          limit: budget.amount,
+          committed: 0,
+          updated_at: deps.now().toISOString(),
+        };
   return {
-    policyVersion,
-    context: {
-      extraction: reading.record.extraction,
-      verification: reading.verification,
-      payee,
-      policy,
-      fx: organization.fx,
-      ledger,
-      balances,
-      prior,
-      invoice_id: invoice.id,
-      document_hash: invoice.document_hash,
-      semantic_key: key,
-      now,
-    },
+    extraction: reading.record.extraction,
+    verification: reading.verification,
+    payee,
+    policy,
+    fx: organization.fx,
+    ledger,
+    balances,
+    prior,
+    invoice_id: invoice.id,
+    document_hash: invoice.document_hash,
+    semantic_key: key,
+    now,
   };
 }
 
