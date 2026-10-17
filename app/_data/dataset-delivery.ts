@@ -27,6 +27,7 @@ export async function deliverDatasetFile(input: {
       global: config.demo.maxInvoicesPerDay,
     },
     startOfBusinessDay(new Date(), config.displayTimeZone).toISOString(),
+    input.receiptKey,
   );
   const bytes = new Uint8Array(await readFile(input.file));
   const result = await processInvoice(deps, {

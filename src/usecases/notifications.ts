@@ -103,8 +103,8 @@ export async function deliverDueNotifications(
     const at = deps.now();
     const nowIso = at.toISOString();
     const last = failure !== null && attempts >= MAX_NOTIFICATION_ATTEMPTS;
-    await withWriteTransaction(deps.db, async (tx) => {
-      await settleNotification(tx, input.organizationId, notification.id, attempts, {
+    const settled = await withWriteTransaction(deps.db, async (tx) => {
+      const own = await settleNotification(tx, input.organizationId, notification.id, attempts, {
         status: failure === null ? "enviada" : last ? "fallida" : "pendiente",
         nextAttemptAt:
           failure === null || last
@@ -113,6 +113,8 @@ export async function deliverDueNotifications(
         lastError: failure,
         nowIso,
       });
+      // El reclamo venció y otro proceso retomó el aviso: lo que pase después es suyo.
+      if (!own) return false;
       // Los reintentos no van a la bitácora: solo el resultado final de cada aviso.
       if (failure === null || last) {
         const invoiceId = UlidSchema.safeParse(notification.payload["invoice_id"]);
@@ -134,8 +136,10 @@ export async function deliverDueNotifications(
           occurred_at: nowIso,
         });
       }
+      return true;
     });
-    if (failure === null) result.sent += 1;
+    if (!settled) result.skipped += 1;
+    else if (failure === null) result.sent += 1;
     else if (last) result.failed += 1;
     else result.retrying += 1;
   }

@@ -39,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
         { status: 400 },
       );
     }
-    // Antes de leerlo entero: un archivo demasiado grande se rechaza por su tamaño declarado.
+    // Un archivo demasiado grande se rechaza por su tamaño antes de procesarlo.
     if (file.size > config.demo.maxUploadBytes) {
       return Response.json(
         {
@@ -60,6 +60,7 @@ export async function POST(request: Request): Promise<Response> {
         global: config.demo.maxInvoicesPerDay,
       },
       startOfBusinessDay(new Date(), config.displayTimeZone).toISOString(),
+      receiptKey.data,
     );
     const result = await processInvoice(deps, {
       organizationId: organization.id,

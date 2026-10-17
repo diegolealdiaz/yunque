@@ -1,9 +1,15 @@
 import type { Database } from "@/src/db/client";
-import { countAllInvoicesSince, countInvoicesSince, listInvoices } from "@/src/db/repositories";
+import {
+  countAllInvoicesSince,
+  countInvoicesSince,
+  findInvoiceByReceiptKey,
+  listInvoices,
+} from "@/src/db/repositories";
 import {
   normalizeText,
   type Channel,
   type InvoiceStatus,
+  type ReceiptKey,
   type Ulid,
   type Verdict,
 } from "@/src/domain";
@@ -83,13 +89,18 @@ export type DailyLimits = {
 /**
  * Antes de aceptar una entrega nueva: la empresa y toda la demo están dentro de su tope del
  * día. Superado, la entrega se rechaza con un mensaje claro; lo ya procesado sigue disponible.
+ * Una entrega que ya se recibió (misma llave) no cuenta: devuelve la factura que ya existe.
+ * El conteo y el registro no son atómicos: peticiones en paralelo pueden pasar el tope por
+ * unas pocas facturas, lo que basta para una demo pública.
  */
 export async function assertWithinDailyLimits(
   db: Database,
   organizationId: Ulid,
   limits: DailyLimits,
   since: string,
+  receiptKey: ReceiptKey,
 ): Promise<void> {
+  if (await findInvoiceByReceiptKey(db, organizationId, receiptKey)) return;
   const [mine, all] = await Promise.all([
     countInvoicesSince(db, organizationId, since),
     countAllInvoicesSince(db, since),

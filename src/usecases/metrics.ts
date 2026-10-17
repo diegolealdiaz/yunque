@@ -24,6 +24,7 @@ import { computeMetrics, type EvalRow, type Metrics, type Ratio } from "@/src/ev
 import { evalRowFor } from "@/src/eval/rows";
 
 import { engineNow } from "./business-day";
+import { UseCaseError } from "./errors";
 import { describeInvoices, type InboxRow } from "./inbox";
 import { LIST_LIMIT } from "./invoice-list";
 
@@ -119,7 +120,11 @@ export async function loadMetrics(
     getCurrentPolicy(db, organizationId),
     listInvoices(db, organizationId, { limit: LIST_LIMIT }),
   ]);
-  if (!policy) throw new Error("La empresa no tiene política vigente");
+  if (!policy) {
+    throw new UseCaseError("policy_missing", "La empresa no tiene política vigente", {
+      action: "Firma una política en Reglas",
+    });
+  }
   const ids = invoices.map((i) => i.id);
   const [decisions, extractions, described] = await Promise.all([
     listDecisionsByInvoices(db, organizationId, ids),

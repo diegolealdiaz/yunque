@@ -4,6 +4,7 @@ import * as repos from "@/src/db/repositories";
 import type { Notification } from "@/src/domain";
 import {
   MAX_NOTIFICATION_ATTEMPTS,
+  NOTIFICATION_LEASE_MS,
   checkHealth,
   deliverDueNotifications,
   processInvoice,
@@ -139,5 +140,39 @@ describe("cola de avisos (P-87)", () => {
     expect(new Set(sent).size).toBe(sent.length);
     expect(a.sent + b.sent).toBe(sent.length);
     expect(a.skipped + b.skipped).toBeGreaterThan(0);
+  }, 60_000);
+
+  it("si un envío lento pierde su reclamo, quien lo retomó es el único que lo registra", async () => {
+    const result = await process("nube_oct", "batch");
+    const sends: string[] = [];
+    let inner: Awaited<ReturnType<typeof deliverDueNotifications>> | null = null;
+    // El primer envío tarda más que el reclamo: mientras tanto otro proceso lo retoma.
+    const slowThenRetaken: NotificationSender = async (n) => {
+      sends.push(`lento:${n.id}`);
+      clock = new Date(clock.getTime() + NOTIFICATION_LEASE_MS + 1000);
+      inner = await deliverDueNotifications(
+        deps({
+          pantalla: (m) => {
+            sends.push(`retomado:${m.id}`);
+            return Promise.resolve({ simulated: false });
+          },
+          telegram: ok,
+        }),
+        { organizationId: p.organizationId },
+      );
+      return { simulated: false };
+    };
+    const outer = await deliverDueNotifications(deps({ pantalla: slowThenRetaken, telegram: ok }), {
+      organizationId: p.organizationId,
+      limit: 1,
+    });
+    expect(inner).toMatchObject({ sent: 1 });
+    expect(outer).toMatchObject({ sent: 0, skipped: 1 });
+    const sent = await repos.listEvents(p.t.db, p.organizationId, {
+      invoiceId: result.invoice.id,
+      type: "notification.sent",
+    });
+    expect(sent).toHaveLength(1);
+    expect((await notificationsOf(result.invoice.id))[0]?.status).toBe("enviada");
   }, 60_000);
 });

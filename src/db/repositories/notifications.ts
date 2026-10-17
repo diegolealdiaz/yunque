@@ -118,7 +118,10 @@ export async function claimNotification(
   return result.rowsAffected === 1;
 }
 
-/** Cierra un intento ya reclamado: enviada, fallida, o pendiente con su próximo intento. */
+/**
+ * Cierra un intento ya reclamado: enviada, fallida, o pendiente con su próximo intento.
+ * Devuelve false si el reclamo ya no es de quien cierra (venció y otro lo retomó).
+ */
 export async function settleNotification(
   exec: Executor,
   organizationId: Ulid,
@@ -130,8 +133,8 @@ export async function settleNotification(
     readonly lastError: string | null;
     readonly nowIso: string;
   },
-): Promise<void> {
-  await exec
+): Promise<boolean> {
+  const result = await exec
     .update(notifications)
     .set({
       status: outcome.status,
@@ -147,4 +150,5 @@ export async function settleNotification(
         eq(notifications.attempts, claimedAttempts),
       ),
     );
+  return result.rowsAffected === 1;
 }

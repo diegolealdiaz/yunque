@@ -181,7 +181,7 @@ export default async function BitacoraPage({
             href={moreHref(filters, Math.min(limit + AUDIT_PAGE, AUDIT_MAX))}
             className="text-[13px] text-ink-2 underline underline-offset-4"
           >
-            Ver {AUDIT_PAGE} más antiguos
+            Ver {AUDIT_PAGE} eventos más
           </Link>
         </p>
       ) : null}

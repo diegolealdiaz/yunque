@@ -71,23 +71,45 @@ describe("lista de facturas (P-104)", () => {
 
   it("los topes del día rechazan con un mensaje claro y un 429", async () => {
     const since = "2026-10-17T05:00:00.000Z";
+    const fresh = "upload:nueva-entrega";
     await assertWithinDailyLimits(
       p.t.db,
       p.organizationId,
       { perOrganization: 10, global: 100 },
       since,
+      fresh,
     );
     const mine = await assertWithinDailyLimits(
       p.t.db,
       p.organizationId,
       { perOrganization: 4, global: 100 },
       since,
+      fresh,
     ).catch((e: unknown) => e);
     expect(mine).toBeInstanceOf(UseCaseError);
     expect(errorResponse(mine).status).toBe(429);
     await expect(
-      assertWithinDailyLimits(p.t.db, p.t.newId(), { perOrganization: 10, global: 4 }, since),
+      assertWithinDailyLimits(
+        p.t.db,
+        p.t.newId(),
+        { perOrganization: 10, global: 4 },
+        since,
+        fresh,
+      ),
     ).rejects.toMatchObject({ code: "limit_reached" });
+  });
+
+  it("una entrega que ya se recibió no cuenta contra el tope: devuelve la factura existente", async () => {
+    const since = "2026-10-17T05:00:00.000Z";
+    await expect(
+      assertWithinDailyLimits(
+        p.t.db,
+        p.organizationId,
+        { perOrganization: 1, global: 1 },
+        since,
+        "batch:nube_oct",
+      ),
+    ).resolves.toBeUndefined();
   });
 });
 

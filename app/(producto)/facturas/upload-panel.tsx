@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useState, type DragEvent } from "react";
+import { useId, useRef, useState, type DragEvent } from "react";
 
 import { VerdictChip } from "../../_components/verdict-chip";
 
@@ -10,9 +10,9 @@ import { ProcessResponseSchema, errorMessage, type ProcessResponse } from "./api
 
 /**
  * Subida en pantalla (docs/arquitectura.md §5): arrastrar o elegir PDF, imagen o correo en
- * JSON. Cada archivo elegido recibe su llave de entrega en el navegador, así un reintento no
- * duplica la factura. El tipo se valida aquí para avisar rápido, y de verdad en el servidor,
- * por contenido.
+ * JSON. Cada archivo elegido recibe su llave de entrega en el navegador y "Reintentar" la
+ * reusa, así un corte de red no duplica la factura. Varios archivos se envían de a uno, en
+ * orden. El tipo se valida aquí para avisar rápido, y de verdad en el servidor, por contenido.
  */
 
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.json,application/pdf,image/png,image/jpeg,application/json";
@@ -25,6 +25,8 @@ type Upload = {
   readonly invoiceId?: string;
   readonly reference?: string;
   readonly message?: string;
+  /** Falló la red, no el servidor: se puede reintentar con la misma llave. */
+  readonly retryable?: boolean;
 };
 
 export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
@@ -32,13 +34,21 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
   const inputId = useId();
   const [uploads, setUploads] = useState<readonly Upload[]>([]);
   const [dragging, setDragging] = useState(false);
+  // El archivo de cada entrega, para reintentarla con la misma llave.
+  const files = useRef(new Map<string, File>());
 
   const update = (key: string, patch: Partial<Upload>) =>
     setUploads((all) => all.map((u) => (u.key === key ? { ...u, ...patch } : u)));
 
   async function send(file: File) {
     const key = `upload:${crypto.randomUUID()}`;
+    files.current.set(key, file);
     setUploads((all) => [{ key, name: file.name, state: "subiendo" }, ...all]);
+    await upload(key, file);
+  }
+
+  async function upload(key: string, file: File) {
+    update(key, { state: "subiendo", retryable: false });
     if (file.size > maxBytes) {
       update(key, {
         state: "error",
@@ -68,14 +78,18 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
       });
       router.refresh();
     } catch {
-      update(key, { state: "error", message: "Sin conexión. Vuelve a intentarlo." });
+      update(key, { state: "error", message: "Sin conexión.", retryable: true });
     }
   }
 
   function onDrop(event: DragEvent<HTMLLabelElement>) {
     event.preventDefault();
     setDragging(false);
-    for (const file of Array.from(event.dataTransfer.files)) void send(file);
+    void sendAll(Array.from(event.dataTransfer.files));
+  }
+
+  async function sendAll(list: readonly File[]) {
+    for (const file of list) await send(file);
   }
 
   return (
@@ -102,7 +116,7 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
           aria-label="Elegir facturas para subir"
           className="sr-only"
           onChange={(e) => {
-            for (const file of Array.from(e.target.files ?? [])) void send(file);
+            void sendAll(Array.from(e.target.files ?? []));
             e.target.value = "";
           }}
         />
@@ -129,6 +143,18 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
                 <span role="alert" className="text-hold">
                   {u.message}
                 </span>
+              ) : null}
+              {u.state === "error" && u.retryable ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const file = files.current.get(u.key);
+                    if (file) void upload(u.key, file);
+                  }}
+                  className="h-7 rounded-[var(--radius-control)] border border-control px-2 text-[12px] font-medium text-ink"
+                >
+                  Reintentar
+                </button>
               ) : null}
             </li>
           ))}

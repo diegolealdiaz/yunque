@@ -1,4 +1,5 @@
 import { DbError } from "@/src/db/errors";
+import { UlidSchema } from "@/src/domain";
 import { renderPaymentOrder } from "@/src/documents/payment-order";
 import { loadPaymentOrder } from "@/src/usecases";
 
@@ -24,9 +25,10 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  const { id } = await params;
+  const id = UlidSchema.safeParse((await params).id);
+  if (!id.success) return notFound();
   const { db, organization } = await appContext();
-  const sheet = await loadPaymentOrder(db, organization.id, id).catch((error: unknown) => {
+  const sheet = await loadPaymentOrder(db, organization.id, id.data).catch((error: unknown) => {
     if (error instanceof DbError && error.code === "not_found") return null;
     throw error;
   });
