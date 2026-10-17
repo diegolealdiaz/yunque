@@ -35,8 +35,8 @@ export function ControlsPanel({
       <div className="grid gap-3 lg:grid-cols-3">
         <ControlSwitch
           key={`pagos-${String(controls.payments_enabled)}`}
-          label="Pagos habilitados"
-          description="Interruptor de emergencia de todos los pagos"
+          label="Pagos"
+          description="Interruptor de emergencia"
           checked={controls.payments_enabled}
           confirmOn="El agente vuelve a pagar lo que cumple las reglas."
           confirmOff="Ninguna factura se pagará: lo que pagaría queda escalado para una persona."
@@ -46,7 +46,7 @@ export function ControlsPanel({
         <ControlSwitch
           key={`prueba-${String(controls.dry_run)}`}
           label="Modo de prueba"
-          description="Decide y registra sin preparar órdenes"
+          description="Decide sin preparar órdenes"
           checked={controls.dry_run}
           confirmOn="Las decisiones se registran pero no comprometen presupuesto ni saldo."
           confirmOff="Las decisiones de pago vuelven a preparar órdenes y comprometer presupuesto."
@@ -55,11 +55,11 @@ export function ControlsPanel({
         />
         <ControlSwitch
           key={`autonomia-${controls.autonomy}`}
-          label="Autonomía"
-          description="Recomendar o decidir dentro de las reglas"
+          label="El agente"
+          description="Decide o solo recomienda"
           checked={controls.autonomy === "decidir"}
-          onLabel="Decidir"
-          offLabel="Recomendar"
+          onLabel="Decide"
+          offLabel="Solo recomienda"
           confirmOn="El agente paga y frena solo dentro de las reglas y escala lo demás."
           confirmOff="Toda decisión pasa por una persona; el agente solo recomienda."
           onChange={change("autonomy")}
@@ -68,7 +68,7 @@ export function ControlsPanel({
       </div>
       {!canSign ? (
         <p className="text-[12px] text-ink-3">
-          Elige quién firma para poder cambiar un interruptor.
+          Elige arriba quién firma para poder cambiar un interruptor.
         </p>
       ) : null}
       <ActionOutcome state={state} />

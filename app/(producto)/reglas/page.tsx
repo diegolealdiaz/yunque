@@ -1,9 +1,9 @@
 import { cookies } from "next/headers";
 
-import { formatMoney, money, policyEditToYaml } from "@/src/domain";
+import { CURRENCIES, formatMoney, money, policyEditToYaml, type FxTable } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
 import { loadPolicyHistory } from "@/src/usecases";
-import { instant } from "@/src/ui/format";
+import { calendarDate, instant, rateText } from "@/src/ui/format";
 
 import { ApproverPicker } from "../../_components/approver-picker";
 import { PageHeader } from "../../_components/page-header";
@@ -19,10 +19,55 @@ export const metadata = { title: "Reglas · Yunque" };
 export const maxDuration = 60;
 
 /**
- * Reglas (docs/interfaz.md §5.4): la política vigente en formulario y YAML, los interruptores
- * de control, las claves protegidas que no se editan y el historial de versiones. "Ver qué
- * cambiaría" muestra el efecto de un cambio antes de guardarlo.
+ * Reglas (docs/interfaz.md §5.4): quién firma en el encabezado, los interruptores de control
+ * y la política en pestañas (formulario, código y versiones), para que todo quepa en una
+ * pantalla. "Ver qué cambiaría" muestra el efecto de un cambio antes de guardarlo.
  */
+/**
+ * Las tasas con que se convierte a USD para comparar con los límites, de solo lectura
+ * (D22): fijas por empresa en esta versión. Cambiarlas cambiaría qué se paga, así que no se
+ * editan desde aquí; en producción vendrán de un proveedor diario y cada decisión guardará
+ * la tasa que usó.
+ */
+function RatesTable({ fx }: { readonly fx: FxTable }) {
+  const others = CURRENCIES.filter((currency) => currency !== "USD");
+  return (
+    <div className="max-w-xl space-y-2">
+      <p className="text-[13px] text-ink-2">
+        Los límites, el umbral y el presupuesto van en USD. Una factura en otra moneda se convierte
+        con estas tasas y se compara sin redondear. Son fijas desde el {calendarDate(fx.asOf)} y no
+        se editan aquí: cambiarlas cambiaría qué se paga.
+      </p>
+      <table className="w-full rounded-[var(--radius-card)] border border-line bg-surface text-[13px]">
+        <caption className="sr-only">Tasas de cambio por 1 USD</caption>
+        <thead>
+          <tr className="border-b border-line text-left text-[12px] text-ink-2">
+            <th scope="col" className="h-8 px-3 font-medium">
+              Moneda
+            </th>
+            <th scope="col" className="h-8 px-3 text-right font-medium">
+              1 USD equivale a
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {others.map((currency) => (
+            <tr
+              key={currency}
+              className="h-[var(--row-height)] border-b border-line last:border-b-0"
+            >
+              <td className="px-3 font-mono text-ink">{currency}</td>
+              <td className="num px-3 text-right text-ink">
+                {rateText(fx.perUsd[currency])} {currency}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default async function ReglasPage() {
   const { config, db, organization } = await appContext();
   const { current, versions, lastReplay: replayed } = await loadPolicyHistory(db, organization.id);
@@ -43,36 +88,37 @@ export default async function ReglasPage() {
   const { protected: locked } = current.content;
 
   return (
-    <div className="max-w-7xl space-y-6 pb-12">
+    <div className="space-y-4">
       <PageHeader
         title="Reglas"
         meta={
-          <span>
-            Política v{current.version} · firmada por {current.signed_by} ·{" "}
-            {instant(current.signed_at, config.displayTimeZone)}
+          <span className="text-[12px] text-ink-3">
+            Demo sin inicio de sesión: elige qué aprobador firma.
           </span>
+        }
+        actions={
+          <div className="w-64">
+            <ApproverPicker
+              approvers={locked.approvers}
+              approver={signer}
+              path="/reglas"
+              label="Firmas como"
+              inline
+            />
+          </div>
         }
       />
 
       {replayed ? (
         <p
           role="status"
-          className="rounded-[var(--radius-control)] bg-surface-sunken px-3 py-2 text-[13px] text-ink-2"
+          className="rounded-[var(--radius-control)] bg-surface-sunken px-3 py-2 text-[12px] text-ink-2"
         >
           Última reevaluación: v{replayed.version} guardada por {replayed.who} ·{" "}
           {instant(replayed.at, config.displayTimeZone)} · {replayed.reevaluated} facturas abiertas
           reevaluadas, {replayed.changed} cambiaron de veredicto.
         </p>
       ) : null}
-
-      <div className="max-w-sm">
-        <ApproverPicker
-          approvers={locked.approvers}
-          approver={signer}
-          path="/reglas"
-          label="Firmas como"
-        />
-      </div>
 
       <ControlsPanel controls={current.content.controls} canSign={signer !== null} />
 
@@ -90,27 +136,30 @@ export default async function ReglasPage() {
           },
           { label: "Cuenta origen", value: locked.source_account_id },
           { label: "Aprobadores", value: locked.approvers.join(", ") },
+          { label: "Tasas de cambio", value: `fijas al ${calendarDate(organization.fx.asOf)}` },
         ]}
+        extraTabs={[
+          { id: "tasas", label: "Tasas de cambio", content: <RatesTable fx={organization.fx} /> },
+        ]}
+        versions={{
+          count: versions.length,
+          content: (
+            <ol className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface text-[13px]">
+              {versions.map((v) => (
+                <li key={v.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
+                  <span className="w-10 font-medium text-ink">v{v.version}</span>
+                  <span className="text-ink-2">{v.signed_by}</span>
+                  <span className="text-ink-3">{instant(v.signed_at, config.displayTimeZone)}</span>
+                  <span className="font-mono text-[12px] text-ink-3">
+                    {v.content_hash.slice(0, 10)}…
+                  </span>
+                  {v.note ? <span className="text-ink-2">· {v.note}</span> : null}
+                </li>
+              ))}
+            </ol>
+          ),
+        }}
       />
-
-      <section aria-labelledby="versiones" className="space-y-2">
-        <h2 id="versiones" className="text-[12px] font-semibold tracking-wide text-ink-2 uppercase">
-          Versiones
-        </h2>
-        <ol className="divide-y divide-line rounded-[var(--radius-card)] border border-line bg-surface text-[13px]">
-          {versions.map((v) => (
-            <li key={v.id} className="flex flex-wrap items-center gap-3 px-3 py-2">
-              <span className="w-10 font-medium text-ink">v{v.version}</span>
-              <span className="text-ink-2">{v.signed_by}</span>
-              <span className="text-ink-3">{instant(v.signed_at, config.displayTimeZone)}</span>
-              <span className="font-mono text-[12px] text-ink-3">
-                {v.content_hash.slice(0, 10)}…
-              </span>
-              {v.note ? <span className="text-ink-2">· {v.note}</span> : null}
-            </li>
-          ))}
-        </ol>
-      </section>
     </div>
   );
 }

@@ -1,15 +1,27 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useId, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { LockIcon } from "./icons";
 
 /**
- * Editor doble de política (docs/interfaz.md §5.4): formulario a la izquierda, YAML a la
- * derecha. Son la misma política vista de dos maneras. Es la base de presentación: quien la
- * usa decide si el YAML es texto fijo o un editor sincronizado con el formulario. Las claves
- * protegidas se muestran con candado y no se editan.
+ * Editor de política (docs/interfaz.md §5.4), con el patrón de las páginas de configuración:
+ * pestañas en vez de una página larga. "Política" es el formulario, "Como código" la misma
+ * política en YAML para auditarla o editarla entera, "Versiones" el historial firmado, y
+ * quien la usa puede sumar pestañas de solo lectura (las tasas de cambio). Las
+ * claves protegidas van en una línea con candado y no se editan; las acciones quedan en una
+ * barra fija abajo, siempre a la vista. Es la base de presentación: quien la usa decide si el
+ * YAML es texto fijo o un editor sincronizado con el formulario.
  */
 
 export type ProtectedKey = { readonly label: string; readonly value: string };
+
+/** Una pestaña más de la política, después de las propias: versiones, tasas de cambio. */
+export type PolicyTab = {
+  readonly id: string;
+  readonly label: string;
+  readonly content: ReactNode;
+};
 
 export function PolicyEditor({
   version,
@@ -18,6 +30,8 @@ export function PolicyEditor({
   yaml,
   protectedKeys,
   actions = null,
+  versions = null,
+  extraTabs = [],
 }: {
   readonly version: number;
   readonly signedBy: string;
@@ -27,34 +41,18 @@ export function PolicyEditor({
   readonly yaml: string | ReactNode;
   readonly protectedKeys: readonly ProtectedKey[];
   readonly actions?: ReactNode;
+  /** Historial de versiones, con cuántas hay. */
+  readonly versions?: { readonly count: number; readonly content: ReactNode } | null;
+  readonly extraTabs?: readonly PolicyTab[];
 }) {
-  return (
-    <section aria-label={`Política v${String(version)}`} className="space-y-3">
-      <p className="text-[13px] text-ink-2">
-        Política v{version} · firmada por {signedBy}
-      </p>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4 rounded-[var(--radius-card)] border border-line bg-surface p-4">
-          {form}
-          <div className="border-t border-line pt-3">
-            <h3 className="mb-2 text-[12px] font-medium tracking-wide text-ink-2 uppercase">
-              Claves protegidas
-            </h3>
-            <dl className="space-y-1 text-[13px]">
-              {protectedKeys.map((key) => (
-                <div key={key.label} className="flex items-center justify-between gap-2 text-ink-3">
-                  <dt className="inline-flex items-center gap-1.5">
-                    <LockIcon />
-                    {key.label}
-                  </dt>
-                  <dd className="num">{key.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          {actions ? <div className="flex gap-2 border-t border-line pt-3">{actions}</div> : null}
-        </div>
-        {typeof yaml === "string" ? (
+  const baseId = useId();
+  const tabs: PolicyTab[] = [
+    { id: "politica", label: "Política", content: form },
+    {
+      id: "codigo",
+      label: "Como código",
+      content:
+        typeof yaml === "string" ? (
           <pre
             aria-label="Política en YAML"
             className="overflow-auto rounded-[var(--radius-card)] border border-line bg-surface-sunken p-4 font-mono text-[12px] leading-relaxed text-ink"
@@ -63,8 +61,87 @@ export function PolicyEditor({
           </pre>
         ) : (
           yaml
-        )}
+        ),
+    },
+    ...(versions
+      ? [
+          {
+            id: "versiones",
+            label: `Versiones (${String(versions.count)})`,
+            content: versions.content,
+          },
+        ]
+      : []),
+    ...extraTabs,
+  ];
+  const [selected, setSelected] = useState(0);
+
+  // Flechas izquierda y derecha recorren las pestañas (patrón de pestañas de ARIA).
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const next = (selected + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
+    setSelected(next);
+    document.getElementById(`${baseId}-tab-${String(next)}`)?.focus();
+  };
+
+  return (
+    <section aria-label={`Política v${String(version)}`} className="space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-line">
+        <div role="tablist" aria-label="Vistas de la política" className="flex gap-1">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab.id}
+              id={`${baseId}-tab-${String(index)}`}
+              type="button"
+              role="tab"
+              aria-selected={index === selected}
+              aria-controls={`${baseId}-panel-${String(index)}`}
+              tabIndex={index === selected ? 0 : -1}
+              onClick={() => setSelected(index)}
+              onKeyDown={onKeyDown}
+              className={`-mb-px h-9 border-b-2 px-3 text-[13px] font-medium ${
+                index === selected
+                  ? "border-ink text-ink"
+                  : "border-transparent text-ink-2 hover:text-ink"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <p className="pb-2 text-[12px] text-ink-3">
+          Vigente: v{version} · firmada por {signedBy}
+        </p>
       </div>
+
+      <dl className="flex flex-wrap gap-x-5 gap-y-1 text-[12px] text-ink-3">
+        {protectedKeys.map((key) => (
+          <div key={key.label} className="inline-flex items-center gap-1.5">
+            <LockIcon />
+            <dt>{key.label}:</dt>
+            <dd className="num text-ink-2">{key.value}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {tabs.map((tab, index) => (
+        <div
+          key={tab.id}
+          id={`${baseId}-panel-${String(index)}`}
+          role="tabpanel"
+          aria-labelledby={`${baseId}-tab-${String(index)}`}
+          hidden={index !== selected}
+        >
+          {tab.content}
+        </div>
+      ))}
+
+      {actions ? (
+        <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap items-center gap-2 rounded-[var(--radius-card)] border border-line bg-surface px-4 py-3 shadow-sm">
+          {actions}
+        </div>
+      ) : null}
     </section>
   );
 }

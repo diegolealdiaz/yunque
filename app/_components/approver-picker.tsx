@@ -10,23 +10,28 @@ export function ApproverPicker({
   approver,
   path,
   label = "Resuelves como",
+  inline = false,
 }: {
   readonly approvers: readonly string[];
   readonly approver: string | null;
   /** Ruta a refrescar después de elegir. */
   readonly path: string;
   readonly label?: string;
+  /** Etiqueta a la izquierda del selector, en una sola línea (encabezados). */
+  readonly inline?: boolean;
 }) {
   return (
     <form action={chooseApprover} className="flex items-end gap-2 text-[13px]">
       <input type="hidden" name="path" value={path} />
-      <label className="flex-1">
-        <span className="block text-[12px] text-ink-3">{label}</span>
+      <label className={inline ? "flex flex-1 items-center gap-2" : "flex-1"}>
+        <span className={`text-[12px] text-ink-3 ${inline ? "whitespace-nowrap" : "block"}`}>
+          {label}
+        </span>
         <select
           key={approver ?? "ninguno"}
           name="approver"
           defaultValue={approver ?? ""}
-          className="mt-1 h-8 w-full rounded-[var(--radius-control)] border border-control bg-surface px-2 text-ink"
+          className={`h-8 w-full rounded-[var(--radius-control)] ${inline ? "" : "mt-1"} border border-control bg-surface px-2 text-ink`}
         >
           <option value="" disabled>
             Elige un aprobador
