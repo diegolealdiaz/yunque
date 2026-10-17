@@ -135,30 +135,40 @@ function DecisionPanel({
             : "Pagada por el agente dentro de las reglas."}
         </p>
         {order ? (
-          <dl className="space-y-1">
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-3">Orden</dt>
-              <dd className="font-medium">preparada, no ejecutada</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-3">A</dt>
-              <dd>{order.beneficiary_name}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-3">Cuenta</dt>
-              <dd className="font-mono">
-                {order.account_masked} · {order.rail}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-3">Monto</dt>
-              <dd className="font-mono">{formatMoney(order.amount)}</dd>
-            </div>
-            <div className="flex justify-between gap-2">
-              <dt className="text-ink-3">Programada</dt>
-              <dd>{calendarDate(order.scheduled_for)}</dd>
-            </div>
-          </dl>
+          <>
+            <dl className="space-y-1">
+              <div className="flex justify-between gap-2">
+                <dt className="text-ink-3">Orden</dt>
+                <dd className="font-medium">preparada, no ejecutada</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-ink-3">A</dt>
+                <dd>{order.beneficiary_name}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-ink-3">Cuenta</dt>
+                <dd className="font-mono">
+                  {order.account_masked} · {order.rail}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-ink-3">Monto</dt>
+                <dd className="font-mono">{formatMoney(order.amount)}</dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt className="text-ink-3">Programada</dt>
+                <dd>{calendarDate(order.scheduled_for)}</dd>
+              </div>
+            </dl>
+            {/* Descarga de archivo, no navegación: un enlace simple con `download`. */}
+            <a
+              href={`/facturas/${decision.invoice_id}/orden`}
+              download
+              className="inline-flex h-8 items-center rounded-[var(--radius-control)] border border-control px-3 text-[13px] font-medium text-ink"
+            >
+              Descargar orden en PDF
+            </a>
+          </>
         ) : (
           <p className="text-ink-2">
             Modo de prueba: decidida sin preparar orden ni comprometer presupuesto.

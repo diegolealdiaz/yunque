@@ -277,6 +277,7 @@ yunque/
     resolve/              resolutor de beneficiario y comparación de cuenta
     channels/             adaptadores: upload, batch, inbox, telegram
     explain/              plantillas y resumen en prosa
+    documents/            orden de pago en PDF, armada con los datos de la decisión
     ui/                   formatos y etiquetas de pantalla, puros y probados
     eval/                 set de regresión: fixtures, filas y métricas (compartidas con la pantalla), puerta e informe
     db/                   esquema drizzle, migraciones, repositorios (único módulo que importa el driver)
