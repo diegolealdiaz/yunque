@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import {
   BalanceSchema,
@@ -67,6 +67,18 @@ export async function findOrganizationByVisitor(
 ): Promise<Organization | null> {
   const row = await exec.query.organizations.findFirst({
     where: eq(organizations.demoVisitorId, visitorId),
+  });
+  return row ? toOrganization(row) : null;
+}
+
+/**
+ * Empresa base, la que no pertenece a ningún visitante de la demo: la de la base local o la
+ * del cliente en producto. La más antigua si hubiera varias. Null si todavía no se sembró.
+ */
+export async function findBaseOrganization(exec: Executor): Promise<Organization | null> {
+  const row = await exec.query.organizations.findFirst({
+    where: isNull(organizations.demoVisitorId),
+    orderBy: [asc(organizations.createdAt), asc(organizations.id)],
   });
   return row ? toOrganization(row) : null;
 }

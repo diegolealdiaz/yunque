@@ -4,6 +4,7 @@
  */
 export * from "./business-day";
 export * from "./errors";
+export * from "./inbox";
 export * from "./invoice-reader";
 export * from "./process-invoice";
 export { APPROVAL_TTL_DAYS } from "./record-decision";

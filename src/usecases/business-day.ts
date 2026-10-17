@@ -4,6 +4,8 @@
  * El motor cuenta días en UTC, así que recibe la medianoche UTC del día de negocio.
  */
 
+import { DATASET_TODAY } from "@/src/dataset/schema";
+
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Fecha de calendario (`YYYY-MM-DD`) de un instante en la zona horaria dada. */
@@ -32,4 +34,46 @@ export function engineNow(businessDate: string): Date {
     throw new RangeError(`Día de negocio inválido: ${businessDate}`);
   }
   return date;
+}
+
+/** Diferencia entre la hora local de la zona y UTC en ese instante, en milisegundos. */
+function zoneOffsetMs(instant: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(instant);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const asUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  return asUtc - Math.floor(instant.getTime() / 1000) * 1000;
+}
+
+/** Instante en que empezó hoy en la zona de la empresa: lo que la bandeja llama "hoy". */
+export function startOfBusinessDay(now: Date, timeZone: string): Date {
+  const midnightAsUtc = engineNow(businessDateOf(now, timeZone));
+  return new Date(midnightAsUtc.getTime() - zoneOffsetMs(midnightAsUtc, timeZone));
+}
+
+/**
+ * Día de negocio vigente. En la demo es fijo, el del dataset, para que vencimientos y
+ * ventanas den siempre lo mismo; en producto, el del reloj en la zona de la empresa.
+ */
+export function currentBusinessDate(
+  options: { readonly demo: boolean; readonly timeZone: string },
+  now: Date,
+): string {
+  return options.demo ? DATASET_TODAY : businessDateOf(now, options.timeZone);
 }

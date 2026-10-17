@@ -1,4 +1,4 @@
-import { and, desc, eq, gte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray } from "drizzle-orm";
 
 import { DecisionSchema, type Decision, type Ulid } from "@/src/domain";
 
@@ -131,6 +131,41 @@ export async function listDecisionsByVendor(
       eq(decisions.vendorId, vendorId),
       gte(decisions.decidedAt, since),
     ),
+    orderBy: [desc(decisions.decidedAt), desc(decisions.id)],
+    limit,
+  });
+  return rows.map(toDecision);
+}
+
+/** Decisión vigente (la última) de cada factura del conjunto, por id de factura. */
+export async function listLatestDecisions(
+  exec: Executor,
+  organizationId: Ulid,
+  invoiceIds: readonly Ulid[],
+): Promise<Map<Ulid, Decision>> {
+  const out = new Map<Ulid, Decision>();
+  if (invoiceIds.length === 0) return out;
+  const rows = await exec.query.decisions.findMany({
+    where: and(
+      eq(decisions.organizationId, organizationId),
+      inArray(decisions.invoiceId, [...invoiceIds]),
+    ),
+    orderBy: [desc(decisions.decidedAt), desc(decisions.id)],
+  });
+  // De la más reciente a la más vieja: la primera de cada factura es la vigente.
+  for (const row of rows) if (!out.has(row.invoiceId)) out.set(row.invoiceId, toDecision(row));
+  return out;
+}
+
+/** Decisiones tomadas desde `since` (ISO), las más recientes primero. */
+export async function listDecisionsSince(
+  exec: Executor,
+  organizationId: Ulid,
+  since: string,
+  limit = 500,
+): Promise<Decision[]> {
+  const rows = await exec.query.decisions.findMany({
+    where: and(eq(decisions.organizationId, organizationId), gte(decisions.decidedAt, since)),
     orderBy: [desc(decisions.decidedAt), desc(decisions.id)],
     limit,
   });

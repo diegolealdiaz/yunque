@@ -60,7 +60,12 @@ describe("migraciones y esquema (P-40, P-41)", () => {
 
   it("los repositorios exigen el id de organización en la firma", () => {
     // Excepciones: crean o buscan la organización misma, o reciben una entidad con organization_id.
-    const exempt = new Set(["createOrganization", "findOrganizationByVisitor", "setBalance"]);
+    const exempt = new Set([
+      "createOrganization",
+      "findOrganizationByVisitor",
+      "findBaseOrganization",
+      "setBalance",
+    ]);
     // La caché por contenido (D14) exige su ámbito en la firma en lugar de la organización.
     const scoped = new Set(["getCachedExtraction", "putCachedExtraction"]);
     for (const [name, fn] of Object.entries(repos)) {

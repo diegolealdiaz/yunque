@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ne } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, ne } from "drizzle-orm";
 
 import {
   InvoiceSchema,
@@ -94,6 +94,19 @@ export async function getInvoice(exec: Executor, organizationId: Ulid, id: Ulid)
   });
   if (!row) throw new DbError("not_found", `Factura ${id} no existe`);
   return toInvoice(row);
+}
+
+/** Facturas del conjunto de ids que pertenecen a la organización. */
+export async function listInvoicesByIds(
+  exec: Executor,
+  organizationId: Ulid,
+  ids: readonly Ulid[],
+): Promise<Invoice[]> {
+  if (ids.length === 0) return [];
+  const rows = await exec.query.invoices.findMany({
+    where: and(eq(invoices.organizationId, organizationId), inArray(invoices.id, [...ids])),
+  });
+  return rows.map(toInvoice);
 }
 
 /** Factura de esa entrega, o null si la entrega es nueva. */
