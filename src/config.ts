@@ -7,9 +7,12 @@ import { z } from "zod";
  * - Todo valor pasa por un esquema. Nada se lee de process.env fuera de este módulo.
  * - Si falta una variable requerida o un valor está fuera de rango, loadConfig lanza
  *   ConfigError con la lista completa de problemas y el nombre de cada variable.
+ * - Un valor vacío en el archivo .env cuenta como ausente: aplica el valor por defecto
+ *   si lo hay, o el error de "requerida" si no.
  * - La clave del modelo es requerida en producción. En desarrollo puede faltar: entonces
  *   config.model es null y el Lector queda apagado, lo que la pipeline trata como
  *   "no pude leer la factura" (nunca como una lectura válida).
+ * - Los secretos no se serializan: `JSON.stringify(config)` los redacta.
  */
 
 export class ConfigError extends Error {
@@ -24,36 +27,49 @@ export class ConfigError extends Error {
 
 const MB = 1024 * 1024;
 
-const nonEmpty = (name: string) =>
+/** Vacío o solo espacios se trata como ausente, así aplica el valor por defecto o el error. */
+const blankToUndefined = (v: unknown): unknown =>
+  typeof v === "string" && v.trim() === "" ? undefined : v;
+
+/** Envuelve un esquema para que lea una variable de entorno: el vacío cuenta como ausente. */
+const env = <T extends z.ZodType>(schema: T) => z.preprocess(blankToUndefined, schema);
+
+const text = (name: string) =>
   z
     .string({ error: `${name} es requerida` })
     .trim()
     .min(1, { error: `${name} es requerida` });
 
 const secret = (name: string) =>
-  nonEmpty(name).min(32, { error: `${name} debe tener al menos 32 caracteres` });
+  z
+    .string({ error: `${name} es requerida` })
+    .trim()
+    .min(32, { error: `${name} debe tener al menos 32 caracteres` });
 
+/** Entero decimal en base diez. Rechaza notación científica, hexadecimal, signo y decimales. */
 const integer = (name: string, min: number, max: number) =>
-  z.coerce
-    .number({ error: `${name} debe ser un número entero` })
-    .int({ error: `${name} debe ser un número entero` })
-    .min(min, { error: `${name} debe ser al menos ${min}` })
-    .max(max, { error: `${name} debe ser como máximo ${max}` });
+  z
+    .string({ error: `${name} es requerida` })
+    .trim()
+    .regex(/^[0-9]+$/, { error: `${name} debe ser un número entero` })
+    .transform(Number)
+    .pipe(
+      z
+        .number()
+        .min(min, { error: `${name} debe ser al menos ${String(min)}` })
+        .max(max, { error: `${name} debe ser como máximo ${String(max)}` }),
+    );
 
 const boolean = (name: string) =>
   z
-    .string()
+    .string({ error: `${name} es requerida` })
     .trim()
     .toLowerCase()
-    .pipe(
-      z.enum(["true", "false", "1", "0"], {
-        error: `${name} debe ser true o false`,
-      }),
-    )
+    .pipe(z.enum(["true", "false", "1", "0"], { error: `${name} debe ser true o false` }))
     .transform((v) => v === "true" || v === "1");
 
 const timeZone = (name: string) =>
-  nonEmpty(name).refine(
+  text(name).refine(
     (tz) => {
       try {
         new Intl.DateTimeFormat("es", { timeZone: tz });
@@ -65,43 +81,36 @@ const timeZone = (name: string) =>
     { error: `${name} no es una zona horaria válida` },
   );
 
-/** Un valor vacío en el archivo .env cuenta como ausente. */
-const optional = <T extends z.ZodType>(schema: T) =>
-  z.preprocess(
-    (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-    schema.optional(),
-  );
-
 const EnvSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  NODE_ENV: env(z.enum(["development", "test", "production"]).default("development")),
 
-  OPENROUTER_API_KEY: optional(nonEmpty("OPENROUTER_API_KEY")),
-  MODEL_PRIMARY: nonEmpty("MODEL_PRIMARY").default("anthropic/claude-haiku-5.5"),
-  MODEL_FALLBACK: nonEmpty("MODEL_FALLBACK").default("anthropic/claude-sonnet-5.5"),
-  MODEL_MAX_OUTPUT_TOKENS: integer("MODEL_MAX_OUTPUT_TOKENS", 256, 8192).default(1500),
+  OPENROUTER_API_KEY: env(text("OPENROUTER_API_KEY").optional()),
+  MODEL_PRIMARY: env(text("MODEL_PRIMARY").default("anthropic/claude-haiku-5.5")),
+  MODEL_FALLBACK: env(text("MODEL_FALLBACK").default("anthropic/claude-sonnet-5.5")),
+  MODEL_MAX_OUTPUT_TOKENS: env(integer("MODEL_MAX_OUTPUT_TOKENS", 256, 8192).default(1500)),
 
-  DATABASE_URL: nonEmpty("DATABASE_URL"),
-  DATABASE_AUTH_TOKEN: optional(nonEmpty("DATABASE_AUTH_TOKEN")),
+  DATABASE_URL: env(text("DATABASE_URL")),
+  DATABASE_AUTH_TOKEN: env(text("DATABASE_AUTH_TOKEN").optional()),
 
-  BLOB_READ_WRITE_TOKEN: optional(nonEmpty("BLOB_READ_WRITE_TOKEN")),
+  BLOB_READ_WRITE_TOKEN: env(text("BLOB_READ_WRITE_TOKEN").optional()),
 
-  APPROVAL_SIGNING_SECRET: secret("APPROVAL_SIGNING_SECRET"),
-  SESSION_SECRET: secret("SESSION_SECRET"),
+  APPROVAL_SIGNING_SECRET: env(secret("APPROVAL_SIGNING_SECRET")),
+  SESSION_SECRET: env(secret("SESSION_SECRET")),
 
-  SYSTEM_HARD_CAP_USD_CENTS: integer("SYSTEM_HARD_CAP_USD_CENTS", 1, 1_000_000_000_00),
+  SYSTEM_HARD_CAP_USD_CENTS: env(integer("SYSTEM_HARD_CAP_USD_CENTS", 1, 100_000_000_000)),
 
-  DEMO_MODE: boolean("DEMO_MODE").default(true),
-  MAX_UPLOAD_BYTES: integer("MAX_UPLOAD_BYTES", 1024, 20 * MB).default(5 * MB),
-  MAX_PAGES_RENDERED: integer("MAX_PAGES_RENDERED", 1, 20).default(5),
-  MAX_INVOICES_PER_VISITOR_PER_DAY: integer("MAX_INVOICES_PER_VISITOR_PER_DAY", 1, 10_000).default(
-    50,
+  DEMO_MODE: env(boolean("DEMO_MODE").default(true)),
+  MAX_UPLOAD_BYTES: env(integer("MAX_UPLOAD_BYTES", 1024, 20 * MB).default(5 * MB)),
+  MAX_PAGES_RENDERED: env(integer("MAX_PAGES_RENDERED", 1, 20).default(5)),
+  MAX_INVOICES_PER_VISITOR_PER_DAY: env(
+    integer("MAX_INVOICES_PER_VISITOR_PER_DAY", 1, 10_000).default(50),
   ),
-  MAX_INVOICES_PER_DAY: integer("MAX_INVOICES_PER_DAY", 1, 100_000).default(500),
+  MAX_INVOICES_PER_DAY: env(integer("MAX_INVOICES_PER_DAY", 1, 100_000).default(500)),
 
-  DISPLAY_TIMEZONE: timeZone("DISPLAY_TIMEZONE").default("America/Bogota"),
+  DISPLAY_TIMEZONE: env(timeZone("DISPLAY_TIMEZONE").default("America/Bogota")),
 
-  TELEGRAM_BOT_TOKEN: optional(nonEmpty("TELEGRAM_BOT_TOKEN")),
-  TELEGRAM_WEBHOOK_SECRET: optional(nonEmpty("TELEGRAM_WEBHOOK_SECRET")),
+  TELEGRAM_BOT_TOKEN: env(text("TELEGRAM_BOT_TOKEN").optional()),
+  TELEGRAM_WEBHOOK_SECRET: env(text("TELEGRAM_WEBHOOK_SECRET").optional()),
 });
 
 type Env = z.infer<typeof EnvSchema>;
@@ -158,8 +167,10 @@ function crossChecks(env: Env): string[] {
   return problems;
 }
 
+const REDACTED = "[redactado]";
+
 function toConfig(env: Env): Config {
-  return {
+  const config: Config = {
     env: env.NODE_ENV,
     model:
       env.OPENROUTER_API_KEY === undefined
@@ -187,6 +198,21 @@ function toConfig(env: Env): Config {
         ? { botToken: env.TELEGRAM_BOT_TOKEN, webhookSecret: env.TELEGRAM_WEBHOOK_SECRET }
         : null,
   };
+
+  // Redacción al serializar: un `console.error(config)` o un log de error nunca vuelca secretos.
+  Object.defineProperty(config, "toJSON", {
+    enumerable: false,
+    value: (): unknown => ({
+      ...config,
+      model: config.model === null ? null : { ...config.model, apiKey: REDACTED },
+      database: { ...config.database, authToken: config.database.authToken && REDACTED },
+      blob: { token: config.blob.token && REDACTED },
+      secrets: { approvalSigning: REDACTED, session: REDACTED },
+      telegram: config.telegram === null ? null : { botToken: REDACTED, webhookSecret: REDACTED },
+    }),
+  });
+
+  return Object.freeze(config);
 }
 
 /**
@@ -208,7 +234,7 @@ export function loadConfig(source: Readonly<Record<string, string | undefined>>)
     throw new ConfigError(problems);
   }
 
-  return Object.freeze(toConfig(parsed.data));
+  return toConfig(parsed.data);
 }
 
 let cached: Config | undefined;

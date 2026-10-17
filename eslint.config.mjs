@@ -22,6 +22,13 @@ const eslintConfig = defineConfig([
       "prefer-const": "error",
     },
   },
+  {
+    // Las pruebas construyen entradas inválidas a propósito: aquí sí se permite `as`.
+    files: ["tests/**/*.ts"],
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": "off",
+    },
+  },
   globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "next-env.d.ts"]),
 ]);
 

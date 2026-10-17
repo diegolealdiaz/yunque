@@ -7,7 +7,7 @@
 1. **El modelo extrae y redacta. Nunca decide.** [demo] La salida del modelo solo puebla campos de datos tipados. No existe un campo `action`, `recommendation` ni `instructions` que el motor lea. Si existe un campo `notes`, el motor no lo consume.
 2. **El modelo no ve la lista de beneficiarios ni los saldos.** [demo] Un mismo paso no combina entrada no confiable (la factura), dato sensible (la lista) y acción consecuente (pagar). El modelo extrae nombre y cuenta "como aparecen"; el código los resuelve contra la lista.
 3. **Nunca en bucle periódico.** [demo] El modelo se llama por evento: factura nueva. Vencimientos, recordatorios, conciliación y reintentos son código determinista.
-4. **Haiku 5.5 por defecto; Sonnet 5.5 solo como segunda pasada.** [demo] La segunda pasada ocurre una sola vez por factura, cuando falla una verificación determinista. Su salida pasa por el mismo motor. Ambos modelos van en variables de entorno con alias (`EXTRACTOR_MODEL`, `EXTRACTOR_FALLBACK_MODEL`).
+4. **Haiku 5.5 por defecto; Sonnet 5.5 solo como segunda pasada.** [demo] La segunda pasada ocurre una sola vez por factura, cuando falla una verificación determinista. Su salida pasa por el mismo motor. Ambos modelos van en variables de entorno con alias (`MODEL_PRIMARY`, `MODEL_FALLBACK`).
 5. **Tope de tokens de salida ajustado a la salida real.** [demo] Una extracción ocupa menos de 2.000 tokens. Sin tope, el proveedor reserva el máximo del modelo y con saldo bajo rechaza llamadas.
 6. **Sin parámetros de razonamiento en extracción.** [demo] El esfuerzo mínimo del modelo. Cambiar modelo o esfuerzo exige correr el set de regresión completo.
 7. **Validar el esquema en nuestro código, no en el modo estructurado del proveedor.** [demo] Un reintento como máximo, inyectando los campos inválidos con su ruta. Si falla otra vez, la factura escala. Nunca paga.
@@ -47,7 +47,7 @@
 ## 4. Dinero, estados y concurrencia
 
 34. **Dinero en enteros de unidad mínima con moneda obligatoria.** [demo] Prohibido `number` flotante para montos. Una sola función de parseo y normalización. Comparaciones exactas; la tolerancia de "cuadra con lo acordado" se declara explícita en la regla.
-35. **Máquina de estados cerrada.** [demo] `recibida → extraída → evaluada → { pagar | frenar | escalar } → aprobada | rechazada`. Cada transición se persiste antes de cualquier efecto externo. Ningún estado intermedio vive sin expiración. [después] Un estado explícito para lo no conciliable.
+35. **Máquina de estados cerrada.** [demo] `recibida → procesando → decidida (pagar o frenar) | esperando_aprobacion (escalar) → aprobada | rechazada`, más `fallida` con reintento y vuelta a `procesando` para corrección o replay. Cada transición se persiste antes de cualquier efecto externo. Ningún estado intermedio vive sin expiración. [después] Un estado explícito para lo no conciliable.
 36. **Transiciones con compare-and-swap.** [demo] `UPDATE ... WHERE status = 'esperado'` y comprobar filas afectadas. Nunca leer, modificar y escribir.
 37. **Reserva de presupuesto atómica.** [demo] Dentro de la misma transacción que inserta la decisión, un `UPDATE` condicional que solo escribe si cabe.
 38. **Presupuesto consumido se calcula desde la tabla de decisiones, nunca desde contadores sueltos.** [demo] Dos contadores que deben moverse juntos se desincronizan.

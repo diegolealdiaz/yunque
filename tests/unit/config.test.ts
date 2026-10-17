@@ -153,6 +153,40 @@ describe("loadConfig (P-02)", () => {
     expect(config.telegram).toEqual({ botToken: "123:abc", webhookSecret: "s" });
   });
 
+  it("una variable numérica vacía toma su valor por defecto", () => {
+    expect(loadConfig({ ...valid, MAX_PAGES_RENDERED: "" }).demo.maxPagesRendered).toBe(5);
+    expect(loadConfig({ ...valid, DEMO_MODE: "  " }).demo.enabled).toBe(true);
+  });
+
+  it.each(["0x10", "1e3", "1_000", "+5", " 5.0"])("rechaza el número %s", (value) => {
+    const problems = problemsOf({ ...valid, MAX_PAGES_RENDERED: value });
+    expect(problems).toContain("MAX_PAGES_RENDERED debe ser un número entero");
+  });
+
+  it("rechaza NODE_ENV desconocido y una subida mayor a 20 MB", () => {
+    expect(problemsOf({ ...valid, NODE_ENV: "staging" })[0]).toContain("NODE_ENV");
+    expect(problemsOf({ ...valid, MAX_UPLOAD_BYTES: String(21 * 1024 * 1024) })[0]).toContain(
+      "MAX_UPLOAD_BYTES",
+    );
+  });
+
+  it("no serializa secretos", () => {
+    const config = loadConfig({
+      ...valid,
+      DATABASE_AUTH_TOKEN: "turso-secret-xyz",
+      TELEGRAM_BOT_TOKEN: "1:a",
+      TELEGRAM_WEBHOOK_SECRET: "s",
+    });
+    const text = JSON.stringify(config);
+    expect(text).not.toContain("sk-or-test");
+    expect(text).not.toContain("a".repeat(64));
+    expect(text).not.toContain("turso-secret-xyz");
+    expect(text).not.toContain("1:a");
+    expect(text).toContain("[redactado]");
+    expect(text).toContain("anthropic/claude-haiku-5.5");
+    expect(config.model?.apiKey).toBe("sk-or-test");
+  });
+
   it("ignora espacios alrededor de los valores", () => {
     const config = loadConfig({ ...valid, DATABASE_URL: "  file:./x.db  " });
     expect(config.database.url).toBe("file:./x.db");

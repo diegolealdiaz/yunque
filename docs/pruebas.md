@@ -83,7 +83,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-44 | Dos aprobaciones simultáneas de la misma decisión: exactamente una gana, la otra recibe conflicto, el ledger se descuenta una vez | base |
 | P-45 | Aprobación con monto, hash, cuenta o versión distintos a los firmados: rechazada en servidor aunque el cliente la envíe bien formada | base, `@seguridad` |
 | P-46 | Idempotencia: el mismo archivo dos veces crea una factura; la misma llave semántica con otro archivo crea factura y hallazgo `duplicate_invoice` | base |
-| P-47 | Transiciones: solo las permitidas (`recibida → leída → decidida → aprobada|rechazada|pagada`); una transición desde un estado viejo falla por comparación y cambio | base |
+| P-47 | Transiciones: solo las permitidas (`recibida → procesando → decidida | esperando_aprobacion → aprobada | rechazada`, con `fallida` y reintento); una transición desde un estado viejo falla por comparación y cambio | base |
 
 ### Dataset e ingesta
 
