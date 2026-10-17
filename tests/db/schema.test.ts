@@ -18,7 +18,7 @@ const tableNames = Object.values(schema)
   .filter((v) => is(v, SQLiteTable))
   .map((t) => getTableName(t));
 
-const MIGRATIONS = 9;
+const MIGRATIONS = 11;
 
 /** Única tabla sin organization_id (D14): la caché por contenido lleva `scope` en su lugar. */
 const SCOPED_BY_CONTENT = "extraction_cache";
@@ -72,6 +72,10 @@ describe("migraciones y esquema (P-40, P-41)", () => {
       "findInboundReceipt",
       // Tope global del correo de la demo: como countAllInvoicesSince, solo un número.
       "countAllAdmittedSince",
+      // Telegram (D24): el chat y el enlace los identifica Telegram, no la empresa.
+      "consumeTelegramLink",
+      "findTelegramChat",
+      "findTelegramUpdate",
     ]);
     // La caché por contenido (D14) exige su ámbito en la firma en lugar de la organización.
     const scoped = new Set(["getCachedExtraction", "putCachedExtraction"]);

@@ -7,6 +7,7 @@ import {
   getLedgerPeriod,
   listBalances,
   listPriorInvoices,
+  listTelegramChats,
   transitionInvoice,
 } from "@/src/db/repositories";
 import {
@@ -189,6 +190,7 @@ export type Decided = {
  */
 export async function decideAndRecord(deps: DecideDeps, args: DecideArgs): Promise<Decided> {
   const today = deps.businessDate ?? businessDateOf(deps.now(), deps.timeZone);
+  const telegramLinked = await hasTelegramChat(deps, args.organization.id);
   // Lo evaluado puede cambiar antes de escribir: otra decisión gastó el presupuesto, otra
   // factura del mismo cobro se registró, o cambió la política. Cada intento relee todo, así
   // que el siguiente ya lo ve (el motor frena por presupuesto o duplicado, o aplica la
@@ -199,7 +201,7 @@ export async function decideAndRecord(deps: DecideDeps, args: DecideArgs): Promi
     );
     const evaluation = await inStage("evaluate", () => evaluate(context));
     const record = await inStage("record", () =>
-      buildRecord(deps, { ...args, policyVersion, context, evaluation }),
+      buildRecord(deps, { ...args, policyVersion, context, evaluation, telegramLinked }),
     );
     try {
       await inStage("record", () => recordDecision(deps.db, record));
@@ -210,6 +212,16 @@ export async function decideAndRecord(deps: DecideDeps, args: DecideArgs): Promi
     }
     return { invoice: savedInvoice(record), decision: record.decision, evaluation };
   }
+}
+
+/**
+ * La empresa tiene un chat de Telegram conectado (D24): sus decisiones importantes también
+ * se avisan por ahí. Si la consulta falla, la decisión sigue y el aviso queda en pantalla.
+ */
+async function hasTelegramChat(deps: DecideDeps, organizationId: Ulid): Promise<boolean> {
+  return listTelegramChats(deps.db, organizationId)
+    .then((chats) => chats.length > 0)
+    .catch(() => false);
 }
 
 /** Intentos de evaluar y registrar antes de rendirse a otras decisiones simultáneas. */
@@ -381,6 +393,7 @@ function buildRecord(
     readonly policyVersion: PolicyVersion;
     readonly context: EvaluationContext;
     readonly evaluation: Evaluation;
+    readonly telegramLinked: boolean;
   },
 ): DecisionRecord {
   const { organization, policyVersion, invoice, reading, payee, context, evaluation } = args;
@@ -506,6 +519,7 @@ function buildRecord(
       decision,
       invoice,
       channel: invoice.channel,
+      telegramLinked: args.telegramLinked,
       newId: deps.newId,
       nowIso: at,
     }),
@@ -531,6 +545,7 @@ export async function escalateOnFailure(
   const policyVersion =
     (await getCurrentPolicy(deps.db, organization.id).catch(() => null)) ?? args.policyVersion;
   const error = describeError(failure.cause);
+  const telegramLinked = await hasTelegramChat(deps, organization.id);
   const now = deps.now();
   const at = now.toISOString();
   const finding: Finding = {
@@ -602,6 +617,7 @@ export async function escalateOnFailure(
       decision,
       invoice,
       channel: invoice.channel,
+      telegramLinked,
       newId: deps.newId,
       nowIso: at,
     }),

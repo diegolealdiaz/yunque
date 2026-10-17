@@ -327,6 +327,68 @@ export const inboundReceipts = sqliteTable(
   ],
 );
 
+/**
+ * Acceso de jurado de la demo (D23, D24): quien escribe el código de acceso lo obtiene para
+ * su empresa hasta `expires_at`. Abre la dirección de correo real y la conexión de Telegram.
+ */
+export const accessGrants = sqliteTable("access_grants", {
+  organizationId: id("organization_id")
+    .primaryKey()
+    .references(() => organizations.id),
+  grantedAt: timestamp("granted_at"),
+  expiresAt: timestamp("expires_at"),
+});
+
+/**
+ * Intentos fallidos del código de acceso, por empresa: base del límite de intentos. Un
+ * intento correcto no se registra.
+ */
+export const accessAttempts = sqliteTable(
+  "access_attempts",
+  {
+    id: id("id").primaryKey(),
+    organizationId: id("organization_id").references(() => organizations.id),
+    attemptedAt: timestamp("attempted_at"),
+  },
+  (t) => [index("access_attempts_org_idx").on(t.organizationId, t.attemptedAt)],
+);
+
+/** Chats de Telegram conectados a una empresa (D24). Un chat sirve a una sola empresa. */
+export const telegramChats = sqliteTable(
+  "telegram_chats",
+  {
+    chatId: text("chat_id").primaryKey(),
+    organizationId: id("organization_id").references(() => organizations.id),
+    linkedAt: timestamp("linked_at"),
+  },
+  (t) => [index("telegram_chats_org_idx").on(t.organizationId)],
+);
+
+/** Enlaces de conexión de Telegram: un solo uso, vencen solos. */
+export const telegramLinkTokens = sqliteTable("telegram_link_tokens", {
+  token: text("token").primaryKey(),
+  organizationId: id("organization_id").references(() => organizations.id),
+  createdAt: timestamp("created_at"),
+  expiresAt: timestamp("expires_at"),
+  usedAt: text("used_at"),
+});
+
+/**
+ * Facturas enviadas al bot (D24): una fila por `update_id`, escrita en la misma transacción
+ * que cuenta el cupo del chat. Un reintento de Telegram encuentra su fila y no cuenta dos veces.
+ */
+export const telegramUpdates = sqliteTable(
+  "telegram_updates",
+  {
+    updateId: integer("update_id").primaryKey(),
+    organizationId: id("organization_id").references(() => organizations.id),
+    chatId: text("chat_id").notNull(),
+    status: text("status").notNull(),
+    receivedAt: timestamp("received_at"),
+  },
+  (t) => [index("telegram_updates_chat_idx").on(t.chatId, t.status, t.receivedAt)],
+);
+
 /** Cada llamada al modelo, con costo y latencia. */
 export const llmCalls = sqliteTable(
   "llm_calls",

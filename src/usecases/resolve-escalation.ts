@@ -16,6 +16,7 @@ import {
   insertDecision,
   listEvents,
   listPriorInvoices,
+  listTelegramChats,
   reserveBudget,
   transitionInvoice,
 } from "@/src/db/repositories";
@@ -493,10 +494,12 @@ export async function approveEscalation(
         trace_id: traceId,
         occurred_at: at,
       });
+      const telegramLinked = (await listTelegramChats(tx, invoice.organization_id)).length > 0;
       for (const notification of notificationsFor({
         decision: approved,
         invoice,
         channel: invoice.channel,
+        telegramLinked,
         newId: deps.newId,
         nowIso: at,
       })) {

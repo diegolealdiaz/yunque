@@ -26,4 +26,5 @@ export * from "./money";
 export * from "./notification";
 export * from "./policy";
 export * from "./rules";
+export * from "./telegram";
 export * from "./vendor";

@@ -3,6 +3,7 @@
  * firma: no existe una consulta sin filtro de organización.
  */
 
+export * from "./access";
 export * from "./approvals";
 export * from "./decisions";
 export * from "./events";
@@ -16,4 +17,5 @@ export * from "./llm-calls";
 export * from "./notifications";
 export * from "./organizations";
 export * from "./policies";
+export * from "./telegram";
 export * from "./vendors";

@@ -110,7 +110,45 @@ const EnvSchema = z.object({
   DISPLAY_TIMEZONE: env(timeZone("DISPLAY_TIMEZONE").default("America/Bogota")),
 
   TELEGRAM_BOT_TOKEN: env(text("TELEGRAM_BOT_TOKEN").optional()),
-  TELEGRAM_WEBHOOK_SECRET: env(text("TELEGRAM_WEBHOOK_SECRET").optional()),
+  TELEGRAM_WEBHOOK_SECRET: env(
+    text("TELEGRAM_WEBHOOK_SECRET")
+      .pipe(
+        z.string().regex(/^[A-Za-z0-9_-]{32,256}$/, {
+          error:
+            "TELEGRAM_WEBHOOK_SECRET debe tener entre 32 y 256 letras, números, _ o - (lo exige Telegram)",
+        }),
+      )
+      .optional(),
+  ),
+  TELEGRAM_BOT_USERNAME: env(
+    text("TELEGRAM_BOT_USERNAME")
+      .pipe(
+        z.string().regex(/^[A-Za-z0-9_]{5,32}$/, {
+          error: "TELEGRAM_BOT_USERNAME es el nombre del bot sin @, por ejemplo YunqueBot",
+        }),
+      )
+      .optional(),
+  ),
+  TELEGRAM_MAX_PER_CHAT_PER_DAY: env(integer("TELEGRAM_MAX_PER_CHAT_PER_DAY", 1, 1000).default(10)),
+
+  PUBLIC_APP_URL: env(
+    text("PUBLIC_APP_URL")
+      .pipe(
+        z.url({
+          protocol: /^https$/,
+          error: "PUBLIC_APP_URL debe ser una URL https, por ejemplo https://yunque.vercel.app",
+        }),
+      )
+      .transform((u) => u.replace(/\/+$/, ""))
+      .optional(),
+  ),
+
+  DEMO_ACCESS_CODE: env(
+    text("DEMO_ACCESS_CODE")
+      .pipe(z.string().min(12, { error: "DEMO_ACCESS_CODE debe tener al menos 12 caracteres" }))
+      .optional(),
+  ),
+  DEMO_ACCESS_TTL_HOURS: env(integer("DEMO_ACCESS_TTL_HOURS", 1, 720).default(72)),
 
   INBOUND_EMAIL_ENABLED: env(boolean("INBOUND_EMAIL_ENABLED").default(false)),
   INBOUND_EMAIL_ADDRESS: env(
@@ -122,16 +160,6 @@ const EnvSchema = z.object({
       .optional(),
   ),
   INBOUND_EMAIL_WEBHOOK_SECRET: env(secret("INBOUND_EMAIL_WEBHOOK_SECRET").optional()),
-  INBOUND_EMAIL_ACCESS_CODE: env(
-    text("INBOUND_EMAIL_ACCESS_CODE")
-      .pipe(
-        z
-          .string()
-          .min(12, { error: "INBOUND_EMAIL_ACCESS_CODE debe tener al menos 12 caracteres" }),
-      )
-      .optional(),
-  ),
-  INBOUND_ADDRESS_TTL_HOURS: env(integer("INBOUND_ADDRESS_TTL_HOURS", 1, 720).default(72)),
   MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY: env(
     integer("MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY", 1, 1000).default(10),
   ),
@@ -164,7 +192,18 @@ export type Config = {
     readonly maxInvoicesPerDay: number;
   };
   readonly displayTimeZone: string;
-  readonly telegram: { readonly botToken: string; readonly webhookSecret: string } | null;
+  /**
+   * Bot de Telegram (D24): avisos y entrada de facturas para chats conectados. null cuando
+   * falta el bot: el aviso por Telegram queda simulado (D21) y la pantalla no lo ofrece.
+   */
+  readonly telegram: TelegramConfig | null;
+  /**
+   * Código de acceso de los jurados (D23, D24): abre el correo real y la conexión de
+   * Telegram durante `ttlHours`. null cuando ninguno de los dos está encendido.
+   */
+  readonly access: { readonly code: string; readonly ttlHours: number } | null;
+  /** URL pública de la app, para los enlaces de los avisos. null en local. */
+  readonly publicAppUrl: string | null;
   /**
    * Correo real de entrada (D23). null cuando está apagado: las rutas responden 404 y la
    * pantalla no lo ofrece. Solo existe en la demo.
@@ -172,14 +211,20 @@ export type Config = {
   readonly inboundEmail: InboundEmailConfig | null;
 };
 
+export type TelegramConfig = {
+  readonly botToken: string;
+  /** Lo que Telegram manda en `X-Telegram-Bot-Api-Secret-Token` en cada llamada al webhook. */
+  readonly webhookSecret: string;
+  /** Nombre del bot sin @: arma el enlace de conexión `t.me/<bot>?start=<token>`. */
+  readonly botUsername: string;
+  readonly maxPerChatPerDay: number;
+};
+
 export type InboundEmailConfig = {
   /** Dirección de entrada del proveedor, sin la parte después del +. */
   readonly address: string;
   /** Contraseña de la autenticación básica con la que el proveedor llama al webhook. */
   readonly webhookSecret: string;
-  /** Código que se entrega a los jurados para pedir una dirección. */
-  readonly accessCode: string;
-  readonly addressTtlHours: number;
   readonly maxPerAddressPerDay: number;
   readonly maxPerDay: number;
 };
@@ -202,27 +247,36 @@ function crossChecks(env: Env): string[] {
     problems.push("MAX_INVOICES_PER_VISITOR_PER_DAY no puede superar MAX_INVOICES_PER_DAY");
   }
 
-  const hasToken = env.TELEGRAM_BOT_TOKEN !== undefined;
-  const hasSecret = env.TELEGRAM_WEBHOOK_SECRET !== undefined;
-  if (hasToken !== hasSecret) {
-    problems.push("TELEGRAM_BOT_TOKEN y TELEGRAM_WEBHOOK_SECRET van juntas: ambas o ninguna");
-  }
-
   if (env.INBOUND_EMAIL_ENABLED) {
-    for (const name of [
-      "INBOUND_EMAIL_ADDRESS",
-      "INBOUND_EMAIL_WEBHOOK_SECRET",
-      "INBOUND_EMAIL_ACCESS_CODE",
-    ] as const) {
+    for (const name of ["INBOUND_EMAIL_ADDRESS", "INBOUND_EMAIL_WEBHOOK_SECRET"] as const) {
       if (env[name] === undefined)
         problems.push(`${name} es requerida con INBOUND_EMAIL_ENABLED=true`);
     }
-    if (!env.DEMO_MODE) problems.push("INBOUND_EMAIL_ENABLED=true solo está permitido en la demo");
     if (env.MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY > env.MAX_INBOUND_EMAILS_PER_DAY) {
       problems.push(
         "MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY no puede superar MAX_INBOUND_EMAILS_PER_DAY",
       );
     }
+  }
+
+  const telegramVars = [
+    env.TELEGRAM_BOT_TOKEN,
+    env.TELEGRAM_WEBHOOK_SECRET,
+    env.TELEGRAM_BOT_USERNAME,
+  ].filter((v) => v !== undefined).length;
+  if (telegramVars !== 0 && telegramVars !== 3) {
+    problems.push(
+      "TELEGRAM_BOT_TOKEN, TELEGRAM_WEBHOOK_SECRET y TELEGRAM_BOT_USERNAME van juntas: las tres o ninguna",
+    );
+  }
+
+  // El correo real y Telegram se abren con el código de acceso, y solo existen en la demo.
+  const judgeChannels = env.INBOUND_EMAIL_ENABLED || telegramVars === 3;
+  if (judgeChannels && env.DEMO_ACCESS_CODE === undefined) {
+    problems.push("DEMO_ACCESS_CODE es requerida con el correo real o Telegram encendidos");
+  }
+  if (judgeChannels && !env.DEMO_MODE) {
+    problems.push("El correo real y Telegram solo están permitidos en la demo (DEMO_MODE=true)");
   }
 
   if (env.APPROVAL_SIGNING_SECRET === env.SESSION_SECRET) {
@@ -259,19 +313,28 @@ function toConfig(env: Env): Config {
     },
     displayTimeZone: env.DISPLAY_TIMEZONE,
     telegram:
-      env.TELEGRAM_BOT_TOKEN !== undefined && env.TELEGRAM_WEBHOOK_SECRET !== undefined
-        ? { botToken: env.TELEGRAM_BOT_TOKEN, webhookSecret: env.TELEGRAM_WEBHOOK_SECRET }
+      env.TELEGRAM_BOT_TOKEN !== undefined &&
+      env.TELEGRAM_WEBHOOK_SECRET !== undefined &&
+      env.TELEGRAM_BOT_USERNAME !== undefined
+        ? {
+            botToken: env.TELEGRAM_BOT_TOKEN,
+            webhookSecret: env.TELEGRAM_WEBHOOK_SECRET,
+            botUsername: env.TELEGRAM_BOT_USERNAME,
+            maxPerChatPerDay: env.TELEGRAM_MAX_PER_CHAT_PER_DAY,
+          }
         : null,
+    access:
+      env.DEMO_ACCESS_CODE !== undefined
+        ? { code: env.DEMO_ACCESS_CODE, ttlHours: env.DEMO_ACCESS_TTL_HOURS }
+        : null,
+    publicAppUrl: env.PUBLIC_APP_URL ?? null,
     inboundEmail:
       env.INBOUND_EMAIL_ENABLED &&
       env.INBOUND_EMAIL_ADDRESS !== undefined &&
-      env.INBOUND_EMAIL_WEBHOOK_SECRET !== undefined &&
-      env.INBOUND_EMAIL_ACCESS_CODE !== undefined
+      env.INBOUND_EMAIL_WEBHOOK_SECRET !== undefined
         ? {
             address: env.INBOUND_EMAIL_ADDRESS,
             webhookSecret: env.INBOUND_EMAIL_WEBHOOK_SECRET,
-            accessCode: env.INBOUND_EMAIL_ACCESS_CODE,
-            addressTtlHours: env.INBOUND_ADDRESS_TTL_HOURS,
             maxPerAddressPerDay: env.MAX_INBOUND_EMAILS_PER_ADDRESS_PER_DAY,
             maxPerDay: env.MAX_INBOUND_EMAILS_PER_DAY,
           }
@@ -287,11 +350,13 @@ function toConfig(env: Env): Config {
       database: { ...config.database, authToken: config.database.authToken && REDACTED },
       blob: { token: config.blob.token && REDACTED },
       secrets: { approvalSigning: REDACTED, session: REDACTED },
-      telegram: config.telegram === null ? null : { botToken: REDACTED, webhookSecret: REDACTED },
-      inboundEmail:
-        config.inboundEmail === null
+      telegram:
+        config.telegram === null
           ? null
-          : { ...config.inboundEmail, webhookSecret: REDACTED, accessCode: REDACTED },
+          : { ...config.telegram, botToken: REDACTED, webhookSecret: REDACTED },
+      access: config.access === null ? null : { ...config.access, code: REDACTED },
+      inboundEmail:
+        config.inboundEmail === null ? null : { ...config.inboundEmail, webhookSecret: REDACTED },
     }),
   });
 

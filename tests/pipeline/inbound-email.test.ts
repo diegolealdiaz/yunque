@@ -9,7 +9,8 @@ import {
   inboundPayload,
   loadInboundAddress,
   processInboundEmail,
-  requestInboundAddress,
+  ensureInboundAddress,
+  grantDemoAccess,
   type InboundEmail,
 } from "@/src/usecases";
 
@@ -82,31 +83,42 @@ const rejectionEvents = async () =>
   );
 
 describe("direcciones de correo (P-131)", () => {
-  it("un código equivocado no crea nada; el correcto da una dirección que no se adivina", async () => {
+  it("un código equivocado no da acceso; con acceso, una dirección que no se adivina", async () => {
     const t = await openPipeline();
     try {
-      const request = (code: string, now: Date) =>
-        requestInboundAddress(t.t.db, {
+      const grant = (code: string) =>
+        grantDemoAccess(t.t.db, {
           organizationId: t.organizationId,
           code,
           expectedCode: CODE,
-          base: BASE,
           ttlHours: 72,
-          now,
-          newToken: newInboundToken,
+          now: NOW,
+          newId: t.t.newId,
         });
-      await expect(request("otro-codigo-cualquiera", NOW)).rejects.toMatchObject({
+      await expect(grant("otro-codigo-cualquiera")).rejects.toMatchObject({
         code: "not_authorized",
       });
       expect(await loadInboundAddress(t.t.db, t.organizationId, BASE, NOW)).toBeNull();
 
-      const view = await request(` ${CODE} `, NOW);
+      const access = await grant(` ${CODE} `);
+      expect(access.expiresAt).toBe("2026-10-20T12:00:00.000Z");
+      // Escribir el código otra vez no extiende el acceso vigente.
+      expect((await grant(CODE)).expiresAt).toBe(access.expiresAt);
+      const request = () =>
+        ensureInboundAddress(t.t.db, {
+          organizationId: t.organizationId,
+          base: BASE,
+          until: access.expiresAt,
+          now: NOW,
+          newToken: newInboundToken,
+        });
+      const view = await request();
       const token = view.address.slice(view.address.indexOf("+") + 1, view.address.indexOf("@"));
       expect(InboundTokenSchema.safeParse(token).success).toBe(true);
       expect(view.address).toBe(inboundAddressFor(BASE, token));
       expect(view.expiresAt).toBe("2026-10-20T12:00:00.000Z");
       // Pedirla otra vez, incluso a la vez, devuelve la misma mientras siga vigente.
-      const again = await Promise.all([1, 2, 3].map(() => request(CODE, NOW)));
+      const again = await Promise.all([1, 2, 3].map(() => request()));
       expect(again.every((v) => v.address === view.address)).toBe(true);
       expect(new Set(Array.from({ length: 50 }, newInboundToken)).size).toBe(50);
     } finally {

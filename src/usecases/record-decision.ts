@@ -99,19 +99,25 @@ export function approvalExpiry(verdict: Verdict, now: Date): string | null {
 }
 
 /**
- * Avisos de una decisión: siempre en pantalla, y también por Telegram si la factura llegó
- * por ahí. La llave por decisión y canal hace que encolar dos veces deje un solo aviso.
+ * Avisos de una decisión: siempre en pantalla, y también por Telegram (D24) cuando la
+ * factura llegó por ahí, o cuando la empresa tiene un chat conectado y la decisión le
+ * importa a una persona: una escalada, una frenada o una aprobación. Un pago que el agente
+ * hizo solo dentro de las reglas no interrumpe a nadie. La llave por decisión y canal hace
+ * que encolar dos veces deje un solo aviso.
  */
 export function notificationsFor(input: {
   readonly decision: Decision;
   readonly invoice: Invoice;
   readonly channel: Channel;
+  /** La empresa tiene al menos un chat de Telegram conectado. */
+  readonly telegramLinked: boolean;
   readonly newId: UlidGenerator;
   readonly nowIso: string;
 }): Notification[] {
   const { decision, invoice } = input;
-  const channels =
-    input.channel === "telegram" ? (["pantalla", "telegram"] as const) : (["pantalla"] as const);
+  const matters = decision.verdict !== "pagar" || decision.actor.kind === "humano";
+  const telegram = input.channel === "telegram" || (input.telegramLinked && matters);
+  const channels = telegram ? (["pantalla", "telegram"] as const) : (["pantalla"] as const);
   return channels.map((channel) => ({
     id: input.newId(),
     organization_id: decision.organization_id,

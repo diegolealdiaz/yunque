@@ -17,7 +17,9 @@ import { CHANNEL_LABEL, STATUS_LABEL, VERDICT_LABEL } from "@/src/ui/labels";
 import {
   LIST_LIMIT,
   currentBusinessDate,
+  activeAccess,
   loadInboundAddress,
+  loadTelegramStatus,
   loadInvoiceList,
 } from "@/src/usecases";
 
@@ -30,7 +32,7 @@ import { VerdictChip } from "../../_components/verdict-chip";
 import { appContext } from "../../_data/context";
 
 import { DeliveryRunner } from "./delivery-runner";
-import { EmailPanel } from "./email-panel";
+import { JudgePanel, type JudgeAccess } from "./judge-panel";
 import { UploadPanel } from "./upload-panel";
 
 export const metadata = { title: "Facturas · Yunque" };
@@ -38,8 +40,8 @@ export const metadata = { title: "Facturas · Yunque" };
 /**
  * Facturas (docs/interfaz.md §5.3): el archivo completo, con filtros por veredicto, estado,
  * canal y texto, y los caminos de entrada de la pantalla: subir archivos y, en la demo,
- * procesar las facturas de ejemplo, revisar el correo de ejemplo y recibir correo real
- * (D23). Los filtros viven en la URL, así un enlace (como "Ver las 15" de Pendientes) abre
+ * procesar las facturas de ejemplo, revisar el correo de ejemplo y probar con una factura
+ * propia por correo o Telegram (D23, D24). Los filtros viven en la URL, así un enlace (como "Ver las 15" de Pendientes) abre
  * la lista ya filtrada.
  */
 
@@ -106,7 +108,9 @@ export default async function FacturasPage({
     now,
   );
   const inbound = config.demo.enabled ? config.inboundEmail : null;
-  const [rows, batch, mailbox, emailAddress] = await Promise.all([
+  const telegram = config.demo.enabled ? config.telegram : null;
+  const judges = config.demo.enabled && config.access !== null;
+  const [rows, batch, mailbox, grant, emailAddress, telegramStatus] = await Promise.all([
     loadInvoiceList(
       db,
       organization.id,
@@ -120,8 +124,20 @@ export default async function FacturasPage({
     ),
     config.demo.enabled ? loadBatchCases() : Promise.resolve([]),
     config.demo.enabled ? loadMailbox() : Promise.resolve([]),
+    judges ? activeAccess(db, organization.id, now) : null,
     inbound ? loadInboundAddress(db, organization.id, inbound.address, now) : null,
+    telegram ? loadTelegramStatus(db, organization.id) : null,
   ]);
+  const judgeAccess: JudgeAccess = {
+    expires: grant ? instant(grant.expiresAt, config.displayTimeZone) : null,
+    email: inbound
+      ? { address: emailAddress?.address ?? null, maxPerDay: inbound.maxPerAddressPerDay }
+      : null,
+    telegram:
+      telegram && telegramStatus
+        ? { chats: telegramStatus.chats, maxPerDay: telegram.maxPerChatPerDay }
+        : null,
+  };
   const filtered = Boolean(filters.veredicto || filters.estado || filters.canal || filters.q);
 
   return (
@@ -139,15 +155,9 @@ export default async function FacturasPage({
             <ActionDialog label="Subir factura">
               <UploadPanel maxBytes={config.demo.maxUploadBytes} />
             </ActionDialog>
-            {inbound ? (
-              <ActionDialog label="Recibir por correo">
-                <EmailPanel
-                  address={emailAddress?.address ?? null}
-                  expires={
-                    emailAddress ? instant(emailAddress.expiresAt, config.displayTimeZone) : null
-                  }
-                  maxPerDay={inbound.maxPerAddressPerDay}
-                />
+            {judges && (inbound || telegram) ? (
+              <ActionDialog label="Probar con tu factura">
+                <JudgePanel access={judgeAccess} />
               </ActionDialog>
             ) : null}
             {config.demo.enabled ? (
@@ -176,7 +186,10 @@ export default async function FacturasPage({
       {config.demo.enabled ? (
         <p className="-mt-2 text-[12px] text-ink-3">
           Demo: los botones de ejemplo simulan las facturas que llegan en una quincena por PDF,
-          foto, correo y chat.{inbound ? " Con «Recibir por correo» puedes enviar una real." : ""}
+          foto, correo y chat.
+          {judges && (inbound || telegram)
+            ? " Con «Probar con tu factura» puedes enviar una real."
+            : ""}
         </p>
       ) : null}
 

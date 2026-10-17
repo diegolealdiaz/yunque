@@ -21,7 +21,7 @@ import {
   type Ulid,
 } from "@/src/domain";
 import { MIME_BY_TYPE, sniffType, type ChannelPayload } from "@/src/extraction";
-import { inboundAddressFor, sameSecret } from "@/src/session";
+import { inboundAddressFor } from "@/src/session";
 
 import { UseCaseError } from "./errors";
 import { assertWithinDailyLimits, type DailyLimits } from "./invoice-list";
@@ -39,8 +39,8 @@ import {
  *               desconocido: se ignora            vencida o tope: rechazado
  *
  * Capas de protección:
- * 1. Solo quien tiene el código de acceso obtiene una dirección (`requestInboundAddress`).
- * 2. La dirección no se adivina (60 bits de azar) y vence sola.
+ * 1. Solo quien tiene el acceso de jurado (`demo-access.ts`) obtiene una dirección.
+ * 2. La dirección no se adivina (60 bits de azar) y vence con el acceso.
  * 3. Topes por dirección y de toda la demo, contados y reservados en la misma transacción
  *    que escribe el recibo: una ráfaga de correos no pasa del tope.
  * 4. El tope de gasto del proveedor del modelo, como techo final (fuera del código).
@@ -91,8 +91,6 @@ export type InboundAdmission =
   /** Admitido: ocupa cupo del día y se procesa con esta llave de recepción. */
   | { readonly kind: "accepted"; readonly organizationId: Ulid; readonly receiptKey: ReceiptKey };
 
-const HOUR_MS = 3_600_000;
-
 /**
  * Recibos rechazados que una empresa acumula por día. Pasado este número, un correo
  * rechazado no escribe nada: quien conoce una dirección vencida no puede llenar la base.
@@ -113,42 +111,35 @@ export async function loadInboundAddress(
 }
 
 /**
- * Entrega una dirección a quien da el código de acceso: la vigente si ya tiene una, o una
- * nueva que vence en `ttlHours`. Un código equivocado no crea nada. Leer y crear van en una
- * transacción: dos pestañas a la vez no dejan dos direcciones vigentes.
+ * La dirección de la empresa mientras dure su acceso de jurado: la vigente si ya tiene una,
+ * o una nueva que vence con el acceso. Leer y crear van en una transacción: dos pestañas a
+ * la vez no dejan dos direcciones vigentes.
  */
-export async function requestInboundAddress(
+export async function ensureInboundAddress(
   db: Database,
   input: {
     readonly organizationId: Ulid;
-    readonly code: string;
-    readonly expectedCode: string;
     readonly base: string;
-    readonly ttlHours: number;
+    /** Vencimiento del acceso de jurado: la dirección no dura más que él. */
+    readonly until: string;
     readonly now: Date;
     readonly newToken: () => string;
   },
 ): Promise<InboundAddressView> {
-  if (!sameSecret(input.code.trim(), input.expectedCode)) {
-    throw new UseCaseError("not_authorized", "El código de acceso no es válido", {
-      action: "Escribe el código tal como lo recibiste",
-      severity: "warning",
-    });
-  }
   const now = input.now.toISOString();
-  const token = await withWriteTransaction(db, async (tx) => {
+  const address = await withWriteTransaction(db, async (tx) => {
     const active = await findActiveInboundAddress(tx, input.organizationId, now);
     if (active) return active;
     const created = {
       token: input.newToken(),
       organizationId: input.organizationId,
       createdAt: now,
-      expiresAt: new Date(input.now.getTime() + input.ttlHours * HOUR_MS).toISOString(),
+      expiresAt: input.until,
     };
     await insertInboundAddress(tx, created);
     return created;
   });
-  return { address: inboundAddressFor(input.base, token.token), expiresAt: token.expiresAt };
+  return { address: inboundAddressFor(input.base, address.token), expiresAt: address.expiresAt };
 }
 
 /**

@@ -5,6 +5,7 @@
 export * from "./audit-log";
 export * from "./business-day";
 export * from "./correct-invoice";
+export * from "./demo-access";
 export type { DecideDeps } from "./decide";
 export * from "./errors";
 export * from "./health";
@@ -20,6 +21,7 @@ export * from "./policy";
 export * from "./policy-view";
 export * from "./process-invoice";
 export * from "./resolve-escalation";
+export * from "./telegram";
 export { APPROVAL_TTL_DAYS } from "./record-decision";
 // La regla que decidió una decisión: la pantalla la nombra al contar cómo quedó.
 export { decidingFinding } from "@/src/engine";
