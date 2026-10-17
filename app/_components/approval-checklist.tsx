@@ -9,27 +9,33 @@ import type { ChecklistItem } from "@/src/domain";
  * lo que la persona verificó; "Aprobar" se habilita solo con todos marcados y no tiene
  * atajo de teclado a propósito. Debajo se muestra en claro lo que se firma.
  *
- * La verificación real (firma del contenido exacto, primera resolución gana) vive en el
- * servidor; este componente solo refleja lo que el servidor decidirá.
+ * Es un formulario: cada casilla marcada viaja como `check` con su código, junto a los
+ * campos ocultos (el contenido firmado por el servidor). La verificación real vive en el
+ * servidor; esta pantalla solo refleja lo que el servidor decidirá.
  */
 export function ApprovalChecklist({
   items,
   signature,
-  onApprove = null,
+  formAction = null,
+  hiddenFields = {},
   disabledReason = null,
+  pending = false,
 }: {
   readonly items: readonly ChecklistItem[];
   /** Lo que se firma, en claro: "doc 3f9a…, política v4, 4.800.000 COP a ****4471". */
   readonly signature: string;
-  readonly onApprove?: ((checkedCodes: readonly string[]) => void) | null;
-  /** Si no se puede aprobar por otra razón (sin rol, ya resuelta), se dice por qué. */
+  /** Acción del servidor que recibe el formulario; sin ella, el checklist es de muestra. */
+  readonly formAction?: ((formData: FormData) => void) | null;
+  readonly hiddenFields?: Readonly<Record<string, string>>;
+  /** Si no se puede aprobar por otra razón (sin aprobador, ya resuelta), se dice por qué. */
   readonly disabledReason?: string | null;
+  readonly pending?: boolean;
 }) {
   const [checked, setChecked] = useState<ReadonlySet<string>>(
     () => new Set(items.filter((i) => i.checked).map((i) => i.code)),
   );
   const complete = items.every((item) => checked.has(item.code));
-  const pending = items.length - checked.size;
+  const missing = items.length - checked.size;
 
   const toggle = (code: string) =>
     setChecked((current) => {
@@ -40,41 +46,46 @@ export function ApprovalChecklist({
     });
 
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-[13px] font-medium text-ink">Para aprobar, marca:</legend>
-      <ul className="space-y-2">
+    <form action={formAction ?? undefined} className="space-y-3">
+      {Object.entries(hiddenFields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+      <fieldset className="space-y-2">
+        <legend className="mb-2 text-[13px] font-medium text-ink">Para aprobar, marca:</legend>
         {items.map((item) => (
-          <li key={item.code}>
-            <label className="flex cursor-pointer items-start gap-2 text-[13px] text-ink">
-              <input
-                type="checkbox"
-                checked={checked.has(item.code)}
-                onChange={() => toggle(item.code)}
-                className="mt-0.5 size-4 shrink-0 accent-[var(--ink)]"
-              />
-              <span>{item.text}</span>
-            </label>
-          </li>
+          <label
+            key={item.code}
+            className="flex cursor-pointer items-start gap-2 text-[13px] text-ink"
+          >
+            <input
+              type="checkbox"
+              name="check"
+              value={item.code}
+              checked={checked.has(item.code)}
+              onChange={() => toggle(item.code)}
+              className="mt-0.5 size-4 shrink-0 accent-[var(--ink)]"
+            />
+            <span>{item.text}</span>
+          </label>
         ))}
-      </ul>
+      </fieldset>
       <button
-        type="button"
-        disabled={!complete || disabledReason !== null}
+        type="submit"
+        disabled={!complete || disabledReason !== null || pending || formAction === null}
         aria-describedby="approval-status"
-        onClick={() => onApprove?.([...checked])}
         className="h-9 w-full rounded-[var(--radius-control)] bg-ink px-4 text-[13px] font-medium text-surface disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-3"
       >
-        Aprobar
+        {pending ? "Aprobando…" : "Aprobar"}
       </button>
       <p id="approval-status" className="text-[12px] text-ink-3">
         {disabledReason ??
           (complete
             ? "Todo verificado. Al aprobar quedan registrados tu nombre y la hora."
-            : `Faltan ${String(pending)} ${pending === 1 ? "punto" : "puntos"} por marcar.`)}
+            : `Faltan ${String(missing)} ${missing === 1 ? "punto" : "puntos"} por marcar.`)}
       </p>
       <p className="rounded-[var(--radius-control)] bg-surface-sunken px-2 py-1.5 font-mono text-[12px] text-ink-2">
         Firma: {signature}
       </p>
-    </fieldset>
+    </form>
   );
 }

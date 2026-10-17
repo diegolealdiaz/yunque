@@ -1,20 +1,23 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { DbError } from "@/src/db/errors";
 import { formatMoney, isSupportedCurrency, money } from "@/src/domain";
-import { calendarDate, usdMicros } from "@/src/ui/format";
+import { getCurrentPolicy } from "@/src/db/repositories";
+import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
+import { calendarDate, instant, usdMicros } from "@/src/ui/format";
 import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
 import { timelineLines } from "@/src/ui/timeline";
 import {
+  approvalOffer,
   loadInvoiceDetail,
   type DetailField,
   type InvoiceDetail,
   type RuleTrace,
 } from "@/src/usecases";
 
-import { ApprovalChecklist } from "../../../_components/approval-checklist";
 import { ConfidenceDot } from "../../../_components/confidence-dot";
 import {
   DocumentViewer,
@@ -26,6 +29,8 @@ import { Timeline } from "../../../_components/timeline";
 import { VerdictChip } from "../../../_components/verdict-chip";
 import { appContext } from "../../../_data/context";
 import { fileStorage } from "../../../_data/storage";
+
+import { ResolutionPanel } from "./resolution-panel";
 
 export const metadata = { title: "Factura · Yunque" };
 
@@ -87,25 +92,42 @@ function RuleRow({ rule }: { readonly rule: RuleTrace }) {
   );
 }
 
-function DecisionPanel({ detail }: { readonly detail: InvoiceDetail }) {
-  const { decision, invoice } = detail;
+type Resolution = Parameters<typeof ResolutionPanel>[0];
+
+function DecisionPanel({
+  detail,
+  resolution,
+}: {
+  readonly detail: InvoiceDetail;
+  readonly resolution: Resolution | null;
+}) {
+  const { decision, invoice, approval } = detail;
   if (!decision) {
     return <p className="text-[13px] text-ink-2">La factura todavía no tiene decisión.</p>;
   }
-  if (invoice.status === "esperando_aprobacion") {
+  if (invoice.status === "esperando_aprobacion" && resolution) {
+    return <ResolutionPanel {...resolution} />;
+  }
+  if (invoice.status === "rechazada" && approval) {
     return (
-      <ApprovalChecklist
-        items={detail.checklist}
-        signature={detail.signatureSummary ?? "sin contenido para firmar"}
-        disabledReason="La aprobación firmada se habilita en el siguiente paso del producto."
-      />
+      <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
+        <p className="font-medium text-hold">
+          Rechazada por {approval.approver} · {instant(approval.created_at)}
+        </p>
+        <p className="text-ink-2">Motivo: {approval.reason}</p>
+        <p className="text-ink-3">El rechazo es final: la factura no se pagará.</p>
+      </div>
     );
   }
   if (decision.verdict === "pagar") {
     const order = decision.payment_order;
     return (
       <div className="space-y-2 rounded-[var(--radius-card)] border border-line bg-surface p-4 text-[13px]">
-        <p className="font-medium text-pay">Pagada por el agente dentro de las reglas.</p>
+        <p className="font-medium text-pay">
+          {decision.actor.kind === "humano"
+            ? `Aprobada por ${decision.actor.name} · ${instant(decision.decided_at)}`
+            : "Pagada por el agente dentro de las reglas."}
+        </p>
         {order ? (
           <dl className="space-y-1">
             <div className="flex justify-between gap-2">
@@ -164,6 +186,31 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     },
   );
   const { invoice, decision } = detail;
+  const { config } = await appContext();
+  const offer =
+    invoice.status === "esperando_aprobacion"
+      ? await approvalOffer(
+          { db, signingSecret: config.secrets.approvalSigning, now: () => new Date() },
+          organization.id,
+          invoice.id,
+        )
+      : null;
+  const policy = offer ? await getCurrentPolicy(db, organization.id) : null;
+  const resolution: Resolution | null = offer
+    ? {
+        invoiceId: invoice.id,
+        payload: JSON.stringify(offer.payload),
+        signature: offer.signature,
+        signatureSummary: detail.signatureSummary ?? "sin contenido para firmar",
+        checklist: offer.checklist,
+        blocked: offer.blocked,
+        approvers: policy?.content.protected.approvers ?? [],
+        approver: verifyApprover(
+          (await cookies()).get(APPROVER_COOKIE)?.value,
+          config.secrets.session,
+        ),
+      }
+    : null;
   const currency =
     detail.extraction?.extraction.kind === "invoice"
       ? detail.extraction.extraction.fields.currency.value
@@ -255,7 +302,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             </div>
 
             <div>
-              <SubTitle>Reglas</SubTitle>
+              <SubTitle>
+                {detail.rulesFromEscalation ? "Reglas de la escalada aprobada" : "Reglas"}
+              </SubTitle>
               <ul className="mt-1">
                 {failed.map((rule) => (
                   <RuleRow key={rule.code} rule={rule} />
@@ -293,7 +342,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           </Column>
 
           <Column title="Tu decisión">
-            <DecisionPanel detail={detail} />
+            <DecisionPanel detail={detail} resolution={resolution} />
             <div>
               <SubTitle>Línea de tiempo</SubTitle>
               <div className="mt-2">

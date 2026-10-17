@@ -92,12 +92,14 @@ describe("componentes base (P-100, P-110)", () => {
       />,
     );
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Aprobar<\/button>/);
+    expect(html).toContain('name="check"');
     expect(html).toContain("Faltan 1 punto por marcar");
     expect(html).toContain("Firma: doc 3f9a…, política v4");
     const done = renderToStaticMarkup(
       <ApprovalChecklist
         items={[{ code: "general", text: "Revisé el documento", checked: true }]}
         signature="x"
+        formAction={() => undefined}
       />,
     );
     expect(done).not.toMatch(/disabled=""[^>]*>Aprobar/);

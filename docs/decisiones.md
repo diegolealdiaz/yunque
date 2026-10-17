@@ -95,6 +95,16 @@
 
 **Consecuencia.** Las pantallas se renderizan por petición, nunca al compilar. Queda para el despliegue (paso 29) limitar cuántas empresas se siembran por día: hoy cada visita nueva sin cookie crea una.
 
+## D16. La aprobación se verifica en el servidor; en la demo, el aprobador se elige
+
+**Contexto.** Aprobar es lo único que convierte una escalada en pago. La pantalla puede ser manipulada: un formulario puede llegar con otro monto, otra cuenta o en nombre de otra persona. La demo no tiene inicio de sesión.
+
+**Decisión.** El servidor firma con HMAC (`APPROVAL_SIGNING_SECRET`) el contenido exacto que la persona revisa: documento, monto, beneficiario, cuenta y versión de política. Al aprobar comprueba la firma y además recalcula ese contenido desde la base; cualquier diferencia invalida la aprobación. Exige el checklist completo, revalida antes del efecto (el mismo cobro no se pagó por otra vía, la política sigue vigente, presupuesto y saldo alcanzan con `UPDATE` condicionales) y escribe todo en una transacción en la que la primera resolución gana. Aprobar crea una decisión nueva `pagar` con actor humano que apunta a la escalada; rechazar exige motivo y es final. Un beneficiario fuera de la lista no se aprueba: primero se da de alta.
+
+En la demo, quién aprueba es una persona elegida de la lista de aprobadores de la política (clave protegida), guardada en una cookie firmada con otro secreto (`SESSION_SECRET`) y verificada contra la política en cada acción. No es autenticación: en producto la reemplaza el inicio de sesión, sin cambiar el caso de uso.
+
+**Consecuencia.** Un formulario alterado en el navegador recibe "el contenido a aprobar no tiene una firma válida", y una revisión vieja recibe "la factura cambió desde que la revisaste".
+
 ## Alternativas consideradas y descartadas
 
 | Alternativa | Qué sería | Por qué no |

@@ -2,7 +2,9 @@ import { z } from "zod";
 
 import type { Database } from "@/src/db/client";
 import {
+  findApprovalByDecision,
   getCurrentPolicy,
+  getDecision,
   getInvoice,
   getLatestDecision,
   getLatestExtraction,
@@ -16,6 +18,7 @@ import {
   formatMoney,
   isPresent,
   maskAccount,
+  type Approval,
   type AuditEvent,
   type ChecklistItem,
   type Decision,
@@ -70,6 +73,8 @@ export type TimelineItem = {
 export type InvoiceDetail = {
   readonly invoice: Invoice;
   readonly decision: Decision | null;
+  /** Resolución humana de la escalada (aprobación o rechazo), si la hubo. */
+  readonly approval: Approval | null;
   readonly policyVersion: number | null;
   /** Hay una versión de política más nueva que la de la decisión: se puede reevaluar. */
   readonly newerPolicy: boolean;
@@ -82,6 +87,11 @@ export type InvoiceDetail = {
   readonly fields: readonly DetailField[];
   /** Reglas en orden de lectura: primero las que fallaron, luego las demás. */
   readonly rules: readonly RuleTrace[];
+  /**
+   * La traza viene de la escalada que una persona resolvió, no de la decisión vigente: una
+   * aprobación no vuelve a correr el motor.
+   */
+  readonly rulesFromEscalation: boolean;
   readonly timeline: readonly TimelineItem[];
   readonly checklist: readonly ChecklistItem[];
   /** Lo que firmará la aprobación, en claro. */
@@ -210,13 +220,22 @@ export async function loadInvoiceDetail(
     listEvents(db, organizationId, { invoiceId, limit: 200 }),
     getCurrentPolicy(db, organizationId),
   ]);
-  const [policy, vendor, fields, pages] = await Promise.all([
+  const [policy, vendor, fields, pages, approval] = await Promise.all([
     decision ? getPolicyVersion(db, organizationId, decision.policy_version_id) : null,
     decision?.vendor_id ? getVendor(db, organizationId, decision.vendor_id) : null,
     fieldsWithBoxes(storage, invoice, stored?.record ?? null),
     pageSizes(storage, invoice),
+    // La aprobación se registra sobre la escalada; tras aprobar, la vigente es la que la sigue.
+    decision
+      ? findApprovalByDecision(db, organizationId, decision.previous_decision_id ?? decision.id)
+      : null,
   ]);
   const extraction = stored?.record ?? null;
+  // Una decisión humana (aprobación) no tiene traza propia: se muestra la de la escalada.
+  const traced =
+    decision?.actor.kind === "humano" && decision.previous_decision_id
+      ? await getDecision(db, organizationId, decision.previous_decision_id)
+      : decision;
   const readName =
     extraction?.extraction.kind === "invoice"
       ? extraction.extraction.fields.payee_name.value
@@ -226,6 +245,7 @@ export async function loadInvoiceDetail(
   return {
     invoice,
     decision,
+    approval,
     policyVersion: policy?.version ?? null,
     newerPolicy: policy !== null && current !== null && current.version > policy.version,
     minConfidence: (policy ?? current)?.content.rules.field_low_confidence.min_confidence ?? 0.85,
@@ -233,7 +253,8 @@ export async function loadInvoiceDetail(
     payeeName: vendor?.name ?? readName,
     vendor,
     fields,
-    rules: decision ? ruleTrace(decision, events) : [],
+    rules: traced ? ruleTrace(traced, events) : [],
+    rulesFromEscalation: traced !== decision,
     timeline: [...events].reverse().map((e) => ({
       id: e.id,
       at: e.occurred_at,
