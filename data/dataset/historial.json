@@ -1,0 +1,218 @@
+[
+  {
+    "vendor_key": "nube_andina",
+    "invoice_number": "F-2270",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 480000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "nube_andina",
+    "invoice_number": "F-2275",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 480000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "nube_andina",
+    "invoice_number": "F-2280",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 480000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "camila_rojas",
+    "invoice_number": "CR-112",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 760000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "camila_rojas",
+    "invoice_number": "CR-114",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 741000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "camila_rojas",
+    "invoice_number": "CR-116",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 760000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "mateo_hernandez",
+    "invoice_number": "0451",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "MXN",
+    "amount": 7800000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "mateo_hernandez",
+    "invoice_number": "0453",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "MXN",
+    "amount": 7475000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "mateo_hernandez",
+    "invoice_number": "0455",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "MXN",
+    "amount": 7800000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "lucia_ferreyra",
+    "invoice_number": "2026-07-A",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "ARS",
+    "amount": 450000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "lucia_ferreyra",
+    "invoice_number": "2026-08-A",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "ARS",
+    "amount": 450000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "lucia_ferreyra",
+    "invoice_number": "2026-09-A",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "ARS",
+    "amount": 432000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "joao_lima",
+    "invoice_number": "NF-1145",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "BRL",
+    "amount": 850000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "joao_lima",
+    "invoice_number": "NF-1147",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "BRL",
+    "amount": 850000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "joao_lima",
+    "invoice_number": "NF-1149",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "BRL",
+    "amount": 850000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "stackline",
+    "invoice_number": "INV-10350",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "USD",
+    "amount": 249000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "stackline",
+    "invoice_number": "INV-10358",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "USD",
+    "amount": 249000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "stackline",
+    "invoice_number": "INV-10366",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "USD",
+    "amount": 249000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "andes_hardware",
+    "invoice_number": "AH-5510",
+    "received_at": "2026-07-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 1800000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "andes_hardware",
+    "invoice_number": "AH-5520",
+    "received_at": "2026-08-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 1700000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "andes_hardware",
+    "invoice_number": "AH-5530",
+    "received_at": "2026-09-20T14:00:00.000Z",
+    "currency": "COP",
+    "amount": 1900000000,
+    "verdict": "pagar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "andes_hardware",
+    "invoice_number": "AH-5535",
+    "received_at": "2026-09-28T16:00:00.000Z",
+    "currency": "COP",
+    "amount": 2600000000,
+    "verdict": "escalar",
+    "resolution": "aprobada"
+  },
+  {
+    "vendor_key": "stackline",
+    "invoice_number": "INV-10369",
+    "received_at": "2026-09-30T10:00:00.000Z",
+    "currency": "USD",
+    "amount": 249000,
+    "verdict": "frenar",
+    "resolution": null
+  },
+  {
+    "vendor_key": "datenwerk",
+    "invoice_number": "RE-2026-097",
+    "received_at": "2026-09-15T09:00:00.000Z",
+    "currency": "EUR",
+    "amount": 380000,
+    "verdict": "pagar",
+    "resolution": null
+  }
+]

@@ -1,0 +1,176 @@
+{
+  "id": "invoice_en",
+  "description": "Invoice en inglés para contratistas y SaaS: hours, PO, wire details",
+  "locale": "en-US",
+  "page": { "width": 216, "height": 279 },
+  "labels": [
+    { "text": "INVOICE", "x": 150, "y": 18, "width": 50, "height": 12, "fontSize": 22 },
+    {
+      "text": "Bill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801",
+      "x": 20,
+      "y": 62,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9
+    },
+    {
+      "text": "Description",
+      "x": 20,
+      "y": 88,
+      "width": 120,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    },
+    {
+      "text": "Amount",
+      "x": 150,
+      "y": 88,
+      "width": 40,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    },
+    { "text": "Payment details", "x": 20, "y": 170, "width": 80, "height": 6, "fontSize": 10 },
+    {
+      "text": "Thank you for your business.",
+      "x": 20,
+      "y": 205,
+      "width": 170,
+      "height": 6,
+      "fontSize": 8,
+      "color": "#666666"
+    }
+  ],
+  "fields": [
+    { "name": "payee_name", "x": 20, "y": 20, "width": 120, "height": 8, "fontSize": 13 },
+    {
+      "name": "payee_tax_id",
+      "x": 20,
+      "y": 29,
+      "width": 120,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Tax ID "
+    },
+    {
+      "name": "invoice_number",
+      "x": 150,
+      "y": 34,
+      "width": 50,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "Invoice # "
+    },
+    {
+      "name": "issue_date",
+      "x": 150,
+      "y": 41,
+      "width": 50,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Date: "
+    },
+    {
+      "name": "due_date",
+      "x": 150,
+      "y": 48,
+      "width": 50,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Due: "
+    },
+    {
+      "name": "customer",
+      "x": 20,
+      "y": 48,
+      "width": 120,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Customer: "
+    },
+    { "name": "description", "x": 20, "y": 96, "width": 125, "height": 12, "fontSize": 10 },
+    {
+      "name": "hours",
+      "x": 20,
+      "y": 110,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Hours: "
+    },
+    {
+      "name": "purchase_order",
+      "x": 20,
+      "y": 117,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "PO: "
+    },
+    {
+      "name": "subtotal",
+      "x": 120,
+      "y": 130,
+      "width": 80,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "Subtotal: "
+    },
+    {
+      "name": "taxes",
+      "x": 120,
+      "y": 137,
+      "width": 80,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "Tax: "
+    },
+    {
+      "name": "total",
+      "x": 120,
+      "y": 146,
+      "width": 80,
+      "height": 8,
+      "fontSize": 13,
+      "prefix": "TOTAL DUE: "
+    },
+    {
+      "name": "currency",
+      "x": 120,
+      "y": 155,
+      "width": 80,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Currency: "
+    },
+    {
+      "name": "total_in_words",
+      "x": 20,
+      "y": 161,
+      "width": 180,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Amount in words: "
+    },
+    {
+      "name": "bank_holder",
+      "x": 20,
+      "y": 178,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Beneficiary: "
+    },
+    {
+      "name": "bank_account",
+      "x": 20,
+      "y": 185,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Account: "
+    },
+    { "name": "extra", "x": 20, "y": 215, "width": 180, "height": 20, "fontSize": 9 }
+  ]
+}

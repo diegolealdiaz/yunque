@@ -271,7 +271,7 @@ export function defaultPolicy(input: {
 }): Policy {
   const rules: RuleSettings = {
     payee_not_allowed: { on_fail: "escalar" },
-    vendor_velocity: { on_fail: "escalar", max_invoices: 3, window_days: 7 },
+    vendor_velocity: { on_fail: "escalar", max_invoices: 5, window_days: 7 },
     budget_exceeded: { on_fail: "frenar" },
     duplicate_invoice: { on_fail: "frenar", window_days: 90 },
     amount_mismatch: { on_fail: "escalar", tolerance_bp: 500 },
@@ -291,7 +291,7 @@ export function defaultPolicy(input: {
         amount: Math.min(500_000, input.systemHardCapUsdCents),
         currency: "USD",
       },
-      budget: { amount: 5_000_000, currency: "USD", period: "month" },
+      budget: { amount: 10_000_000, currency: "USD", period: "month" },
     },
     allowed_payees: [],
     rules,

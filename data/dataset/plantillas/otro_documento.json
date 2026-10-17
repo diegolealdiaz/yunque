@@ -1,0 +1,89 @@
+{
+  "id": "otro_documento",
+  "description": "Comprobante de nómina: un documento que no es factura",
+  "locale": "es-CO",
+  "page": { "width": 210, "height": 297 },
+  "labels": [
+    {
+      "text": "COMPROBANTE DE PAGO DE NÓMINA",
+      "x": 20,
+      "y": 18,
+      "width": 170,
+      "height": 10,
+      "fontSize": 16
+    },
+    {
+      "text": "Este documento certifica el pago de salario al empleado indicado.",
+      "x": 20,
+      "y": 60,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9
+    },
+    {
+      "text": "Empleado: Ana María Torres · Cargo: Analista de operaciones",
+      "x": 20,
+      "y": 70,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9
+    },
+    {
+      "text": "Devengado · Deducciones · Neto pagado",
+      "x": 20,
+      "y": 95,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    }
+  ],
+  "fields": [
+    {
+      "name": "payee_name",
+      "x": 20,
+      "y": 32,
+      "width": 170,
+      "height": 8,
+      "fontSize": 12,
+      "prefix": "Empleador: "
+    },
+    {
+      "name": "invoice_number",
+      "x": 130,
+      "y": 42,
+      "width": 60,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Comprobante "
+    },
+    {
+      "name": "issue_date",
+      "x": 20,
+      "y": 42,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Fecha de pago: "
+    },
+    { "name": "description", "x": 20, "y": 104, "width": 170, "height": 10, "fontSize": 10 },
+    {
+      "name": "total",
+      "x": 110,
+      "y": 120,
+      "width": 80,
+      "height": 8,
+      "fontSize": 12,
+      "prefix": "Neto pagado: "
+    },
+    {
+      "name": "currency",
+      "x": 110,
+      "y": 129,
+      "width": 80,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Moneda: "
+    }
+  ]
+}

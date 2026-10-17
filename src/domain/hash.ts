@@ -79,6 +79,11 @@ const COMBINING_MARKS = new RegExp(
   "g",
 );
 
+/** Quita las marcas diacríticas: "Peña" → "Pena". No cambia mayúsculas ni puntuación. */
+export function stripDiacritics(text: string): string {
+  return text.normalize("NFD").replace(COMBINING_MARKS, "");
+}
+
 /**
  * Normaliza texto para comparar: sin acentos, en mayúsculas, sin puntuación, un solo espacio.
  * Conserva letras y dígitos de cualquier alfabeto (latino, cirílico, griego, CJK). La
@@ -86,9 +91,7 @@ const COMBINING_MARKS = new RegExp(
  * "Nube Andina S.A.S." → "NUBE ANDINA SAS".
  */
 export function normalizeText(text: string): string {
-  return text
-    .normalize("NFD")
-    .replace(COMBINING_MARKS, "")
+  return stripDiacritics(text)
     .replace(/[^\p{L}\p{N}\s]+/gu, "")
     .replace(/\s+/g, " ")
     .trim()

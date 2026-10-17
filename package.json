@@ -21,11 +21,18 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run build",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "dataset": "tsx scripts/generate-dataset.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
     "@next/env": "^16.4.2",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
+    "@pdfme/common": "^6.2.6",
+    "@pdfme/generator": "^6.2.6",
+    "@pdfme/schemas": "^6.2.6",
+    "ai": "^7.0.143",
+    "clawpdf": "^0.3.2",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.2",
     "react": "19.3.0",

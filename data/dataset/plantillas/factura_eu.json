@@ -1,0 +1,175 @@
+{
+  "id": "factura_eu",
+  "description": "Rechnung europea: USt-IdNr., IBAN y BIC para SEPA",
+  "locale": "de-DE",
+  "page": { "width": 210, "height": 297 },
+  "labels": [
+    { "text": "RECHNUNG", "x": 20, "y": 18, "width": 100, "height": 10, "fontSize": 18 },
+    {
+      "text": "An: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801, USA",
+      "x": 20,
+      "y": 64,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9
+    },
+    {
+      "text": "Leistung",
+      "x": 20,
+      "y": 92,
+      "width": 120,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    },
+    {
+      "text": "Betrag",
+      "x": 150,
+      "y": 92,
+      "width": 40,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    },
+    {
+      "text": "Zahlbar per SEPA-Überweisung innerhalb von 30 Tagen.",
+      "x": 20,
+      "y": 200,
+      "width": 170,
+      "height": 6,
+      "fontSize": 8,
+      "color": "#666666"
+    }
+  ],
+  "fields": [
+    { "name": "payee_name", "x": 20, "y": 30, "width": 170, "height": 8, "fontSize": 13 },
+    {
+      "name": "payee_tax_id",
+      "x": 20,
+      "y": 39,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "USt-IdNr. "
+    },
+    {
+      "name": "invoice_number",
+      "x": 130,
+      "y": 30,
+      "width": 60,
+      "height": 7,
+      "fontSize": 11,
+      "prefix": "Rechnungsnr. "
+    },
+    {
+      "name": "issue_date",
+      "x": 130,
+      "y": 39,
+      "width": 60,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Datum: "
+    },
+    {
+      "name": "due_date",
+      "x": 130,
+      "y": 46,
+      "width": 60,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Fällig: "
+    },
+    {
+      "name": "customer",
+      "x": 20,
+      "y": 52,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Kunde: "
+    },
+    { "name": "description", "x": 20, "y": 100, "width": 125, "height": 12, "fontSize": 10 },
+    {
+      "name": "hours",
+      "x": 20,
+      "y": 114,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Stunden: "
+    },
+    {
+      "name": "purchase_order",
+      "x": 20,
+      "y": 121,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Bestellnummer: "
+    },
+    {
+      "name": "subtotal",
+      "x": 110,
+      "y": 136,
+      "width": 80,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "Netto: "
+    },
+    {
+      "name": "taxes",
+      "x": 110,
+      "y": 143,
+      "width": 80,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "USt. 0 %: "
+    },
+    {
+      "name": "total",
+      "x": 110,
+      "y": 152,
+      "width": 80,
+      "height": 8,
+      "fontSize": 13,
+      "prefix": "Gesamtbetrag: "
+    },
+    {
+      "name": "currency",
+      "x": 110,
+      "y": 161,
+      "width": 80,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Währung: "
+    },
+    {
+      "name": "total_in_words",
+      "x": 20,
+      "y": 168,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "In Worten: "
+    },
+    {
+      "name": "bank_holder",
+      "x": 20,
+      "y": 182,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Kontoinhaber: "
+    },
+    {
+      "name": "bank_account",
+      "x": 20,
+      "y": 189,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "IBAN: "
+    },
+    { "name": "extra", "x": 20, "y": 212, "width": 170, "height": 20, "fontSize": 9 }
+  ]
+}

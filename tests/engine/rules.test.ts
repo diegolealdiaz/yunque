@@ -127,19 +127,20 @@ describe("matriz de fronteras (P-20)", () => {
   });
 
   describe("vendor_velocity", () => {
+    // Política de fábrica: máximo 5 en 7 días.
     const recent = (n: number) => Array.from({ length: n }, (_, i) => priorPaid(i + 1));
     it("N−1 facturas en la ventana no disparan; N y N+1 sí; fuera de la ventana no cuentan", () => {
-      expect(codes(baseContext({ prior: recent(2) }))).toEqual([]);
-      expect(codes(baseContext({ prior: recent(3) }))).toEqual(["vendor_velocity"]);
-      expect(codes(baseContext({ prior: recent(4) }))).toEqual(["vendor_velocity"]);
-      expect(codes(baseContext({ prior: [...recent(2), priorPaid(8), priorPaid(9)] }))).toEqual([]);
+      expect(codes(baseContext({ prior: recent(4) }))).toEqual([]);
+      expect(codes(baseContext({ prior: recent(5) }))).toEqual(["vendor_velocity"]);
+      expect(codes(baseContext({ prior: recent(6) }))).toEqual(["vendor_velocity"]);
+      expect(codes(baseContext({ prior: [...recent(4), priorPaid(8), priorPaid(9)] }))).toEqual([]);
       // Borde exacto de la ventana: hace 7 días cuenta; hace 8 no.
-      expect(codes(baseContext({ prior: [...recent(2), priorPaid(7)] }))).toEqual([
+      expect(codes(baseContext({ prior: [...recent(4), priorPaid(7)] }))).toEqual([
         "vendor_velocity",
       ]);
       // La propia factura nunca cuenta en su historial.
       const self = { ...priorPaid(1), invoice_id: INVOICE_ID };
-      expect(codes(baseContext({ prior: [...recent(2), self] }))).toEqual([]);
+      expect(codes(baseContext({ prior: [...recent(4), self] }))).toEqual([]);
     });
   });
 

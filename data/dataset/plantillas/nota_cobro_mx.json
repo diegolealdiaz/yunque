@@ -1,0 +1,181 @@
+{
+  "id": "nota_cobro_mx",
+  "description": "Recibo de honorarios mexicano: RFC, IVA 16 %, CLABE para SPEI",
+  "locale": "es-MX",
+  "page": { "width": 216, "height": 279 },
+  "labels": [
+    {
+      "text": "RECIBO DE HONORARIOS",
+      "x": 20,
+      "y": 18,
+      "width": 170,
+      "height": 10,
+      "fontSize": 15
+    },
+    {
+      "text": "Receptor: Forja Labs Inc. (extranjero sin establecimiento permanente)",
+      "x": 20,
+      "y": 66,
+      "width": 180,
+      "height": 6,
+      "fontSize": 9
+    },
+    {
+      "text": "Servicio",
+      "x": 20,
+      "y": 92,
+      "width": 120,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    },
+    {
+      "text": "Importe",
+      "x": 150,
+      "y": 92,
+      "width": 40,
+      "height": 6,
+      "fontSize": 9,
+      "color": "#666666"
+    },
+    {
+      "text": "Forma de pago: transferencia SPEI",
+      "x": 20,
+      "y": 176,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9
+    }
+  ],
+  "fields": [
+    { "name": "payee_name", "x": 20, "y": 31, "width": 170, "height": 8, "fontSize": 13 },
+    {
+      "name": "payee_tax_id",
+      "x": 20,
+      "y": 40,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "RFC "
+    },
+    {
+      "name": "invoice_number",
+      "x": 140,
+      "y": 31,
+      "width": 60,
+      "height": 7,
+      "fontSize": 11,
+      "prefix": "Folio "
+    },
+    {
+      "name": "issue_date",
+      "x": 140,
+      "y": 40,
+      "width": 60,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Fecha de emisión: "
+    },
+    {
+      "name": "due_date",
+      "x": 140,
+      "y": 47,
+      "width": 60,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Vencimiento: "
+    },
+    {
+      "name": "customer",
+      "x": 20,
+      "y": 54,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Cliente: "
+    },
+    { "name": "description", "x": 20, "y": 100, "width": 125, "height": 12, "fontSize": 10 },
+    {
+      "name": "hours",
+      "x": 20,
+      "y": 114,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Horas trabajadas: "
+    },
+    {
+      "name": "purchase_order",
+      "x": 20,
+      "y": 121,
+      "width": 100,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Orden: "
+    },
+    {
+      "name": "subtotal",
+      "x": 115,
+      "y": 136,
+      "width": 85,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "Subtotal: "
+    },
+    {
+      "name": "taxes",
+      "x": 115,
+      "y": 143,
+      "width": 85,
+      "height": 6,
+      "fontSize": 10,
+      "prefix": "IVA 16 %: "
+    },
+    {
+      "name": "total",
+      "x": 115,
+      "y": 152,
+      "width": 85,
+      "height": 8,
+      "fontSize": 13,
+      "prefix": "Total: "
+    },
+    {
+      "name": "currency",
+      "x": 115,
+      "y": 161,
+      "width": 85,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Moneda: "
+    },
+    {
+      "name": "total_in_words",
+      "x": 20,
+      "y": 167,
+      "width": 180,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Importe con letra: "
+    },
+    {
+      "name": "bank_holder",
+      "x": 20,
+      "y": 184,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "Beneficiario: "
+    },
+    {
+      "name": "bank_account",
+      "x": 20,
+      "y": 191,
+      "width": 170,
+      "height": 6,
+      "fontSize": 9,
+      "prefix": "CLABE: "
+    },
+    { "name": "extra", "x": 20, "y": 215, "width": 180, "height": 20, "fontSize": 9 }
+  ]
+}

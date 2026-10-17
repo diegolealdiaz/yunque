@@ -36,9 +36,9 @@ describe("semilla", () => {
   it("deja una empresa lista: saldos, vendors, política v1 y evento en bitácora", async () => {
     const result = await seedTestOrganization(t);
     const orgId = result.organization.id;
-    expect(result.vendors).toHaveLength(7);
+    expect(result.vendors).toHaveLength(8);
     expect(await listBalances(t.db, orgId)).toHaveLength(6);
-    expect(await listVendors(t.db, orgId)).toHaveLength(7);
+    expect(await listVendors(t.db, orgId)).toHaveLength(8);
     const policy = await getCurrentPolicy(t.db, orgId);
     expect(policy?.version).toBe(1);
     expect(policy?.content.allowed_payees).toEqual(result.vendors.map((v) => v.id));
@@ -86,7 +86,9 @@ describe("saldos, presupuesto y referencias", () => {
 
   it("el débito solo prospera si alcanza y nunca deja negativo", async () => {
     const now = t.now().toISOString();
-    await debitBalance(t.db, orgId, "EUR", 800_000, now);
+    const seeded = (await listBalances(t.db, orgId)).find((b) => b.currency === "EUR");
+    if (!seeded) throw new Error("la semilla no trae saldo EUR");
+    await debitBalance(t.db, orgId, "EUR", seeded.available, now);
     await expect(debitBalance(t.db, orgId, "EUR", 1, now)).rejects.toMatchObject({
       code: "insufficient_balance",
     });
