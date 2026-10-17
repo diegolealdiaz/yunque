@@ -20,7 +20,3 @@ Proyecto del equipo **Forja** para el reto Blinka.
 | [Reto](docs/reto.md) | Texto del reto |
 | [Plan](docs/plan.md) | Pasos de construcción con criterio de terminado, guion del pitch y lista previa |
 | [Pruebas](docs/pruebas.md) | Catálogo de pruebas, fronteras por regla, validaciones y trampas conocidas |
-
-## Licencia
-
-Este proyecto se publica bajo la [licencia MIT](LICENSE).
