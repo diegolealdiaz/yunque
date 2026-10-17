@@ -9,7 +9,11 @@ import {
   loadBatchCases,
 } from "@/src/dataset/demo-seed";
 
-import { deliverDatasetFile, unknownCase } from "../../_data/dataset-delivery";
+import {
+  deliverDatasetFile,
+  demoChannelsDisabled,
+  unknownCase,
+} from "../../_data/dataset-delivery";
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
 
 /**
@@ -26,6 +30,8 @@ const RequestSchema = z.strictObject({ caso: z.string().regex(/^[a-z0-9_]{1,60}$
 
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return forbiddenOrigin();
+  const disabled = demoChannelsDisabled();
+  if (disabled) return disabled;
   try {
     const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
     const cases = await loadBatchCases();

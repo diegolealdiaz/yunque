@@ -3,7 +3,11 @@ import { z } from "zod";
 import { mailboxReceiptKey } from "@/src/dataset/demo-seed";
 import { loadMailbox } from "@/src/dataset/mailbox";
 
-import { deliverDatasetFile, unknownCase } from "../../_data/dataset-delivery";
+import {
+  deliverDatasetFile,
+  demoChannelsDisabled,
+  unknownCase,
+} from "../../_data/dataset-delivery";
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../_data/http";
 
 /**
@@ -19,6 +23,8 @@ const RequestSchema = z.strictObject({ mensaje: z.string().regex(/^[a-z0-9_]{1,6
 
 export async function POST(request: Request): Promise<Response> {
   if (!isSameOrigin(request)) return forbiddenOrigin();
+  const disabled = demoChannelsDisabled();
+  if (disabled) return disabled;
   try {
     const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
     const messages = await loadMailbox();

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 
+import { getConfig } from "@/src/config";
 import type { Channel, ReceiptKey } from "@/src/domain";
 import { assertWithinDailyLimits, processInvoice, startOfBusinessDay } from "@/src/usecases";
 
@@ -49,6 +50,24 @@ export async function deliverDatasetFile(input: {
 export function unknownCase(message: string): Response {
   return Response.json(
     { error: { code: "unknown_case", message, action: "Recarga la página" } },
+    { status: 404 },
+  );
+}
+
+/**
+ * El lote y la bandeja son canales de la demo: fuera de ella no existen. Sin esto, una
+ * petición del mismo origen metería facturas ficticias en la empresa real.
+ */
+export function demoChannelsDisabled(): Response | null {
+  if (getConfig().demo.enabled) return null;
+  return Response.json(
+    {
+      error: {
+        code: "not_found",
+        message: "Este canal solo existe en la demo",
+        action: "Sube la factura desde Facturas",
+      },
+    },
     { status: 404 },
   );
 }
