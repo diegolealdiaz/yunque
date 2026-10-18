@@ -23,11 +23,13 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "seed": "tsx scripts/seed.ts",
     "dataset": "tsx scripts/generate-dataset.ts",
-    "eval": "tsx scripts/eval.ts"
+    "eval": "tsx scripts/eval.ts",
+    "mcp": "tsx mcp/server.ts"
   },
   "dependencies": {
     "@gsap/react": "2.1.2",
     "@libsql/client": "^0.18.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@next/env": "^16.4.2",
     "@openrouter/ai-sdk-provider": "^3.1.0",
     "@pdfme/common": "^6.2.6",
