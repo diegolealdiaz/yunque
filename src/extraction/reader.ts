@@ -5,6 +5,7 @@ import { z } from "zod";
 import {
   ExtractionSchema,
   SuspicionSchema,
+  isPresent,
   jsonHash,
   type Extraction,
   type ExtractionRecord,
@@ -137,6 +138,23 @@ const ZeroTotalSchema = z.object({
 const ZERO_TOTAL_REASON =
   "El total a pagar es 0: la factura figura ya pagada o sin saldo, no hay nada que pagar";
 
+/**
+ * Todo lo que trae el modelo es del modelo. El esquema admite `source: "humano"` porque una
+ * corrección a mano usa la misma forma, pero el modelo no puede declararse persona: una
+ * cita marcada como humana no se verifica contra el documento, y la ambigüedad del campo
+ * desaparecería.
+ */
+function fromModel(extraction: Extraction): Extraction {
+  if (extraction.kind !== "invoice") return extraction;
+  const fields = Object.fromEntries(
+    Object.entries(extraction.fields).map(([name, field]) => [
+      name,
+      isPresent(field) ? { ...field, source: "modelo" as const } : field,
+    ]),
+  );
+  return ExtractionSchema.parse({ ...extraction, fields });
+}
+
 /** Parsea y valida la salida del modelo. Devuelve el motivo si no sirve. */
 export function parseModelOutput(raw: string): { extraction: Extraction } | { problem: string } {
   let data: unknown;
@@ -162,7 +180,7 @@ export function parseModelOutput(raw: string): { extraction: Extraction } | { pr
       problem: `salida fuera de esquema: ${first ? `${first.path.map(String).join(".")} ${first.message}` : "desconocido"}`,
     };
   }
-  return { extraction: parsed.data };
+  return { extraction: fromModel(parsed.data) };
 }
 
 /** Llave de caché de una lectura. */

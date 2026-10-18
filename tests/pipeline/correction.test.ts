@@ -149,7 +149,10 @@ describe("corregir campos de una escalada", () => {
       );
     expect(await correct({ total: "mucho dinero" })).toBe("invalid_value:total");
     expect(await correct({ due_date: "31/02/2026" })).toBe("invalid_value:due_date");
-    expect(await correct({ payee_name: "" })).toBe("missing_required:payee_name");
+    // Un dato que el Lector leyó no se borra: vaciarlo lo sacaría de las reglas que lo miran
+    // sin una corrección que otra persona confirme (vaciar el vencimiento pagaba la vencida).
+    expect(await correct({ payee_name: "" })).toBe("cannot_clear:payee_name");
+    expect(await correct({ due_date: "" })).toBe("cannot_clear:due_date");
     expect(await correct({})).toBe("nothing_changed:null");
     expect(await correct({ total: "1.00" }, "Alguien Más")).toBe("not_authorized:null");
     expect((await repos.getInvoice(p.t.db, p.organizationId, id)).status).toBe(
@@ -241,5 +244,30 @@ describe("reevaluar con la política vigente", () => {
         actor: CORRECTOR,
       }).catch(codeOf),
     ).toBe("not_correctable");
+  });
+});
+
+describe("una reevaluación que falla no borra lo que se vio antes", () => {
+  it("la instrucción del correo sigue frenando después de una reevaluación fallida", async () => {
+    p = await openPipeline();
+    const id = await process("adv_aprobado_cfo");
+    const first = await repos.getLatestDecision(p.t.db, p.organizationId, id);
+    expect(first && decidingFinding(first)?.code).toBe("suspicious_instructions");
+
+    // Una falla en la evaluación (aquí, un día de negocio inválido) escala por error de
+    // proceso: esa decisión ya no trae la sospecha, que vivía en el cuerpo del correo.
+    const failed = await reevaluateWithCurrentPolicy(
+      { ...deps(), businessDate: "no-es-una-fecha" },
+      { organizationId: p.organizationId, invoiceId: id, actor: CORRECTOR },
+    );
+    expect(decidingFinding(failed.decision)?.code).toBe("processing_error");
+
+    const again = await reevaluateWithCurrentPolicy(deps(), {
+      organizationId: p.organizationId,
+      invoiceId: id,
+      actor: CORRECTOR,
+    });
+    expect(again.decision.verdict).toBe("frenar");
+    expect(decidingFinding(again.decision)?.code).toBe("suspicious_instructions");
   });
 });

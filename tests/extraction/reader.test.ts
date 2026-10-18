@@ -56,6 +56,21 @@ describe("Lector (P-60 a P-64)", () => {
     expect(parseModelOutput("{ no es json")).toEqual({ problem: "la salida no es JSON" });
   });
 
+  it("P-60 el modelo no puede declararse persona: todo campo que lee queda con origen modelo", async () => {
+    const good = await validOutput();
+    const claimed = good.replaceAll('"source":"modelo"', '"source":"humano"');
+    expect(claimed).not.toBe(good);
+    const parsed = parseModelOutput(claimed);
+    if (!("extraction" in parsed) || parsed.extraction.kind !== "invoice") {
+      throw new Error("se esperaba una factura");
+    }
+    const sources = Object.values(parsed.extraction.fields).flatMap((f) =>
+      "source" in f ? [f.source] : [],
+    );
+    expect(sources.length).toBeGreaterThan(5);
+    expect(new Set(sources)).toEqual(new Set(["modelo"]));
+  });
+
   it("P-151 una factura con total cero no es un cobro: se registra sin reintentar y conserva sus sospechas", async () => {
     const good = JSON.parse(await validOutput());
     good.fields.total.value = 0;

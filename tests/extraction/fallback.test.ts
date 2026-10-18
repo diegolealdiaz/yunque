@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { loadDatasetSources, pdfText } from "@/src/dataset";
-import { MemoryFileStorage, ingestDocument, readInvoice, type ModelClient } from "@/src/extraction";
+import {
+  MemoryFileStorage,
+  disagreements,
+  ingestDocument,
+  readInvoice,
+  type ModelClient,
+} from "@/src/extraction";
+
+import { baseExtraction, present } from "../engine/fixtures";
 
 import { fakeClient, generatedFile, idealExtraction, readerDeps } from "./helpers";
 
@@ -152,10 +160,14 @@ describe("lectura con respaldo (P-69)", () => {
   it("si las dos pasadas leen distinto un campo crítico, la discrepancia queda como ambigüedad", async () => {
     const f = await fixtures("nube_oct");
     const other = JSON.parse(f.good);
+    // La segunda lee otra cuenta y la cita: dos lecturas distintas del documento.
     other.fields.bank_account.value = "31245679099";
+    other.fields.bank_account.evidence.literal = "Cuenta: 31245679099";
     const client = fakeClient([f.bad, JSON.stringify(other)]);
     const result = await readInvoice(readerDeps(client), f.storage, f.doc, options);
-    expect(result.verification.ambiguities).toContainEqual({
+    // Queda en la lectura guardada: toda reevaluación posterior la ve.
+    const stored = result.record.extraction;
+    expect(stored.kind === "invoice" ? stored.ambiguities : []).toContainEqual({
       field: "bank_account",
       candidates: ["31245679023", "31245679099"],
     });
@@ -193,5 +205,28 @@ describe("lectura con respaldo (P-69)", () => {
     });
     expect(client.requests[0]?.parts.some((p) => p.type === "image")).toBe(true);
     expect(result.record.extraction.kind).toBe("invoice");
+  });
+});
+
+describe("desacuerdo entre las dos pasadas (P-155)", () => {
+  it("la misma cita convertida mal por una pasada no es ambigüedad del documento", () => {
+    // "8,500.00" leído como 848500 por la primera y como 850000 por la segunda.
+    const first = baseExtraction({ total: present(848_500, "TOTAL DUE: 8,500.00") });
+    const second = baseExtraction({ total: present(850_000, "TOTAL DUE: 8,500.00") });
+    expect(disagreements(first, second)).toEqual([]);
+  });
+
+  it("citas distintas del documento siguen siendo ambigüedad", () => {
+    const first = baseExtraction({ total: present(480_000_000, "TOTAL: 4.800.000,00") });
+    const second = baseExtraction({ total: present(530_000_000, "TOTAL A PAGAR: 5.300.000,00") });
+    expect(disagreements(first, second)).toEqual([
+      { field: "total", candidates: ["480000000", "530000000"] },
+    ]);
+  });
+
+  it("si ninguno de los dos valores sale de la cita, sigue siendo ambigüedad", () => {
+    const first = baseExtraction({ total: present(848_500, "TOTAL DUE: 8,500.00") });
+    const second = baseExtraction({ total: present(851_000, "TOTAL DUE: 8,500.00") });
+    expect(disagreements(first, second)).toHaveLength(1);
   });
 });

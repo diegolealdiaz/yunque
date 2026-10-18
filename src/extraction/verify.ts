@@ -263,7 +263,11 @@ const IDENTIFIER_FIELDS: ReadonlySet<ExtractedFieldName> = new Set([
   "invoice_number",
 ]);
 
-function valueDerived(name: ExtractedFieldName, value: unknown, literal: string): string | null {
+export function valueDerived(
+  name: ExtractedFieldName,
+  value: unknown,
+  literal: string,
+): string | null {
   switch (name) {
     case "subtotal":
     case "taxes":

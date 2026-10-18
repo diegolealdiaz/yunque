@@ -1,5 +1,6 @@
 import {
   isPresent,
+  jsonHash,
   type Ambiguity,
   type Extraction,
   type ExtractionRecord,
@@ -18,7 +19,7 @@ import {
   type ReaderDeps,
 } from "./reader";
 import type { FileStorage } from "./storage";
-import { needsFallback, verifyExtraction, type Verification } from "./verify";
+import { needsFallback, valueDerived, verifyExtraction, type Verification } from "./verify";
 
 /**
  * Lectura completa de una factura: Lector con el modelo principal, Verificador, y una sola
@@ -71,6 +72,19 @@ function problemsOf(v: Verification): number {
   return v.issues.length + v.report.ambiguities.length + (v.report.totals === "mismatch" ? 1 : 0);
 }
 
+/** La lectura con ambigüedades agregadas, sin repetir campo, dentro del tope del esquema. */
+function withAmbiguities(record: ExtractionRecord, extra: readonly Ambiguity[]): ExtractionRecord {
+  const { extraction } = record;
+  if (extra.length === 0 || extraction.kind !== "invoice") return record;
+  const known = new Set(extraction.ambiguities.map((a) => a.field));
+  const ambiguities = [
+    ...extraction.ambiguities,
+    ...extra.filter((a) => !known.has(a.field)),
+  ].slice(0, 20);
+  const merged: Extraction = { ...extraction, ambiguities };
+  return { ...record, extraction: merged, extraction_hash: jsonHash(merged) };
+}
+
 /** Campos donde una discrepancia entre modelos cambia a quién o cuánto se paga. */
 const CRITICAL_FIELDS = [
   "payee_name",
@@ -80,16 +94,32 @@ const CRITICAL_FIELDS = [
   "invoice_number",
 ] as const;
 
-/** Discrepancias entre dos lecturas de factura en campos críticos, como ambigüedades. */
+const sameLiteral = (a: string, b: string) =>
+  a.replace(/\s+/g, " ").trim() === b.replace(/\s+/g, " ").trim();
+
+/**
+ * Discrepancias entre dos lecturas de factura en campos críticos, como ambigüedades. No lo es
+ * la de un campo en que las dos citan el mismo texto del documento y solo uno de los valores
+ * sale de esa cita: el documento dice una sola cosa y una lectura la convirtió mal ("8,500.00"
+ * leído como 848500), cosa que el Verificador ya demuestra. Si se quedara la lectura
+ * equivocada, su propia verificación la escala por la cita que no la respalda.
+ */
 export function disagreements(a: Extraction, b: Extraction): Ambiguity[] {
   if (a.kind !== "invoice" || b.kind !== "invoice") return [];
   const out: Ambiguity[] = [];
   for (const name of CRITICAL_FIELDS) {
     const fa = a.fields[name];
     const fb = b.fields[name];
-    const va = isPresent(fa) ? String(fa.value) : null;
-    const vb = isPresent(fb) ? String(fb.value) : null;
-    if (va !== null && vb !== null && va !== vb) out.push({ field: name, candidates: [va, vb] });
+    if (!isPresent(fa) || !isPresent(fb)) continue;
+    const va = String(fa.value);
+    const vb = String(fb.value);
+    if (va === vb) continue;
+    if (sameLiteral(fa.evidence.literal, fb.evidence.literal)) {
+      const aOk = valueDerived(name, fa.value, fa.evidence.literal) === null;
+      const bOk = valueDerived(name, fb.value, fb.evidence.literal) === null;
+      if (aOk !== bOk) continue;
+    }
+    out.push({ field: name, candidates: [va, vb] });
   }
   return out;
 }
@@ -156,10 +186,13 @@ export async function readInvoice(
   }
 
   return {
-    record: chosen.record,
+    // Los desacuerdos entre pasadas quedan en la lectura guardada, junto a las ambigüedades del
+    // modelo: así los ve toda reevaluación posterior, y se van solo cuando una persona fija el
+    // campo (la corrección descarta la ambigüedad del campo que cambia).
+    record: withAmbiguities(chosen.record, extraAmbiguities),
     verification: {
       ...verification.report,
-      ambiguities: [...verification.report.ambiguities, ...extraAmbiguities],
+      ambiguities: verification.report.ambiguities,
       suspicions: [...verification.report.suspicions, ...detected],
     },
     issues: verification.issues,

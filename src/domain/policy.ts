@@ -338,6 +338,24 @@ export function policyLoosenings(current: Policy, candidate: Policy): string[] {
   return out;
 }
 
+/**
+ * Lo que un cambio de interruptores afloja: encender los pagos, apagar el modo de prueba o
+ * dejar que el agente decida. Apagar es la emergencia y nunca afloja: va con una firma.
+ */
+export function controlsLoosenings(from: Controls, to: Controls): string[] {
+  const out: string[] = [];
+  if (!from.payments_enabled && to.payments_enabled) {
+    out.push("Vuelve a encender los pagos: el agente paga lo que cumple las reglas");
+  }
+  if (from.dry_run && !to.dry_run) {
+    out.push("Apaga el modo de prueba: las decisiones vuelven a preparar órdenes de pago");
+  }
+  if (from.autonomy === "recomendar" && to.autonomy === "decidir") {
+    out.push("El agente pasa de recomendar a decidir: paga solo lo que cumple las reglas");
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // YAML. Solo el esquema core de YAML 1.2: sin etiquetas personalizadas ni anclas.
 // ---------------------------------------------------------------------------

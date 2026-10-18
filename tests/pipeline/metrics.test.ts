@@ -99,11 +99,13 @@ describe("Métricas contra la evaluación (P-91)", () => {
       note: null,
     });
     if (submitted.kind !== "propuesta") throw new Error("se esperaba una propuesta");
-    const replay = await approvePolicyProposal(decideDeps, {
+    const approved = await approvePolicyProposal(decideDeps, {
       organizationId: p.organizationId,
       proposalId: submitted.proposal.id,
       approver: "Ana Torres",
     });
+    if (approved.kind !== "politica") throw new Error("se esperaba una versión de la política");
+    const replay = approved;
     expect(replay.changed).toBeGreaterThan(0);
     const after = await metrics();
     expect(after.metrics.autonomy).toEqual(before.metrics.autonomy);

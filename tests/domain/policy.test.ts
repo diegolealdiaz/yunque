@@ -10,6 +10,7 @@ import {
   policyEditFromYaml,
   policyEditToYaml,
   policyHash,
+  controlsLoosenings,
   policyLoosenings,
   type Policy,
 } from "@/src/domain/policy";
@@ -270,5 +271,20 @@ describe("lo que una política afloja, para los cuatro ojos (P-153)", () => {
     expect(out.some((l) => l.startsWith("Sube el umbral de aprobación"))).toBe(true);
     expect(out).toContain("Agrega un beneficiario a la lista de permitidos");
     expect(out).toContain("«se pasa del presupuesto» pasa de frenar a escalar");
+  });
+});
+
+describe("encender un interruptor afloja; apagar no (P-153)", () => {
+  const on = { payments_enabled: true, dry_run: false, autonomy: "decidir" } as const;
+  const off = { payments_enabled: false, dry_run: true, autonomy: "recomendar" } as const;
+  it("apagar es inmediato", () => {
+    expect(controlsLoosenings(on, off)).toEqual([]);
+    expect(controlsLoosenings(on, on)).toEqual([]);
+  });
+  it("cada forma de encender aparece en palabras", () => {
+    expect(controlsLoosenings(off, on)).toHaveLength(3);
+    expect(controlsLoosenings(off, { ...off, payments_enabled: true })[0]).toMatch(
+      /^Vuelve a encender los pagos/,
+    );
   });
 });

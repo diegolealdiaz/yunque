@@ -444,6 +444,17 @@ export async function approveEscalation(
           approval_expires_at: null,
         },
       );
+      // El estado solo no basta: una corrección simultánea deja la factura otra vez esperando,
+      // con otra decisión y quizá otro monto. Se aprueba solo la decisión que se firmó; si no,
+      // la transacción se revierte entera.
+      const latest = await getLatestDecision(tx, invoice.organization_id, invoice.id);
+      if (latest?.id !== decision.id) {
+        throw new ApprovalError(
+          "stale_content",
+          "La factura cambió mientras resolvías",
+          "Recarga la página y vuelve a revisar el contenido antes de resolver",
+        );
+      }
       await insertApproval(tx, approval);
       if (await alreadyPaid(tx, invoice)) {
         throw new ApprovalError(

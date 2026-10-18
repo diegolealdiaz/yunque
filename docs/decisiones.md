@@ -282,4 +282,21 @@ Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verifica
 - `savePolicy` exige la segunda firma él mismo: ninguna ruta guarda un cambio que afloja sin ella.
 - Un cambio igual o más estricto se guarda directo, con una firma.
 
-**Consecuencia.** La propuesta vive en la bitácora, que es append-only: no hace falta tabla nueva, y aprobar o descartar es otro evento. Los interruptores (pagos, modo de prueba, autonomía) siguen con una firma: son de emergencia y apagarlos debe ser inmediato. Encender la autonomía o los pagos con cuatro ojos queda para producción con inicio de sesión.
+- Los interruptores siguen la misma regla: apagar los pagos, volver al modo de prueba o pasar el agente a recomendar es inmediato, con una firma, porque es la emergencia. Encender los pagos, salir del modo de prueba o dejar que el agente decida queda como propuesta (`controlsLoosenings`).
+
+**Consecuencia.** La propuesta vive en la bitácora, que es append-only: no hace falta tabla nueva, y aprobar o descartar es otro evento. Una empresa con un solo aprobador no puede aflojar nada: es a propósito, y la lista de aprobadores es una clave protegida que no se cambia desde la pantalla.
+
+## D30. Lo que cerró la revisión adversarial de los caminos a "pagar"
+
+**Contexto.** Se recorrieron todos los caminos que escriben una decisión: procesar, aprobar y rechazar, corregir, reevaluar, guardar política, interruptores y canales. Se buscaba uno que terminara en "pagar" fuera de las reglas. Aparecieron dos que pagaban y tres que ablandaban lo que ve quien aprueba.
+
+**Decisión.**
+1. **No se borra un dato que el Lector leyó.** Vaciar el vencimiento de una factura vencida la sacaba de la regla de atraso y la pagaba con una sola persona. Las reglas de cuatro ojos solo cuentan los campos corregidos que tienen valor. Ahora vaciar un dato leído se rechaza: se corrige con el valor del documento.
+2. **Una reevaluación arrastra lo que vieron todas las decisiones de la factura, no solo la última.** Una reevaluación que fallaba dejaba una escalada por error de proceso sin las sospechas de antes. La instrucción "ya aprobado por el CFO" del cuerpo de un correo, que no se guarda, se perdía, y la reevaluación siguiente pagaba.
+3. **Los desacuerdos entre las dos pasadas del modelo quedan en la lectura guardada,** todos y no solo el primero. Se van únicamente cuando una persona fija ese campo.
+4. **El modelo no puede declararse persona.** Todo campo que devuelve queda con origen "modelo". Un campo marcado como humano no se verifica contra el documento, y su ambigüedad desaparecía.
+5. **Aprobar exige, dentro de la transacción, que la decisión vigente sea la que se firmó.** Antes solo se comparaba el estado, y una corrección simultánea deja la factura en el mismo estado con otro monto.
+
+**Consecuencia.** Quedan dos límites conocidos y aceptados:
+- **Un solo visitante cumple los cuatro ojos** eligiendo los dos nombres de la lista. En producción eso exige inicio de sesión.
+- **Un documento sin capa de texto (foto o escaneo) no se contrasta con nada determinista.** Lo cubren la segunda pasada, los desacuerdos entre pasadas y el umbral de aprobación.

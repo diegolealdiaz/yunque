@@ -27,7 +27,7 @@
 | Seguridad | escape, inyección, archivos, cookie, topes | mezcla de niveles anteriores, marcados `@seguridad` | CI |
 | Manual | lista previa al pitch | persona | antes del pitch |
 
-Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` con `EVAL_SOURCE=ideal`. Planeados: `test:api`, `test:e2e` y `test:seguridad`. `tests/api` tiene las rutas de los canales de cliente (P-140); `tests/e2e` sigue vacía.
+Comandos: `npm test` (unitario, propiedad, pipeline, base), `npm run eval`, `npm run check` (typecheck, lint, formato, test, build). CI corre `check` y después `npm run eval` sobre las salidas grabadas del modelo real, sin red. Planeados: `test:api`, `test:e2e` y `test:seguridad`. `tests/api` tiene las rutas de los canales de cliente (P-140); `tests/e2e` sigue vacía.
 
 ## 3. Catálogo de pruebas
 
@@ -196,8 +196,10 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-150 | Moneda con "$": vale si el documento la nombra en otra parte (código, "dólares", "pesos colombianos"); a secas es ambigüedad entre las monedas que usan "$" y escala sin segunda pasada; un símbolo de una sola moneda ("US$", "€") vale como cita | unidad |
 | P-151 | Factura con total cero: se registra como documento sin nada que pagar, conserva sus sospechas y no gasta reintentos | unidad |
 | P-152 | Tamaño de las páginas: carta y A4 a 110 dpi; una página enorme baja hasta 1.568 px de lado; un escaneo con ruido se guarda en JPEG | unidad |
-| P-153 | Lo que una política afloja: igual o más estricta no afloja nada; cada forma de aflojar (límites, presupuesto, beneficiario nuevo, de frenar a escalar, tolerancias, ventanas, confianza) aparece en palabras | unidad |
-| P-154 | Cuatro ojos: un cambio que afloja queda propuesto sin tocar la política ni las facturas; ni quien lo propuso ni una firma única lo aplican; otra persona lo aprueba y se reevalúan las abiertas; endurecer se guarda directo; una propuesta se descarta y una vencida ya no se aprueba | integración |
+| P-153 | Lo que una política afloja: igual o más estricta no afloja nada; cada forma de aflojar (límites, presupuesto, beneficiario nuevo, de frenar a escalar, tolerancias, ventanas, confianza) aparece en palabras; encender un interruptor afloja y apagarlo no | unidad |
+| P-154 | Cuatro ojos: un cambio que afloja (también encender un interruptor) queda propuesto sin tocar la política ni las facturas; apagar es inmediato; ni quien lo propuso ni una firma única lo aplican; otra persona lo aprueba y se reevalúan las abiertas; endurecer se guarda directo; una propuesta se descarta y una vencida ya no se aprueba | integración |
+| P-155 | Desacuerdo entre las dos pasadas: si las dos citan el mismo texto y solo un valor sale de esa cita, es un error de conversión y no ambigüedad; con citas distintas, o sin ningún valor que salga de la cita, se escala como ambigüedad | unidad |
+| P-156 | Caminos a "pagar" (D30): un dato leído no se vacía al corregir; tras una reevaluación fallida la instrucción del correo sigue frenando; el modelo no puede marcar campos como humanos; los desacuerdos entre pasadas quedan en la lectura guardada | integración |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

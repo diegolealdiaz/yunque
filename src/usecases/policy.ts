@@ -7,6 +7,7 @@ import {
   getLatestExtraction,
   getOrganization,
   listEvents,
+  listDecisionsByInvoices,
   listInvoices,
   listLatestDecisions,
   listVendors,
@@ -14,7 +15,9 @@ import {
 import {
   PolicyError,
   add,
+  ControlsSchema,
   applyPolicyEdit,
+  controlsLoosenings,
   parsePolicy,
   parsePolicyEdit,
   periodKey,
@@ -123,6 +126,11 @@ export async function previewPolicyChange(
     openInvoices(deps, organization.id),
     listVendors(deps.db, organization.id),
   ]);
+  const histories = await listDecisionsByInvoices(
+    deps.db,
+    organization.id,
+    open.map((o) => o.invoice.id),
+  );
   const changes: PolicyChange[] = [];
   let skipped = 0;
   // Lo que los `pagar` anteriores del mismo replay ya comprometerían, en USD y por moneda.
@@ -140,7 +148,7 @@ export async function previewPolicyChange(
       skipped += 1;
       continue;
     }
-    const reading = readingFor(invoice, decision, stored.record);
+    const reading = readingFor(invoice, histories.get(invoice.id) ?? [decision], stored.record);
     const extraction = stored.record.extraction;
     const payee: PayeeMatch =
       extraction.kind === "invoice"
@@ -362,6 +370,8 @@ export async function changeControls(
     readonly organizationId: Ulid;
     readonly controls: Partial<Controls>;
     readonly signedBy: string | null;
+    /** Segunda firma de una propuesta que enciende algo: quién aprueba y cuál. */
+    readonly secondSignature?: { readonly proposalId: Ulid; readonly approvedBy: string };
   },
 ): Promise<PolicyVersion> {
   const at = deps.now().toISOString();
@@ -369,12 +379,43 @@ export async function changeControls(
     const { current, signer } = await authorize(tx, input.organizationId, input.signedBy);
     const controls = { ...current.content.controls, ...input.controls };
     const content = parsePolicy({ ...current.content, controls });
+    const second = input.secondSignature;
+    if (controlsLoosenings(current.content.controls, controls).length > 0) {
+      if (!second) {
+        throw new UseCaseError(
+          "second_signature_required",
+          "Encender un interruptor afloja el control: entra en vigor con la firma de otra persona",
+          { action: "Queda como propuesta para que otra persona de la lista la apruebe" },
+        );
+      }
+      await assertSecondSignature(tx, input.organizationId, current, second, signer);
+    }
     const saved = await appendPolicyVersion(
       tx,
       input.organizationId,
-      { content, signedBy: signer, signedAt: at, note: "Cambio de interruptores" },
+      {
+        content,
+        signedBy: signer,
+        signedAt: at,
+        note: second
+          ? `Cambio de interruptores · Segunda firma: ${second.approvedBy}`
+          : "Cambio de interruptores",
+      },
       deps.newId,
     );
+    if (second) {
+      await appendEvent(tx, {
+        id: deps.newId(),
+        organization_id: input.organizationId,
+        type: "policy.proposal_closed",
+        actor: { kind: "humano", name: second.approvedBy },
+        invoice_id: null,
+        decision_id: null,
+        data: { proposal_id: second.proposalId, outcome: "aprobada", version: saved.version },
+        trace_id: `tr-${deps.newId()}`,
+        occurred_at: at,
+      });
+    }
     await appendEvent(tx, {
       id: deps.newId(),
       organization_id: input.organizationId,
@@ -397,6 +438,10 @@ export async function changeControls(
 /** Un cambio que afloja la política, a la espera de la firma de otra persona. */
 export type PolicyProposal = {
   readonly id: Ulid;
+  /** Qué se propone: una versión de la política o encender interruptores. */
+  readonly kind: "politica" | "controles";
+  /** Interruptores pedidos, si es un cambio de interruptores. */
+  readonly controls: Controls | null;
   readonly proposedBy: string;
   readonly proposedAt: string;
   /** Versión sobre la que se propuso. Si la vigente ya es otra, la propuesta venció. */
@@ -431,15 +476,24 @@ async function openProposal(
   const baseVersion = Number(event.data["base_version"]);
   const loosenings = event.data["loosenings"];
   const note = event.data["note"];
+  const kind = event.data["kind"] === "controles" ? "controles" : "politica";
   let candidate: Policy;
+  let controls: Controls | null = null;
   try {
-    candidate = applyPolicyEdit(current.content, parsePolicyEdit(event.data["edit"]));
+    if (kind === "controles") {
+      controls = ControlsSchema.parse(event.data["controls"]);
+      candidate = parsePolicy({ ...current.content, controls });
+    } else {
+      candidate = applyPolicyEdit(current.content, parsePolicyEdit(event.data["edit"]));
+    }
   } catch {
     // Una propuesta que ya no valida contra el esquema no se puede aprobar: no se muestra.
     return null;
   }
   return {
     id: event.id,
+    kind,
+    controls,
     proposedBy: event.actor.name,
     proposedAt: event.occurred_at,
     baseVersion,
@@ -564,12 +618,14 @@ export async function submitPolicy(
       actor: { kind: "humano", name: signer },
       invoice_id: null,
       decision_id: null,
-      data: { base_version: current.version, edit, loosenings, note },
+      data: { kind: "politica", base_version: current.version, edit, loosenings, note },
       trace_id: traceId,
       occurred_at: at,
     });
     const proposal: PolicyProposal = {
       id,
+      kind: "politica",
+      controls: null,
       proposedBy: signer,
       proposedAt: at,
       baseVersion: current.version,
@@ -589,6 +645,10 @@ export async function submitPolicy(
  * nueva firmada por quien la propuso, con la aprobación en la nota y en la bitácora, y se
  * reevalúan las abiertas como en cualquier guardado.
  */
+export type ApprovedProposal =
+  | ({ readonly kind: "politica" } & ReplayResult)
+  | { readonly kind: "controles"; readonly version: PolicyVersion };
+
 export async function approvePolicyProposal(
   deps: DecideDeps,
   input: {
@@ -596,7 +656,7 @@ export async function approvePolicyProposal(
     readonly proposalId: Ulid;
     readonly approver: string | null;
   },
-): Promise<ReplayResult> {
+): Promise<ApprovedProposal> {
   const proposal = await loadPolicyProposal(deps.db, input.organizationId);
   if (!proposal || proposal.id !== input.proposalId || proposal.stale) {
     throw new UseCaseError(
@@ -610,15 +670,26 @@ export async function approvePolicyProposal(
       action: "Elige un aprobador de la lista",
     });
   }
+  const secondSignature = { proposalId: proposal.id, approvedBy: input.approver };
+  if (proposal.kind === "controles" && proposal.controls) {
+    const version = await changeControls(deps, {
+      organizationId: input.organizationId,
+      controls: proposal.controls,
+      signedBy: proposal.proposedBy,
+      secondSignature,
+    });
+    return { kind: "controles", version };
+  }
   const note = `Segunda firma: ${input.approver}${proposal.note ? ` · ${proposal.note}` : ""}`;
-  return savePolicy(deps, {
+  const replay = await savePolicy(deps, {
     organizationId: input.organizationId,
     candidate: proposal.candidate,
     baseVersion: proposal.baseVersion,
     signedBy: proposal.proposedBy,
     note: note.slice(0, 500),
-    secondSignature: { proposalId: proposal.id, approvedBy: input.approver },
+    secondSignature,
   });
+  return { kind: "politica", ...replay };
 }
 
 /** Descarta la propuesta abierta. Cualquiera de la lista puede, también quien la propuso. */
@@ -651,4 +722,78 @@ export async function discardPolicyProposal(
       occurred_at: at,
     });
   });
+}
+
+export type ControlsResult =
+  | { readonly kind: "guardada"; readonly version: PolicyVersion }
+  | { readonly kind: "propuesta"; readonly proposal: PolicyProposal };
+
+/**
+ * Lo que hace un interruptor: apagar va directo, con una firma, porque es la emergencia;
+ * encender (pagos, decidir, salir del modo de prueba) queda como propuesta para otra persona.
+ */
+export async function submitControls(
+  deps: DecideDeps,
+  input: {
+    readonly organizationId: Ulid;
+    readonly controls: Partial<Controls>;
+    readonly signedBy: string | null;
+  },
+): Promise<ControlsResult> {
+  const at = deps.now().toISOString();
+  const proposal = await withWriteTransaction(deps.db, async (tx) => {
+    const { current, signer } = await authorize(tx, input.organizationId, input.signedBy);
+    const controls = ControlsSchema.parse({ ...current.content.controls, ...input.controls });
+    const loosenings = controlsLoosenings(current.content.controls, controls);
+    if (loosenings.length === 0) return null;
+    const open = await openProposal(tx, input.organizationId, current);
+    if (open && !open.stale) {
+      throw new UseCaseError(
+        "proposal_pending",
+        `Ya hay un cambio de ${open.proposedBy} esperando la segunda firma`,
+        { action: "Apruébalo o descártalo antes de proponer otro" },
+      );
+    }
+    const traceId = `tr-${deps.newId()}`;
+    if (open) {
+      await appendEvent(tx, {
+        id: deps.newId(),
+        organization_id: input.organizationId,
+        type: "policy.proposal_closed",
+        actor: { kind: "humano", name: signer },
+        invoice_id: null,
+        decision_id: null,
+        data: { proposal_id: open.id, outcome: "vencida" },
+        trace_id: traceId,
+        occurred_at: at,
+      });
+    }
+    const id = deps.newId();
+    await appendEvent(tx, {
+      id,
+      organization_id: input.organizationId,
+      type: "policy.proposed",
+      actor: { kind: "humano", name: signer },
+      invoice_id: null,
+      decision_id: null,
+      data: { kind: "controles", base_version: current.version, controls, loosenings, note: null },
+      trace_id: traceId,
+      occurred_at: at,
+    });
+    const proposed: PolicyProposal = {
+      id,
+      kind: "controles",
+      controls,
+      proposedBy: signer,
+      proposedAt: at,
+      baseVersion: current.version,
+      candidate: parsePolicy({ ...current.content, controls }),
+      loosenings,
+      note: null,
+      stale: false,
+    };
+    return proposed;
+  });
+  if (proposal) return { kind: "propuesta", proposal };
+  return { kind: "guardada", version: await changeControls(deps, input) };
 }

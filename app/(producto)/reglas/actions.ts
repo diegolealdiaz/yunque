@@ -10,10 +10,10 @@ import {
   UseCaseError,
   approvePolicyProposal,
   candidateFromYaml,
-  changeControls,
   discardPolicyProposal,
   loadCurrentPolicy,
   previewPolicyChange,
+  submitControls,
   submitPolicy,
   type ReplayResult,
 } from "@/src/usecases";
@@ -133,6 +133,13 @@ export async function approveProposalAction(
       approver,
     });
     for (const path of ["/reglas", "/pendientes", "/facturas"]) revalidatePath(path);
+    if (result.kind === "controles") {
+      return {
+        ok: true,
+        message: `Interruptores guardados como v${String(result.version.version)}, con dos firmas.`,
+        action: null,
+      };
+    }
     deliverNotificationsAfterResponse(organization.id);
     return { ok: true, message: savedMessage(result), action: null };
   } catch (error) {
@@ -180,13 +187,25 @@ export async function controlsAction(_previous: SaveState, form: FormData): Prom
   const patch: Partial<Controls> =
     name === "autonomy" ? { autonomy: on ? "decidir" : "recomendar" } : { [name]: on };
   try {
-    const version = await changeControls(deps, {
+    const result = await submitControls(deps, {
       organizationId: organization.id,
       controls: patch,
       signedBy: approver,
     });
     for (const path of ["/reglas", "/pendientes", "/facturas"]) revalidatePath(path);
-    return { ok: true, message: `Guardado como v${String(version.version)}.`, action: null };
+    if (result.kind === "propuesta") {
+      return {
+        ok: true,
+        message:
+          "Encender afloja el control, así que quedó como propuesta: entra en vigor cuando otra persona de la lista lo apruebe. Apagar siempre es inmediato.",
+        action: "Pídele a otro aprobador que lo revise arriba, en «Cambio de reglas por aprobar».",
+      };
+    }
+    return {
+      ok: true,
+      message: `Guardado como v${String(result.version.version)}.`,
+      action: null,
+    };
   } catch (error) {
     if (error instanceof UseCaseError) {
       return { ok: false, message: error.message, action: error.action };

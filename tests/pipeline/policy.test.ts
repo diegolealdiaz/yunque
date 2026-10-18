@@ -14,6 +14,7 @@ import {
   processInvoice,
   readingFor,
   savePolicy,
+  submitControls,
   submitPolicy,
   type DecideDeps,
   type ReplayResult,
@@ -112,11 +113,13 @@ async function saveSigned(candidate: Policy, note: string | null = null): Promis
     note,
   });
   if (submitted.kind === "guardada") return submitted;
-  return approvePolicyProposal(deps(), {
+  const approved = await approvePolicyProposal(deps(), {
     organizationId: p.organizationId,
     proposalId: submitted.proposal.id,
     approver: SECOND,
   });
+  if (approved.kind !== "politica") throw new Error("se esperaba una versión de la política");
+  return approved;
 }
 
 /** Número de la versión vigente: sobre ella se edita lo que se guarda. */
@@ -310,7 +313,7 @@ describe("una reevaluación no ablanda lo que no cambió", () => {
       message: "El campo total tiene más de un valor posible en el documento",
     };
     const previous = { ...decision, findings: [...decision.findings, ambiguous] };
-    const reading = readingFor(invoice, previous, stored.record);
+    const reading = readingFor(invoice, [previous], stored.record);
     expect(reading.verification.ambiguities).toContainEqual({
       field: "total",
       candidates: ["845,00 BRL", "8.500,00 BRL"],
@@ -324,7 +327,7 @@ describe("una reevaluación no ablanda lo que no cambió", () => {
         fields: { ...fields, total: { ...fields.total, source: "humano" as const } },
       },
     };
-    const resolved = readingFor(invoice, previous, confirmed);
+    const resolved = readingFor(invoice, [previous], confirmed);
     expect(resolved.verification.ambiguities.some((a) => a.field === "total")).toBe(false);
   });
 });
@@ -436,5 +439,48 @@ describe("cuatro ojos al aflojar la política (P-154)", () => {
     // Y una nueva propuesta la reemplaza.
     const third = await propose(higherThreshold(await current()));
     expect(third.kind).toBe("propuesta");
+  }, 120_000);
+});
+
+describe("cuatro ojos al encender un interruptor (P-154)", () => {
+  it("apagar es inmediato; encender queda propuesto y lo aprueba otra persona", async () => {
+    const off = await submitControls(deps(), {
+      organizationId: p.organizationId,
+      controls: { payments_enabled: false },
+      signedBy: SIGNER,
+    });
+    expect(off.kind).toBe("guardada");
+    expect((await current()).controls.payments_enabled).toBe(false);
+
+    const on = await submitControls(deps(), {
+      organizationId: p.organizationId,
+      controls: { payments_enabled: true },
+      signedBy: SIGNER,
+    });
+    if (on.kind !== "propuesta") throw new Error("se esperaba una propuesta");
+    expect((await current()).controls.payments_enabled).toBe(false);
+    await expect(
+      changeControls(deps(), {
+        organizationId: p.organizationId,
+        controls: { payments_enabled: true },
+        signedBy: SECOND,
+      }),
+    ).rejects.toMatchObject({ code: "second_signature_required" });
+    await expect(
+      approvePolicyProposal(deps(), {
+        organizationId: p.organizationId,
+        proposalId: on.proposal.id,
+        approver: SIGNER,
+      }),
+    ).rejects.toMatchObject({ code: "second_signature_required" });
+
+    const approved = await approvePolicyProposal(deps(), {
+      organizationId: p.organizationId,
+      proposalId: on.proposal.id,
+      approver: SECOND,
+    });
+    expect(approved.kind).toBe("controles");
+    expect((await current()).controls.payments_enabled).toBe(true);
+    expect(await loadPolicyProposal(p.t.db, p.organizationId)).toBeNull();
   }, 120_000);
 });

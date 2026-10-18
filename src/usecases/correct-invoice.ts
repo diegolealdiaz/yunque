@@ -5,6 +5,7 @@ import {
   getCurrentPolicy,
   getInvoice,
   getLatestDecision,
+  listDecisions,
   getLatestExtraction,
   getOrganization,
   listVendors,
@@ -62,6 +63,7 @@ export type CorrectionErrorCode =
   | "not_authorized"
   | "invalid_value"
   | "missing_required"
+  | "cannot_clear"
   | "nothing_changed";
 
 export class CorrectionError extends Error {
@@ -162,6 +164,17 @@ export function correctedExtraction(
     if (sameAsRead) continue;
     changed.push(name);
     if (text === "") {
+      // Vaciar un dato que el Lector sí leyó lo saca de las reglas que lo miran (vencimiento,
+      // desglose, orden de compra) sin dejar una corrección que otra persona confirme: no se
+      // permite. Se corrige con el valor que muestra el documento.
+      if (existing && isPresent(existing)) {
+        throw new CorrectionError(
+          "cannot_clear",
+          "No se puede borrar un dato que el agente leyó del documento",
+          "Escribe el valor correcto que muestra el documento",
+          name,
+        );
+      }
       if (REQUIRED.includes(name)) {
         throw new CorrectionError(
           "missing_required",
@@ -237,7 +250,8 @@ export function correctedExtraction(
  */
 export function readingFor(
   invoice: Invoice,
-  previous: Decision,
+  /** Todas las decisiones de la factura: una que falló no borra lo que las anteriores vieron. */
+  history: readonly Decision[],
   record: ExtractionRecord,
 ): Reading {
   const verified = verifyExtraction(record.extraction, invoice.text);
@@ -247,7 +261,7 @@ export function readingFor(
       ...verified.report,
       ambiguities: [
         ...verified.report.ambiguities,
-        ...carriedAmbiguities(previous, record.extraction),
+        ...carriedAmbiguities(history, record.extraction),
       ],
       suspicions: [
         ...verified.report.suspicions,
@@ -255,7 +269,7 @@ export function readingFor(
           document: invoice.text ?? "",
           channel: invoice.channel_meta["subject"] ?? null,
         }),
-        ...carriedSuspicions(previous),
+        ...carriedSuspicions(history),
       ],
     },
     cost_usd_micros: 0,
@@ -269,10 +283,10 @@ export function readingFor(
  * resuelve: sin esto, subir el umbral pagaría un monto que nadie confirmó. Solo deja de
  * contar la de un campo que una persona ya corrigió o confirmó.
  */
-function carriedAmbiguities(previous: Decision, extraction: Extraction): Ambiguity[] {
+function carriedAmbiguities(history: readonly Decision[], extraction: Extraction): Ambiguity[] {
   const fields = extraction.kind === "invoice" ? extraction.fields : null;
   const out: Ambiguity[] = [];
-  for (const finding of previous.findings) {
+  for (const finding of history.flatMap((d) => d.findings)) {
     if (finding.code !== "field_ambiguous") continue;
     const field = ExtractedFieldNameSchema.safeParse(finding.field);
     if (!field.success) continue;
@@ -291,9 +305,14 @@ function carriedAmbiguities(previous: Decision, extraction: Extraction): Ambigui
   return out;
 }
 
-/** Señales de inyección de la decisión anterior, para que ninguna reevaluación las pierda. */
-function carriedSuspicions(previous: Decision): Suspicion[] {
-  return previous.findings
+/**
+ * Señales de inyección de cualquier decisión anterior, para que ninguna reevaluación las
+ * pierda. Una vez vista, una instrucción al agente (que pudo venir en el cuerpo del correo,
+ * que no se guarda) frena para siempre: ni una reevaluación que falla la borra.
+ */
+function carriedSuspicions(history: readonly Decision[]): Suspicion[] {
+  return history
+    .flatMap((d) => d.findings)
     .filter((f) => f.code === "suspicious_instructions")
     .map((f) => ({ kind: "instruction_to_agent", quote: f.evidence?.quote ?? f.observed }));
 }
@@ -381,7 +400,8 @@ async function reevaluate(
   const working: Invoice = { ...invoice, status: "procesando", updated_at: at };
   try {
     const extraction = record.extraction;
-    const reading = readingFor(invoice, previous, record);
+    const history = await listDecisions(deps.db, invoice.organization_id, invoice.id);
+    const reading = readingFor(invoice, history, record);
     const payee: PayeeMatch = await inStage("resolve", async () =>
       extraction.kind === "invoice"
         ? resolvePayee(extraction.fields, await listVendors(deps.db, invoice.organization_id))
