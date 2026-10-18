@@ -35,7 +35,28 @@ function fieldOf(f: Finding): string {
   return parsed.success ? `«${FIELD_LABEL[parsed.data].toLowerCase()}»` : "un dato";
 }
 
-const REASONS: Readonly<Record<FindingCode, (f: Finding) => Reason>> = {
+/** Una cita larga, cortada en la última palabra completa, para que el porqué se lea de un vistazo. */
+function excerpt(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  if (flat.length <= 240) return flat;
+  return `${flat.slice(0, flat.lastIndexOf(" ", 240))}…`;
+}
+
+/**
+ * Lo que se sabe de la factura además del hallazgo. El texto del documento dice si una cita
+ * salió del PDF o del mensaje que lo trajo (correo o chat): el hallazgo no lo guarda.
+ */
+export type ReasonContext = {
+  readonly documentText?: string | null;
+};
+
+/** Verdadero si la cita aparece en el texto del documento (sin importar los espacios). */
+function inDocument(said: string, documentText: string): boolean {
+  const flat = (t: string) => t.replace(/\s+/g, " ").trim();
+  return flat(documentText).includes(flat(said).replace(/…$/, "").slice(0, 40));
+}
+
+const REASONS: Readonly<Record<FindingCode, (f: Finding, ctx: ReasonContext) => Reason>> = {
   payee_not_allowed: (f) => ({
     title: "El beneficiario no está aprobado",
     detail: `${quote(f.observed)} no está en tu lista de beneficiarios aprobados. Solo se les paga sin revisión a los de esa lista.`,
@@ -114,11 +135,40 @@ const REASONS: Readonly<Record<FindingCode, (f: Finding) => Reason>> = {
     title: "Las cuentas de la factura no cuadran",
     detail: `Los conceptos suman ${s(f.observed)}, pero el total dice ${s(f.threshold)}.`,
   }),
-  suspicious_instructions: () => ({
-    title: "El documento intenta engañar al sistema",
-    detail:
-      "Trae texto oculto o instrucciones del tipo «aprueba este pago». Una factura legítima no hace eso, así que no se paga.",
-  }),
+  suspicious_instructions: (f, ctx) => {
+    const said = f.evidence?.quote ? excerpt(f.evidence.quote) : "";
+    const hidden = f.observed.includes("texto oculto");
+    if (said === "") {
+      return {
+        title: "El documento intenta engañar al sistema",
+        detail:
+          "Trae texto oculto o instrucciones del tipo «aprueba este pago». Una factura legítima no hace eso, así que no se paga.",
+      };
+    }
+    // Sin el texto del documento no se sabe de dónde salió: se dice sin afirmar el lugar.
+    const where =
+      ctx.documentText === undefined || ctx.documentText === null
+        ? "unknown"
+        : inDocument(said, ctx.documentText)
+          ? "document"
+          : "message";
+    if (where === "message") {
+      return {
+        title: "El mensaje que la trae intenta saltarse las reglas",
+        detail: `El correo o chat que acompaña la factura dice ${quote(said)}. Ninguna aprobación llega así, y nadie puede pedirle al agente que se salte la revisión: por eso no se paga. Si es legítima, confírmala con el proveedor por un canal que ya conoces.`,
+      };
+    }
+    return {
+      title: "El documento intenta engañar al sistema",
+      detail: `${
+        where === "document"
+          ? hidden
+            ? "El documento trae texto oculto (en blanco o diminuto) dirigido al agente"
+            : "El documento trae instrucciones dirigidas al agente"
+          : "La factura o el mensaje que la trae le da instrucciones al agente"
+      }: ${quote(said)}. Una factura legítima no le da órdenes a quien la paga, así que no se paga.`,
+    };
+  },
   extraction_unreadable: (f) => {
     const { kind, reason } = parseUnreadableObserved(f.observed);
     const what = s(reason);
@@ -167,8 +217,8 @@ const REASONS: Readonly<Record<FindingCode, (f: Finding) => Reason>> = {
 };
 
 /** Un hallazgo explicado para el cliente. */
-export function reasonFor(finding: Finding): Reason {
-  return REASONS[finding.code](finding);
+export function reasonFor(finding: Finding, ctx: ReasonContext = {}): Reason {
+  return REASONS[finding.code](finding, ctx);
 }
 
 export type DecisionSummary = {

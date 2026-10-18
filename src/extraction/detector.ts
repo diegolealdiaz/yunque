@@ -56,10 +56,16 @@ export const MAX_DETECT_CHARS = 200_000;
 
 /** Fragmento alrededor de la coincidencia, acotado, para la evidencia. */
 function excerpt(text: string, index: number, length: number): string {
-  const start = Math.max(0, index - 40);
-  const end = Math.min(text.length, index + length + 60);
+  let start = Math.max(0, index - 40);
+  let end = Math.min(text.length, index + length + 60);
+  // Se corta en palabras completas: la cita se le muestra al cliente tal cual.
+  for (let n = 0; n < WORD_SLACK && start > 0 && !/\s/.test(text.charAt(start - 1)); n++) start--;
+  for (let n = 0; n < WORD_SLACK && end < text.length && !/\s/.test(text.charAt(end)); n++) end++;
   return text.slice(start, end).replace(/\s+/g, " ").trim();
 }
+
+/** Cuánto se extiende una cita, como mucho, para no cortar una palabra. */
+const WORD_SLACK = 30;
 
 /** Señales en un texto no confiable. Devuelve a lo sumo una por patrón. */
 export function detectInstructions(input: string): Suspicion[] {

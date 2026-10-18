@@ -64,7 +64,10 @@ export function WhyCard({
   const reasons = [...findings]
     .sort((a, b) => (a.action === b.action ? 0 : a.action === "frenar" ? -1 : 1))
     // La llave es el hallazgo, no el título: dos campos con la misma regla dan el mismo título.
-    .map((f, i) => ({ key: `${f.code}:${f.field ?? String(i)}`, ...reasonFor(f) }));
+    .map((f, i) => ({
+      key: `${f.code}:${f.field ?? String(i)}`,
+      ...reasonFor(f, { documentText: invoice.text }),
+    }));
   const passed = detail.rules.filter((rule) => rule.outcome === "pass").length;
   const applicable = detail.rules.filter((rule) => rule.outcome !== "skipped").length;
   return (
