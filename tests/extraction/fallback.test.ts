@@ -68,7 +68,9 @@ describe("lectura con respaldo (P-69)", () => {
     expect(result.record.fallback_used).toBe(true);
     expect(result.verification.evidence_missing).toEqual([]);
     expect(deps.calls.map((c) => c.model)).toEqual([options.primaryModel, options.fallbackModel]);
-    expect(result.cost_usd_micros).toBe(2000 + 3000 + 3000);
+    // Haiku: 1000 de entrada a 0,10 USD/M y 200 de salida a 0,50 USD/M (200 micro-USD); Sonnet:
+    // los mismos tokens a 2 y 10 USD/M (4.000 micro-USD).
+    expect(result.cost_usd_micros).toBe(200 + 4000);
   });
 
   it("si el respaldo también falla, se sigue con los hallazgos y nunca hay tercera llamada", async () => {

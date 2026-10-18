@@ -87,7 +87,7 @@ const EnvSchema = z.object({
   OPENROUTER_API_KEY: env(text("OPENROUTER_API_KEY").optional()),
   MODEL_PRIMARY: env(text("MODEL_PRIMARY").default("anthropic/claude-haiku-5.5")),
   MODEL_FALLBACK: env(text("MODEL_FALLBACK").default("anthropic/claude-sonnet-5.5")),
-  MODEL_MAX_OUTPUT_TOKENS: env(integer("MODEL_MAX_OUTPUT_TOKENS", 256, 8192).default(1500)),
+  MODEL_MAX_OUTPUT_TOKENS: env(integer("MODEL_MAX_OUTPUT_TOKENS", 256, 8192).default(4096)),
 
   DATABASE_URL: env(text("DATABASE_URL")),
   DATABASE_AUTH_TOKEN: env(text("DATABASE_AUTH_TOKEN").optional()),

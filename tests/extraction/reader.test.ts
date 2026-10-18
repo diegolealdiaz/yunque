@@ -179,11 +179,11 @@ describe("Lector (P-60 a P-64)", () => {
     });
     expect(call?.prompt_hash).toBe(promptHash(input()));
     expect(call?.raw_output).toBe(good);
-    // 1000 tokens de entrada a 1 USD/M y 200 de salida a 5 USD/M: 1.000 + 1.000 micro-USD.
-    expect(call?.cost_usd_micros).toBe(2000);
-    expect(costUsdMicros("anthropic/claude-haiku-5.5", 1000, 200)).toBe(2000);
+    // 1000 tokens de entrada a 0,10 USD/M y 200 de salida a 0,50 USD/M: 100 + 100 micro-USD.
+    expect(call?.cost_usd_micros).toBe(200);
+    expect(costUsdMicros("anthropic/claude-haiku-5.5", 1000, 200)).toBe(200);
     expect(costUsdMicros("modelo/desconocido", 1000, 200)).toBe(0);
-    expect(result.cost_usd_micros).toBe(2000);
+    expect(result.cost_usd_micros).toBe(200);
   });
 
   it("un error del proveedor se registra como error y cuenta como intento", async () => {
@@ -229,6 +229,17 @@ describe("Lector (P-60 a P-64)", () => {
     const again = await readDocument(deps, input(), options);
     expect(again.from_cache).toBe(false);
     expect(again.canary_detected).toBe(true);
+  });
+
+  it("P-64 dentro de los delimitadores solo va el documento, nunca una indicación nuestra", () => {
+    const text = "Factura F-9 por 100,00 USD";
+    const parts = userParts(input(text));
+    const block = parts.find(
+      (p) => p.type === "text" && p.text.includes("<<<DOCUMENTO NO CONFIABLE>>>"),
+    );
+    const inside = block?.type === "text" ? block.text : "";
+    // Lo único entre las marcas es el texto del documento.
+    expect(inside.split("\n").slice(1, -1).join("\n")).toBe(text);
   });
 
   it("P-64 los marcadores del prompt dentro del documento no cierran el bloque", () => {

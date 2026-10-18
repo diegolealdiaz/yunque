@@ -88,7 +88,7 @@ describe("salud (P-120)", () => {
       organization_id: p.organizationId,
       invoice_id: null,
       model: "anthropic/claude-haiku-5.5",
-      prompt_version: "lector-v2",
+      prompt_version: "lector-v3",
       prompt_hash: "h",
       raw_output: null,
       attempt: 1,

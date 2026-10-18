@@ -7,8 +7,9 @@
 export type ModelPrice = { readonly inputPerMillion: number; readonly outputPerMillion: number };
 
 export const MODEL_PRICES: Readonly<Record<string, ModelPrice>> = {
-  "anthropic/claude-haiku-5.5": { inputPerMillion: 1_000_000, outputPerMillion: 5_000_000 },
-  "anthropic/claude-sonnet-5.5": { inputPerMillion: 3_000_000, outputPerMillion: 15_000_000 },
+  // Precios de OpenRouter al 18 oct 2026.
+  "anthropic/claude-haiku-5.5": { inputPerMillion: 100_000, outputPerMillion: 500_000 },
+  "anthropic/claude-sonnet-5.5": { inputPerMillion: 2_000_000, outputPerMillion: 10_000_000 },
 };
 
 /** Costo en micro-USD de una llamada; cero si el modelo no tiene precio o faltan tokens. */
