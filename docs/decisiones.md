@@ -180,7 +180,7 @@ Detalles que sostienen las capas: el webhook exige autenticación básica con un
 
 **Decisión.** Un bot de Telegram con dos funciones:
 
-1. **Notificador.** Cuando la empresa tiene un chat conectado, cada decisión que le importa a una persona (una escalada, una frenada o una aprobación) **sobre una factura que entregó una persona** (subida, correo real o el bot) encola un aviso por Telegram en la misma transacción que la decisión. Un pago que el agente hizo solo dentro de las reglas no interrumpe a nadie. Las facturas de ejemplo de la demo (lote y bandeja simulada) no se avisan una por una, aunque su canal sea correo o chat: al terminar el lote llega un solo resumen ("33 facturas: 15 pagadas, 8 esperan tu decisión, 10 frenadas"). Quién entregó la factura se sabe por su llave de recepción, no por su canal. El aviso dice qué pasó, de quién, cuánto y por qué, con las mismas razones en lenguaje simple de la pantalla, y un botón al detalle si hay URL pública. Lo entrega la cola de avisos con reintentos (D21).
+1. **Notificador.** Cuando la empresa tiene un chat conectado, cada decisión que le importa a una persona (una escalada, una frenada o una aprobación) **sobre una factura que entregó una persona** (subida, correo real o el bot) encola un aviso por Telegram en la misma transacción que la decisión. Un pago que el agente hizo solo dentro de las reglas no interrumpe a nadie. Las facturas de ejemplo de la demo (lote y bandeja simulada) no se avisan una por una, aunque su canal sea correo o chat: al terminar el lote llega un solo resumen ("33 facturas: 12 pagadas, 11 esperan tu decisión, 10 frenadas"). Quién entregó la factura se sabe por su llave de recepción, no por su canal. El aviso dice qué pasó, de quién, cuánto y por qué, con las mismas razones en lenguaje simple de la pantalla, y un botón al detalle si hay URL pública. Lo entrega la cola de avisos con reintentos (D21).
 2. **Entrada.** El chat conectado envía una factura en PDF o foto; pasa por `processInvoice` con la llave `telegram:<update_id>`, y su veredicto llega como cualquier aviso.
 
 Protecciones, las mismas capas que el correo (D23):
@@ -342,3 +342,17 @@ Protecciones:
 **Consecuencia.** Un agente puede afirmar cualquier dato, como puede hacerlo una factura. La defensa es la misma: el beneficiario, la cuenta y el monto se contrastan con lo registrado, y lo que no cuadra no se paga. El servidor MCP para conectar asistentes como Claude es un cliente delgado de esta API, sin lógica propia.
 
 **MCP remoto.** Además del servidor local (`mcp/server.ts`), `/api/mcp` atiende MCP por HTTP: un agente se conecta con la URL de Yunque y la misma llave de la API, sin instalar nada. Es solo un adaptador: sus herramientas llaman a la API de decisión con esa llave, así los topes, la idempotencia y las reglas viven en un solo lugar. No guarda sesión; cada petición trae su llave. La herramienta que lee archivos del disco solo existe en el local. La pantalla **Conectar** muestra el comando con la llave puesta.
+
+## D33. Un segundo cobro de un recurrente en el mismo periodo escala
+
+**Contexto.** Un proveedor con acuerdo recurrente (hosting, licencias, una iguala) cobra una vez por periodo. Si llega una segunda factura suya del mismo mes, puede ser un cargo legítimo aparte o un pago doble con otro número de factura, que el control de duplicados no ve porque el documento y la llave semántica cambian.
+
+**Decisión.** La regla fija `recurring_period_repeat` escala la segunda factura de un recurrente cuando ya hay otra del mismo periodo del acuerdo (mes, semana ISO o año). La primera emitida se paga como siempre. Una persona confirma que la segunda es un cobro aparte.
+
+- **Se compara la fecha de emisión leída**, no la de recepción ni el orden de proceso. Así cada factura recibe el mismo veredicto llegue en el orden que llegue, y la facturación anticipada del periodo siguiente no cuenta como repetida. A igual fecha desempata el id de la factura.
+- **No cuentan** las rechazadas, las de otro proveedor ni el historial sembrado, que no trae fecha de emisión.
+- **Escala, no frena.** Un segundo cargo del mes puede ser correcto (un servicio adicional); lo que no puede es pagarse sin que alguien lo mire.
+- **Es fija.** Ninguna política la relaja, como las demás reglas que protegen contra el pago doble.
+
+La fecha de emisión se guarda en la factura (migración 0012) para que el motor la vea en el historial.
+

@@ -426,6 +426,55 @@ describe("matriz de fronteras (P-20)", () => {
     });
   });
 
+  describe("recurring_period_repeat", () => {
+    // La factura base es de Nube Andina, recurrente mensual, emitida el 2026-10-10.
+    const twin = (issue_date: string | null, overrides: object = {}) => ({
+      ...priorPaid(20),
+      issue_date,
+      ...overrides,
+    });
+    const withPrior = (...prior: ReturnType<typeof twin>[]) =>
+      baseContext({ prior: [priorPaid(40), ...prior] });
+
+    it("otra del mismo mes emitida antes escala; la del mes anterior no cuenta", () => {
+      const result = evaluate(withPrior(twin("2026-10-02")));
+      expect(result.findings.map((f) => f.code)).toEqual(["recurring_period_repeat"]);
+      expect(result.verdict).toBe("escalar");
+      expect(codes(withPrior(twin("2026-09-30")))).toEqual([]);
+    });
+
+    it("la primera emitida del periodo se paga: una posterior del mismo mes no la escala", () => {
+      expect(codes(withPrior(twin("2026-10-20")))).toEqual([]);
+    });
+
+    it("a igual fecha desempata el id: solo escala la de id mayor", () => {
+      expect(
+        codes(withPrior(twin("2026-10-10", { invoice_id: "01ARZ3NDEKTSV4RRFFQ69G5FB9" }))),
+      ).toEqual(["recurring_period_repeat"]);
+      expect(
+        codes(withPrior(twin("2026-10-10", { invoice_id: "01ARZ3NDEKTSV4RRFFQ69G5FD0" }))),
+      ).toEqual([]);
+    });
+
+    it("no cuentan la rechazada, la de otro proveedor ni el historial sin fecha de emisión", () => {
+      expect(codes(withPrior(twin("2026-10-02", { outcome: "rechazada" })))).toEqual([]);
+      expect(codes(withPrior(twin("2026-10-02", { vendor_id: OTHER_VENDOR_ID })))).toEqual([]);
+      expect(codes(withPrior(twin(null)))).toEqual([]);
+    });
+
+    it("con periodo semanal compara la semana ISO", () => {
+      const weekly = { ...vendor, agreement: { ...vendor.agreement, period: "week" as const } };
+      const ctx = (issue: string) =>
+        baseContext({
+          payee: { kind: "matched", vendor: weekly, by: "exact" },
+          prior: [priorPaid(40), twin(issue)],
+        });
+      // 2026-10-10 es sábado: el lunes 5 es de su semana; el domingo 4, de la anterior.
+      expect(codes(ctx("2026-10-05"))).toEqual(["recurring_period_repeat"]);
+      expect(codes(ctx("2026-10-04"))).toEqual([]);
+    });
+  });
+
   describe("amount_unusual_for_vendor", () => {
     it("con menos historial que el mínimo no aplica; dentro de la desviación no dispara; fuera sí", () => {
       const two = [priorPaid(40, 100_000_000), priorPaid(70, 100_000_000)];

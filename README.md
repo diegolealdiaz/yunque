@@ -95,7 +95,7 @@ El detalle completo está en [Arquitectura](docs/arquitectura.md) y cada decisi�
 
 ## Conecta tus sistemas
 
-En la demo, la pantalla **Conectar** pide un código de acceso de cliente y entrega todo listo para copiar: la dirección de correo, el enlace al bot de Telegram, la llave de la API y el comando para conectar un agente de IA.
+En la demo, la pantalla **Conectar** pide un código de acceso de cliente, que se entrega junto con el envío del reto, y entrega todo listo para copiar: la dirección de correo, el enlace al bot de Telegram, la llave de la API y el comando para conectar un agente de IA.
 
 ### API de decisión
 
@@ -180,7 +180,7 @@ Vercel para la app, Turso para la base y Vercel Blob para los archivos. Producci
 <details>
 <summary>Correo y Telegram para clientes</summary>
 
-Los dos canales se abren con un código de acceso (`DEMO_ACCESS_CODE`, al menos 12 caracteres) que se entrega por fuera del repo, y duran 72 horas. Las protecciones están en las decisiones D23 y D24.
+Los dos canales se abren con un código de acceso (`DEMO_ACCESS_CODE`, al menos 12 caracteres) que se entrega por fuera del repo (en la demo, junto con el envío del reto), y duran 72 horas. Las protecciones están en las decisiones D23 y D24.
 
 **Correo (Postmark).**
 

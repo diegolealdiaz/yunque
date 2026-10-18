@@ -9,7 +9,7 @@
 | R1 | Leer una factura (PDF, imagen, correo, chat) y extraer a quién, cuánto, en qué moneda y para cuándo | Canales, Lector, Verificador | Cubierto. El ajuste A2 (fecha programada `scheduled_for` y regla `due_date_window`) ya está en `arquitectura.md` |
 | R2 | Reglas configurables: límites por pago y por periodo, beneficiarios permitidos, aprobación humana por encima de cierto monto | Juez, política versionada, formulario | Cubierto. El ajuste A3 (periodo mes o semana) ya está en `arquitectura.md` |
 | R3 | Registro de cada decisión: pagó, frenó o escaló, y por qué | Bitácora, hallazgos, Explicador | Cubierto |
-| R4 | Casos trampa: cobro duplicado | Compuerta por hash y llave semántica, regla `duplicate_invoice` | Cubierto |
+| R4 | Casos trampa: cobro duplicado | Compuerta por hash y llave semántica, regla `duplicate_invoice`; un segundo cobro de un recurrente en el mismo periodo escala con `recurring_period_repeat` | Cubierto |
 | R5 | Casos trampa: beneficiario nuevo fuera de la lista | Resolutor, regla `payee_not_allowed` | Cubierto |
 | R6 | Casos trampa: factura que no cuadra con lo acordado | Vendor con acuerdo u orden de compra, regla `amount_mismatch` con tolerancia | Cubierto |
 | R7 | Casos trampa: monto que supera el límite y necesita aprobación humana | Reglas `amount_over_hard_limit` (frenar) y `amount_over_approval_threshold` (escalar) | Cubierto |
