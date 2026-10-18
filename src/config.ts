@@ -105,7 +105,7 @@ const EnvSchema = z.object({
 
   DEMO_MODE: env(boolean("DEMO_MODE").default(true)),
   MAX_UPLOAD_BYTES: env(integer("MAX_UPLOAD_BYTES", 1024, 20 * MB).default(5 * MB)),
-  MAX_PAGES_RENDERED: env(integer("MAX_PAGES_RENDERED", 1, 20).default(5)),
+  MAX_PAGES_RENDERED: env(integer("MAX_PAGES_RENDERED", 1, 20).default(10)),
   MAX_INVOICES_PER_VISITOR_PER_DAY: env(
     integer("MAX_INVOICES_PER_VISITOR_PER_DAY", 1, 10_000).default(50),
   ),

@@ -186,7 +186,7 @@ async function fieldsWithBoxes(
   // Una posición que no se puede leer no impide mostrar el detalle: la cita queda en el texto.
   const layouts = await Promise.all(
     invoice.page_keys.map(async (pngKey) => {
-      const key = pngKey.replace(/pagina-(\d+)\.png$/, "texto-$1.json");
+      const key = pngKey.replace(/pagina-(\d+)\.(?:png|jpg)$/, "texto-$1.json");
       if (key === pngKey) return null;
       try {
         const raw: unknown = JSON.parse(new TextDecoder().decode(await storage.get(key)));

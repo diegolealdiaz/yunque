@@ -1,4 +1,5 @@
-import { PdfBudgetError, PdfError, createEngine, type PdfEngine } from "clawpdf";
+import { PdfBudgetError, PdfError, createEngine, type PdfEngine, type PdfPage } from "clawpdf";
+import { encode as encodeJpeg } from "jpeg-js";
 
 import { documentHash, type Sha256, type SourceKind } from "@/src/domain";
 
@@ -42,7 +43,7 @@ export type IngestInput = {
 export type IngestedPage = {
   readonly page: number;
   readonly text: string;
-  /** Llave del PNG en el almacenamiento. */
+  /** Llave de la imagen en el almacenamiento: PNG, o JPEG si la página es un escaneo pesado. */
   readonly pngKey: string;
   /**
    * Llave del JSON con el texto y la caja de cada carácter (`PageLayout`), para enmarcar las
@@ -78,6 +79,18 @@ export type IngestedDocument = Omit<ReceivedDocument, "bytes"> & {
 };
 
 const RENDER_DPI = 110;
+/**
+ * Lado mayor de una página renderizada. El modelo reduce cualquier imagen más grande a este
+ * tamaño antes de leerla: renderizar más solo hace la petición más pesada y lenta. Una carta
+ * o un A4 a 110 dpi quedan por debajo; un escaneo con páginas enormes se renderiza a menos dpi.
+ */
+export const MAX_PAGE_LONG_SIDE_PX = 1568;
+/**
+ * Una página que en PNG pesa más que esto es un escaneo o una foto (el ruido no se comprime):
+ * se guarda en JPEG, que la deja en una fracción del peso y se lee igual.
+ */
+export const MAX_PAGE_PNG_BYTES = 1_000_000;
+const JPEG_QUALITY = 80;
 /** Un PDF con capa de texto que suma menos de esto se trata como escaneado. */
 const MIN_TEXT_CHARS = 40;
 /**
@@ -160,19 +173,19 @@ async function ingestPdf(
     }
     const pages: IngestedPage[] = [];
     for (let n = 1; n <= pdf.pageCount; n++) {
-      let png: Uint8Array;
+      let image: RenderedPage;
       let text: string;
       let width: number;
       let height: number;
       try {
         const page = pdf.page(n);
         ({ width, height } = page);
-        const pixels =
-          ((width * RENDER_DPI) / POINTS_PER_INCH) * ((height * RENDER_DPI) / POINTS_PER_INCH);
+        const dpi = renderDpi(width, height);
+        const pixels = ((width * dpi) / POINTS_PER_INCH) * ((height * dpi) / POINTS_PER_INCH);
         if (!Number.isFinite(pixels) || pixels > MAX_PAGE_PIXELS) {
           throw tooLarge(`La página ${String(n)} del PDF es demasiado grande para renderizarla`);
         }
-        png = await page.png({ dpi: RENDER_DPI, background: "white" });
+        image = await renderPage(page, dpi);
         text = cleanLayoutText(page.text());
       } catch (error) {
         throw pdfFailure(error);
@@ -186,8 +199,8 @@ async function ingestPdf(
       }
       // Si una escritura falla a mitad, quedan PNG sin factura bajo el prefijo del hash;
       // la siguiente ingesta del mismo documento los sobrescribe con las mismas llaves.
-      const pngKey = `${prefix}/${hash}/pagina-${String(n)}.png`;
-      await storage.put(pngKey, png, "image/png");
+      const pngKey = `${prefix}/${hash}/pagina-${String(n)}.${image.extension}`;
+      await storage.put(pngKey, image.bytes, image.mimeType);
       let layoutKey: string | null = null;
       if (layout) {
         layoutKey = `${prefix}/${hash}/texto-${String(n)}.json`;
@@ -207,6 +220,30 @@ async function ingestPdf(
   } finally {
     pdf.destroy();
   }
+}
+
+/** Dpi de una página: el de siempre, o menos si así su lado mayor pasaría el tope. */
+export function renderDpi(widthPt: number, heightPt: number): number {
+  const longSide = Math.max(widthPt, heightPt);
+  if (!(longSide > 0)) return RENDER_DPI;
+  return Math.min(RENDER_DPI, (MAX_PAGE_LONG_SIDE_PX * POINTS_PER_INCH) / longSide);
+}
+
+type RenderedPage = {
+  readonly bytes: Uint8Array;
+  readonly extension: "png" | "jpg";
+  readonly mimeType: "image/png" | "image/jpeg";
+};
+
+/** PNG si la página es liviana (texto nítido); JPEG si es un escaneo pesado. */
+async function renderPage(page: PdfPage, dpi: number): Promise<RenderedPage> {
+  const png = await page.png({ dpi, background: "white" });
+  if (png.length <= MAX_PAGE_PNG_BYTES) {
+    return { bytes: png, extension: "png", mimeType: "image/png" };
+  }
+  const { width, height, rgba } = page.render({ dpi, background: "white" });
+  const jpeg = encodeJpeg({ width, height, data: rgba }, JPEG_QUALITY);
+  return { bytes: new Uint8Array(jpeg.data), extension: "jpg", mimeType: "image/jpeg" };
 }
 
 /**

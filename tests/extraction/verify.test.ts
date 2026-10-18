@@ -179,6 +179,68 @@ describe("Verificador (P-66 a P-68)", () => {
   });
 });
 
+describe('moneda con "$" (P-150)', () => {
+  /** Factura en dólares cuya moneda solo se cita con el símbolo. */
+  function dollarInvoice(text: string, code = "USD"): Extraction {
+    return withField(baseFieldsFor(text), (e) => {
+      const currency = presentField(e, "currency");
+      currency.value = code;
+      currency.evidence.literal = "$1.00";
+      currency.evidence.quote = "$1.00";
+    });
+  }
+
+  it('P-150 "$" vale si el documento nombra la moneda en otra parte, sin segunda pasada', () => {
+    for (const named of ["Amounts in USD", "Payable in U.S. dollars", "Valor en dólares"]) {
+      const v = verifyExtraction(dollarInvoice(named), null);
+      // Sin texto no se puede saber: escala. Con el texto que la nombra, pasa.
+      expect(v.report.ambiguities.map((a) => a.field)).toEqual(["currency"]);
+      const withText = verifyExtraction(
+        dollarInvoice(`Total $1.00\n${named}`),
+        `Total $1.00\n${named}`,
+      );
+      expect(
+        withText.issues.filter((i) => i.field === "currency"),
+        named,
+      ).toEqual([]);
+      expect(
+        withText.report.ambiguities.filter((a) => a.field === "currency"),
+        named,
+      ).toEqual([]);
+    }
+    const cop = "Total $1.00\nValores en pesos colombianos";
+    expect(verifyExtraction(dollarInvoice(cop, "COP"), cop).report.ambiguities).toEqual([]);
+  });
+
+  it('P-150 "$" a secas es ambigüedad, no un error de lectura: escala sin segunda pasada', () => {
+    const text = "Total $1.00\nThank you";
+    const v = verifyExtraction(dollarInvoice(text), text);
+    expect(v.issues.filter((i) => i.field === "currency")).toEqual([]);
+    expect(v.report.ambiguities).toContainEqual({
+      field: "currency",
+      candidates: ["USD", "COP", "MXN", "ARS"],
+    });
+    // "pesos" a secas no dice cuál peso, y "dólares" no hace pasar una lectura en pesos.
+    const pesos = "Total $1.00\nValor en pesos\nTasa en dólares";
+    expect(verifyExtraction(dollarInvoice(pesos, "COP"), pesos).report.ambiguities).toHaveLength(1);
+  });
+
+  it("P-150 un símbolo que es de una sola moneda vale como cita; una moneda sin cita sigue siendo hallazgo", () => {
+    const text = "Total US$1.00";
+    const us = withField(dollarInvoice(text), (e) => {
+      presentField(e, "currency").evidence.literal = "US$1.00";
+    });
+    expect(verifyExtraction(us, null).issues).toEqual([]);
+    const eur = "Gesamt 1,00 EUR\nDE123456789";
+    const wrong = withField(baseFieldsFor(eur), (e) => {
+      presentField(e, "currency").evidence.literal = "1,00";
+    });
+    const v = verifyExtraction(wrong, null);
+    expect(v.issues).toContainEqual(expect.objectContaining({ field: "currency" }));
+    expect(needsFallback(v)).toBe(true);
+  });
+});
+
 describe("ayudas de parseo", () => {
   it("montos con prefijos, signos y formatos raros", () => {
     expect(amountFromLiteral("IVA 19 %: 766.386,55")).toBe(76638655);

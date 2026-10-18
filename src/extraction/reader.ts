@@ -1,7 +1,10 @@
 import { randomBytes } from "node:crypto";
 
+import { z } from "zod";
+
 import {
   ExtractionSchema,
+  SuspicionSchema,
   jsonHash,
   type Extraction,
   type ExtractionRecord,
@@ -118,6 +121,22 @@ function stripFences(text: string): string {
   return fenced?.[1] ?? trimmed;
 }
 
+/** Lo justo para reconocer una factura leída con total cero, antes de validar el resto. */
+const ZeroTotalSchema = z.object({
+  kind: z.literal("invoice"),
+  fields: z.object({ total: z.object({ value: z.literal(0) }) }),
+  suspicions: z.array(SuspicionSchema).max(20).catch([]),
+});
+
+/**
+ * Una factura con total cero (ya pagada, prepagada o en saldo a favor) no tiene nada que
+ * pagar: se registra como "no es una factura por pagar" y una persona decide. Sin esto, el
+ * esquema la rechaza (el total debe ser positivo) y cada reintento repite la misma lectura.
+ * Las sospechas que trajo se conservan.
+ */
+const ZERO_TOTAL_REASON =
+  "El total a pagar es 0: la factura figura ya pagada o sin saldo, no hay nada que pagar";
+
 /** Parsea y valida la salida del modelo. Devuelve el motivo si no sirve. */
 export function parseModelOutput(raw: string): { extraction: Extraction } | { problem: string } {
   let data: unknown;
@@ -125,6 +144,16 @@ export function parseModelOutput(raw: string): { extraction: Extraction } | { pr
     data = JSON.parse(stripFences(raw));
   } catch {
     return { problem: "la salida no es JSON" };
+  }
+  const zero = ZeroTotalSchema.safeParse(data);
+  if (zero.success) {
+    return {
+      extraction: {
+        kind: "not_invoice",
+        reason: ZERO_TOTAL_REASON,
+        suspicions: zero.data.suspicions,
+      },
+    };
   }
   const parsed = ExtractionSchema.safeParse(data);
   if (!parsed.success) {

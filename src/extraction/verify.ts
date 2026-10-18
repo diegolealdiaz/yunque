@@ -18,6 +18,9 @@ import { MAX_WORDS_CHARS, spanishWordsToNumber } from "./words";
  * - El valor normalizado se deriva de la literal: montos, fechas, textos, moneda.
  * - Subtotal más impuestos cuadra con el total.
  * - Monto en letras distinto del numérico, o un segundo "total" en el documento, son ambigüedad.
+ * - Una moneda citada solo con "$" vale si el documento la nombra en otra parte ("USD",
+ *   "dólares", "pesos colombianos"); si no, es ambigüedad: "$" es dólar, peso colombiano,
+ *   mexicano o argentino, y otro modelo no lo puede saber mejor.
  *
  * Sin texto (documento escaneado) solo se puede comprobar la coherencia interna. La página
  * de la cita no se comprueba aquí: el texto llega unido; queda para cuando se verifique
@@ -217,6 +220,42 @@ function evidenceInText(literal: string, text: string): boolean {
   return comparable(text).includes(comparable(literal));
 }
 
+/** Símbolos que nombran una sola moneda. */
+const CURRENCY_SYMBOLS: Readonly<Record<string, string>> = {
+  us$: "USD",
+  u$s: "USD",
+  col$: "COP",
+  r$: "BRL",
+  mx$: "MXN",
+  "€": "EUR",
+};
+
+/** Cómo un documento nombra cada moneda, además de su código. */
+const CURRENCY_NAMES: Readonly<Record<string, RegExp>> = {
+  USD: /(?<!\p{L})(?:us\$|u\$s|d[oó]lar(?:es)?(?:\s+(?:americanos|estadounidenses))?|dollars?)(?!\p{L})/iu,
+  EUR: /€|(?<!\p{L})euros?(?!\p{L})/iu,
+  COP: /col\$|(?<!\p{L})pesos?\s+colombianos?(?!\p{L})/iu,
+  BRL: /r\$|(?<!\p{L})reais(?!\p{L})/iu,
+  MXN: /mx\$|(?<!\p{L})pesos?\s+mexicanos?(?!\p{L})/iu,
+  ARS: /(?<!\p{L})pesos?\s+argentinos?(?!\p{L})/iu,
+};
+
+/** La literal de la moneda la nombra: el código o un símbolo que solo es de ella. */
+function currencyInLiteral(code: string, literal: string): boolean {
+  const l = comparable(literal);
+  if (l.includes(code.toLowerCase())) return true;
+  return Object.entries(CURRENCY_SYMBOLS).some(([symbol, c]) => c === code && l.includes(symbol));
+}
+
+/** El documento nombra la moneda en alguna parte: su código como palabra o su nombre. */
+export function currencyNamedInText(code: string, text: string): boolean {
+  if (new RegExp(`(?<![A-Za-z])${code}(?![A-Za-z])`).test(text)) return true;
+  return CURRENCY_NAMES[code]?.test(text) ?? false;
+}
+
+/** Monedas que se escriben con un "$" a secas. */
+const DOLLAR_SIGN_CURRENCIES: readonly string[] = ["USD", "COP", "MXN", "ARS"];
+
 /** Campos que se comparan solo por letras y dígitos: el formato impreso lleva espacios. */
 const IDENTIFIER_FIELDS: ReadonlySet<ExtractedFieldName> = new Set([
   "bank_account",
@@ -244,9 +283,13 @@ function valueDerived(name: ExtractedFieldName, value: unknown, literal: string)
         ? null
         : `la literal "${literal}" no da la fecha ${String(value)}`;
     case "currency":
-      return typeof value === "string" && comparable(literal).includes(value.toLowerCase())
+      return typeof value === "string" && currencyInLiteral(value, literal)
         ? null
         : `la literal "${literal}" no contiene ${String(value)}`;
+    case "description":
+      // Es un resumen del concepto, a veces traducido: basta con que la cita exista. No
+      // decide a quién ni cuánto se paga, y no amerita una segunda pasada.
+      return typeof value === "string" ? null : "valor no textual";
     default: {
       if (typeof value !== "string") return "valor no textual";
       const v = IDENTIFIER_FIELDS.has(name) ? alphanumeric(value) : normalizeText(value);
@@ -300,7 +343,16 @@ export function verifyExtraction(extraction: Extraction, text: string | null): V
       continue;
     }
     const problem = valueDerived(name, field.value, field.evidence.literal);
-    if (problem !== null) issues.push({ kind: "value_not_derived", field: name, detail: problem });
+    if (problem === null) continue;
+    if (name === "currency" && field.evidence.literal.includes("$")) {
+      // "$" a secas: vale si el documento nombra la moneda en otra parte. Si no, decide una
+      // persona; no es un error de lectura y no amerita una segunda pasada.
+      if (text !== null && currencyNamedInText(String(field.value), text)) continue;
+      const others = DOLLAR_SIGN_CURRENCIES.filter((c) => c !== field.value);
+      ambiguities.push({ field: "currency", candidates: [String(field.value), ...others] });
+      continue;
+    }
+    issues.push({ kind: "value_not_derived", field: name, detail: problem });
   }
 
   if (isPresent(fields.subtotal) && isPresent(fields.taxes)) {

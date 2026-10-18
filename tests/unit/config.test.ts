@@ -160,7 +160,7 @@ describe("loadConfig (P-02)", () => {
     const source = without("MAX_PAGES_RENDERED");
     delete source["DISPLAY_TIMEZONE"];
     const config = loadConfig(source);
-    expect(config.demo.maxPagesRendered).toBe(5);
+    expect(config.demo.maxPagesRendered).toBe(10);
     expect(config.displayTimeZone).toBe("America/Bogota");
   });
 
@@ -202,7 +202,7 @@ describe("loadConfig (P-02)", () => {
   });
 
   it("una variable numérica vacía toma su valor por defecto", () => {
-    expect(loadConfig({ ...valid, MAX_PAGES_RENDERED: "" }).demo.maxPagesRendered).toBe(5);
+    expect(loadConfig({ ...valid, MAX_PAGES_RENDERED: "" }).demo.maxPagesRendered).toBe(10);
     expect(loadConfig({ ...valid, DEMO_MODE: "  " }).demo.enabled).toBe(true);
   });
 

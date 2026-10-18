@@ -191,6 +191,11 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-145 | Historial de ejemplo: cada factura trae el documento generado (mismo hash que la verdad del dataset, páginas que se leen del dataset sin escribir archivos) y su lectura, con citas enmarcadas; la frenada de Stackline dice que la cuenta del documento (****4471) no es la registrada (****6789) y la bitácora lo cuenta en una frase; la escalada de Andes Hardware lleva su regla y la aprobación de una persona como evento; los archivos del dataset son de solo lectura | pipeline |
 | P-146 | Probar el agente: cada caso de la galería está en el lote y tiene su miniatura; procesados uno a uno y en orden inverso, cada uno decide lo que espera el manifiesto; la galería encuentra por su llave de recepción lo ya procesado, con su veredicto | pipeline |
 | P-147 | Recorrido guiado: cuatro pasos, el primero en Probar el agente; cada uno en una sección de la barra y señalando un elemento que su pantalla tiene | unidad |
+| P-148 | Almacén en Vercel Blob: guarda privado, en la misma llave y sin sufijo, sobrescribe la misma llave y devuelve los mismos bytes; una llave que no existe falla y una insegura no llega al almacén; en Vercel la app no arranca sin el token de Blob ni el secreto del cron, y en un servidor local no los pide | unidad |
+| P-149 | Cron de avisos: encuentra las empresas con avisos cuyo intento ya llegó, no antes, y vuelve a ver un aviso fallido cuando vence su espera | pipeline |
+| P-150 | Moneda con "$": vale si el documento la nombra en otra parte (código, "dólares", "pesos colombianos"); a secas es ambigüedad entre las monedas que usan "$" y escala sin segunda pasada; un símbolo de una sola moneda ("US$", "€") vale como cita | unidad |
+| P-151 | Factura con total cero: se registra como documento sin nada que pagar, conserva sus sospechas y no gasta reintentos | unidad |
+| P-152 | Tamaño de las páginas: carta y A4 a 110 dpi; una página enorme baja hasta 1.568 px de lado; un escaneo con ruido se guarda en JPEG | unidad |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

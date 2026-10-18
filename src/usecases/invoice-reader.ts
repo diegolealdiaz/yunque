@@ -30,9 +30,13 @@ export interface InvoiceReader {
   read(doc: IngestedDocument, context: ReadContext): Promise<ReadInvoiceResult>;
 }
 
-/** Plazo por llamada al modelo y de toda la lectura. La ruta debe dar más que el global. */
-export const READ_TIMEOUT_MS = 30_000;
-export const READ_DEADLINE_MS = 60_000;
+/**
+ * Plazo por llamada al modelo y de toda la lectura. La ruta debe dar más que el global (90 s),
+ * con margen para renderizar las páginas. Un escaneo de 8 a 10 páginas tarda unos 30 s en
+ * leerse; con menos plazo escalaría siempre como ilegible.
+ */
+export const READ_TIMEOUT_MS = 45_000;
+export const READ_DEADLINE_MS = 75_000;
 
 /** La salida cruda se guarda recortada: sirve para depurar, no para reconstruir. */
 const MAX_RAW_OUTPUT_CHARS = 20_000;

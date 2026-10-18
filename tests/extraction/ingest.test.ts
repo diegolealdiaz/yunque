@@ -1,11 +1,15 @@
 import { PDFDocument } from "@pdfme/pdf-lib";
+import { decode as decodeJpeg, encode as encodeJpeg } from "jpeg-js";
 import { describe, expect, it } from "vitest";
 
 import {
   IngestError,
+  MAX_PAGE_LONG_SIDE_PX,
+  MAX_PAGE_PNG_BYTES,
   MemoryFileStorage,
   assertSafeKey,
   ingestDocument,
+  renderDpi,
   sniffType,
 } from "@/src/extraction";
 
@@ -245,5 +249,46 @@ describe("ingesta (P-52 a P-56)", () => {
     expect(() => assertSafeKey("org/hash/original.pdf")).not.toThrow();
     for (const bad of ["../x", "/abs", "a//b", "a/../b", "a b", ""])
       expect(() => assertSafeKey(bad), bad).toThrow(RangeError);
+  });
+});
+
+describe("tamaño de las páginas (P-152)", () => {
+  it("P-152 una carta o un A4 se renderizan a 110 dpi; una página enorme baja hasta el tope de lado", () => {
+    expect(renderDpi(612, 792)).toBe(110);
+    expect(renderDpi(595, 842)).toBe(110);
+    // Un escaneo de 27 x 35 pulgadas: a 110 dpi serían 3.900 px de alto.
+    const dpi = renderDpi(1998, 2541);
+    expect(Math.round((2541 * dpi) / 72)).toBe(MAX_PAGE_LONG_SIDE_PX);
+    expect(renderDpi(2541, 1998)).toBe(dpi);
+    expect(renderDpi(0, 0)).toBe(110);
+  });
+
+  it("P-152 un escaneo con ruido en una página enorme se guarda en JPEG y con el lado acotado", async () => {
+    // Ruido determinista: no se comprime en PNG, como un escaneo de mala calidad.
+    const width = 600;
+    const height = 760;
+    const data = new Uint8Array(width * height * 4);
+    let seed = 7;
+    for (let i = 0; i < data.length; i++) {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      data[i] = i % 4 === 3 ? 255 : seed % 256;
+    }
+    const noise = encodeJpeg({ width, height, data }, 90).data;
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([1998, 2541]);
+    page.drawImage(await pdf.embedJpg(noise), { x: 0, y: 0, width: 1998, height: 2541 });
+    const storage = new MemoryFileStorage();
+    const doc = await ingestDocument(
+      { bytes: await pdf.save(), originalName: "escaneo.pdf", storagePrefix: prefix },
+      storage,
+      limits,
+    );
+    const key = doc.pages[0]?.pngKey ?? "";
+    expect(key).toMatch(/pagina-1\.jpg$/);
+    const stored = storage.files.get(key);
+    expect(stored?.contentType).toBe("image/jpeg");
+    expect(stored?.bytes.length).toBeLessThan(MAX_PAGE_PNG_BYTES * 2);
+    const image = decodeJpeg(stored?.bytes ?? new Uint8Array(), { useTArray: true });
+    expect(Math.max(image.width, image.height)).toBeLessThanOrEqual(MAX_PAGE_LONG_SIDE_PX);
   });
 });

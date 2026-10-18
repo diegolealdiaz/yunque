@@ -37,7 +37,7 @@
 ## D7. Infraestructura mínima: funciones sin estado, una base relacional, una tabla como cola
 
 **Decisión.** Next.js en Vercel, Turso para datos, Vercel Blob para archivos. Tabla outbox para las notificaciones. Sin Redis, sin broker, sin microservicios, sin multirregión.
-**Consecuencia.** Un solo despliegue. Camino de escala documentado en `arquitectura.md`. El lote no necesitó cola: la pantalla lo recorre una factura por petición, cada una con su llave de entrega, así que un corte se retoma reenviando lo que faltó. La tabla de trabajos que se previó para él se quitó sin haberse usado. Hasta el despliegue, los archivos se guardan en disco local; Vercel Blob entra en el paso 29.
+**Consecuencia.** Un solo despliegue. Camino de escala documentado en `arquitectura.md`. El lote no necesitó cola: la pantalla lo recorre una factura por petición, cada una con su llave de entrega, así que un corte se retoma reenviando lo que faltó. La tabla de trabajos que se previó para él se quitó sin haberse usado. En local los archivos se guardan en disco; desplegado, en Vercel Blob (D27).
 
 ## D8. Modelo barato por defecto, caro solo como segunda pasada
 
@@ -93,7 +93,7 @@
 
 **Decisión.** Desde el paso 20, el proxy entrega a cada visitante una cookie firmada con HMAC (`SESSION_SECRET`), y el servidor saca la empresa solo de esa firma verificada; al primer acceso siembra su copia de la empresa ficticia con el historial. Fuera de la demo, la empresa es la base. Ninguna ruta acepta un identificador de empresa del cliente, y una factura de otra empresa responde igual que una inexistente. En la misma pieza se fija la política de seguridad de contenido: scripts solo propios con nonce por petición, sin incrustar la app en otros sitios.
 
-**Consecuencia.** Las pantallas se renderizan por petición, nunca al compilar. Queda para el despliegue (paso 29) limitar cuántas empresas se siembran por día: hoy cada visita nueva sin cookie crea una.
+**Consecuencia.** Las pantallas se renderizan por petición, nunca al compilar. Cuántas empresas se siembran por día lo limita un tope (D27).
 
 ## D16. La aprobación se verifica en el servidor; en la demo, el aprobador se elige
 
@@ -201,7 +201,7 @@ Protecciones, las mismas capas que el correo (D23):
 
 **Decisión.** `npm run dataset` pinta cada factura del historial con la plantilla de su beneficiario (partiendo de su caso del lote: mismo NIT, cuenta y descripción con el mes de la factura) y la pasa una vez por la misma ingesta que una factura real: PNG por página y posición de cada carácter. Escribe todo en `generado/historial/` con un índice (`documentos.json`) que lleva además la lectura ideal. La semilla solo lee ese índice: las facturas apuntan a llaves `muestra/...`, que el almacenamiento sirve de solo lectura desde el dataset que viene con la app, así crear una empresa de ejemplo no renderiza nada ni escribe archivos. Las que no se pagaron declaran en `historial.json` la regla que las decidió, y la semilla escribe su hallazgo con los mismos valores, formato y mensaje que el motor; la aprobación de una persona queda como su propio evento.
 
-**Consecuencia.** El detalle, la bitácora y Pendientes tratan igual al historial y al lote. Como el historial no pasó por el motor, no guarda el registro de los demás controles, y la pantalla lo dice en vez de mostrar "Pasó X de Y". Los PDF del historial entran en la prueba de generación (P-51) y el recorrido completo en P-145. En el despliegue, `data/dataset/generado` debe ir en el paquete de la función (pendiente del paso 29).
+**Consecuencia.** El detalle, la bitácora y Pendientes tratan igual al historial y al lote. Como el historial no pasó por el motor, no guarda el registro de los demás controles, y la pantalla lo dice en vez de mostrar "Pasó X de Y". Los PDF del historial entran en la prueba de generación (P-51) y el recorrido completo en P-145. En el despliegue, `data/dataset/generado` va en el paquete de la función (D27).
 
 **Identidad.** Cada cliente tiene su propia empresa de ejemplo (la cookie de su navegador), y el enlace conecta su chat con esa empresa: el bot identifica a la persona por su chat. Los avisos de una empresa solo van a sus chats; lo que pase en la empresa de otro cliente nunca le llega.
 
@@ -240,3 +240,33 @@ Protecciones, las mismas capas que el correo (D23):
 Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verificación fallida. Con esa configuración el set da 33/33, cero falsos "pagar" y cero escaladas de normales; sus respuestas quedan grabadas en `tests/fixtures/lector/lector-v3` y la evaluación corre sin red.
 
 **Consecuencia.** Leer el lote de 33 cuesta unos 4 centavos de dólar. GPT-5.4 mini toma condiciones de pago comunes ("pago por transferencia") por órdenes al sistema aun con la regla explícita; Gemini es más caro y más lento sin leer mejor. Estas cifras son sobre facturas generadas por nosotros, con capa de texto y plantillas limpias: antes de prometerlas a un cliente hay que medir con facturas reales (fotos, escaneos, varias páginas, formatos de otros países).
+
+## D27. Despliegue en Vercel: archivos privados en Blob, migraciones en el build y topes de la demo pública
+
+**Contexto.** En Vercel el disco de las funciones es de solo lectura, el dataset de la demo se lee con rutas armadas en tiempo de ejecución que el build no rastrea, y la demo es pública: cada visitante nuevo siembra una empresa entera con su historial.
+
+**Decisión.**
+- Los originales y las páginas renderizadas van a un almacén **privado** de Vercel Blob (`BlobFileStorage`), con las mismas llaves que en disco. No tienen URL pública: el navegador recibe las páginas solo por la ruta que valida la empresa. Sin `BLOB_READ_WRITE_TOKEN` se usa el disco, y en Vercel la app no arranca sin él.
+- El build de Vercel aplica las migraciones antes de compilar (`vercel.json`): nadie guarda el token de la base en su equipo para migrar.
+- `outputFileTracingIncludes` lleva al paquete la empresa de ejemplo y el dataset (lote, historial con sus páginas, bandeja).
+- Un tope de empresas de ejemplo nuevas por día (`MAX_DEMO_ORGANIZATIONS_PER_DAY`, 200). Quien ya tiene la suya sigue entrando; un visitante nuevo ve que la demo está llena por hoy. El conteo no va en transacción: es un freno contra el abuso, no una cuota exacta.
+- Un cron diario (`/api/avisos`, con `CRON_SECRET`) entrega los avisos atrasados de todas las empresas. Cada decisión ya entrega los suyos al responder; el cron recoge los que esperan reintento. Es diario porque el plan gratuito de Vercel no permite más.
+
+**Consecuencia.** Un aviso que falla puede esperar hasta el cron del día siguiente si nadie decide nada antes. Las ramas con migraciones nuevas las aplican al construir su vista previa sobre la misma base: una migración que borra datos no se sube sin probarla en local.
+
+## D28. Lo que cambió al medir con facturas reales
+
+**Contexto.** Se pasaron 15 facturas reales de un conjunto público de investigación (10 limpias y 5 escaneos degradados, en inglés) por el Lector. Leyó bien el total a pagar en todas las que procesó, tomó el neto y no el bruto, marcó como ambigua la que mostraba los dos, y reconoció como "no es factura" una certificación de emisiones. Aparecieron cuatro fallas que el dataset generado no tenía:
+1. Escaneos con páginas enormes daban imágenes de 12 a 21 MB por página; el modelo no respondía en 90 segundos.
+2. El símbolo "$" no dice qué moneda es. El Verificador pedía la segunda pasada en todas las facturas, y Sonnet tampoco lo puede saber: cada lectura costaba unas 25 veces más (0,03 USD en vez de 0,001).
+3. 7 de 15 tenían más de 5 páginas y se rechazaban al entrar.
+4. Una factura prepagada con total 0 rompía el esquema (el total debe ser positivo) y gastaba cuatro llamadas.
+
+**Decisión.**
+1. Ninguna página se renderiza con más de 1.568 px de lado (el modelo reduce a ese tamaño de todas formas), y una página que en PNG pasa de 1 MB se guarda en JPEG. Se agrega `jpeg-js` para codificarla.
+2. La moneda citada con "$" vale si el documento la nombra en otra parte (código, "dólares", "pesos colombianos"). Si no, es ambigüedad entre las monedas que usan "$" y escala sin segunda pasada. Un símbolo de una sola moneda ("US$", "€", "R$") vale como cita.
+3. El tope sube a 10 páginas.
+4. Un total cero se registra como documento sin nada que pagar y escala; conserva las sospechas que traía.
+
+**Consecuencia.** La moneda de una factura que solo dice "$" y no nombra la moneda la confirma una persona. Falta medir con facturas colombianas reales y con fotos de celular: las fotos se envían tal como llegan, dentro del tope de 5 MB.
+
