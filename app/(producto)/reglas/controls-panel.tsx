@@ -41,6 +41,8 @@ export function ControlsPanel({
           confirmOn="El agente vuelve a pagar lo que cumple las reglas."
           confirmOff="Ninguna factura se pagará: lo que pagaría queda escalado para una persona."
           onChange={change("payments_enabled")}
+          onTone="pay"
+          offTone="hold"
           disabled={disabled}
         />
         <ControlSwitch
@@ -51,6 +53,7 @@ export function ControlsPanel({
           confirmOn="Las decisiones se registran pero no comprometen presupuesto ni saldo."
           confirmOff="Las decisiones de pago vuelven a preparar órdenes y comprometer presupuesto."
           onChange={change("dry_run")}
+          onTone="escalate"
           disabled={disabled}
         />
         <ControlSwitch
@@ -63,6 +66,7 @@ export function ControlsPanel({
           confirmOn="El agente paga y frena solo dentro de las reglas y escala lo demás."
           confirmOff="Toda decisión pasa por una persona; el agente solo recomienda."
           onChange={change("autonomy")}
+          onTone="brand"
           disabled={disabled}
         />
       </div>

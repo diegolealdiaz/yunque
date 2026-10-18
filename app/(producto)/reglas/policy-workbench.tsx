@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { formatMoney, money } from "@/src/domain";
 import { CONFIGURABLE_RULES, FIXED_RULES, RULES, type RuleCode } from "@/src/domain/rules";
 import type { PayeeOption } from "@/src/usecases";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/src/ui/policy-form";
 
 import { ActionOutcome } from "../../_components/action-outcome";
+import { FigureRow } from "../../_components/figure-row";
 import { LockIcon } from "../../_components/icons";
 import { PolicyEditor, type PolicyTab, type ProtectedKey } from "../../_components/policy-editor";
 
@@ -85,7 +87,7 @@ function NumberField({
             setError(parsed.ok ? null : parsed.message);
             if (parsed.ok) onCommit(parsed.value);
           }}
-          className="num h-8 w-28 rounded-[var(--radius-control)] border border-control bg-surface px-2 text-right text-ink disabled:opacity-60 aria-invalid:border-hold"
+          className="h-9 w-28 rounded-[var(--radius-control)] border border-transparent bg-surface-sunken px-2.5 text-right font-mono text-[13px] text-ink hover:border-control focus:border-control disabled:opacity-60 aria-invalid:border-hold"
         />
         <span className="w-10 text-[12px] text-ink-3">{unitOf(spec)}</span>
       </span>
@@ -93,68 +95,153 @@ function NumberField({
   );
 }
 
+function Badge({ children }: { readonly children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-surface-sunken px-2.5 py-0.5 text-[12px] text-ink-2">
+      {children}
+    </span>
+  );
+}
+
 /** Tarjeta de un grupo del formulario: título, una frase de qué controla y sus campos. */
 function Group({
   title,
   hint,
+  badge = null,
   children,
 }: {
   readonly title: string;
   readonly hint: string;
+  /** Una cifra corta junto al título, en una píldora. */
+  readonly badge?: ReactNode;
   readonly children: ReactNode;
 }) {
   return (
-    <fieldset className="card px-4 pt-3 pb-2">
+    <fieldset className="card px-5 pt-4 pb-2">
       <legend className="sr-only">{title}</legend>
-      <p aria-hidden="true" className="text-[13px] font-semibold text-ink">
-        {title}
+      <p aria-hidden="true" className="flex flex-wrap items-center gap-2.5">
+        <span className="text-[16px] font-semibold text-ink">{title}</span>
+        {badge ? <Badge>{badge}</Badge> : null}
       </p>
-      <p className="mb-1 text-[12px] text-ink-3">{hint}</p>
+      <p className="mt-0.5 mb-2 text-[12px] leading-snug text-ink-3">{hint}</p>
       <div className="divide-y divide-line">{children}</div>
     </fieldset>
   );
 }
 
+/** Un monto en centavos de dólar leído del YAML, o una raya si no es un número. */
+function usd(raw: unknown): string {
+  return typeof raw === "number" ? formatMoney(money(raw, "USD")) : "—";
+}
+
 /**
- * Reglas que la política no puede ablandar: se muestran con su salida y un candado, sin
- * control, para que se vea que existen y qué hacen.
+ * Franja de arriba: lo que el agente paga solo, en grande, y al lado los topes, a quién paga
+ * y cuántas reglas lo vigilan. Lee el YAML que se edita, así cambia con cada campo.
+ */
+function PolicySummary({
+  get,
+  allowed,
+  payees,
+}: {
+  readonly get: PolicyGetter;
+  readonly allowed: number;
+  readonly payees: number;
+}) {
+  const threshold = usd(get(["limits", "approval_threshold", "amount"]));
+  const at = threshold.lastIndexOf(" ");
+  const period = get(BUDGET_PERIOD_PATH) === "week" ? "por semana" : "por mes";
+  return (
+    <section
+      aria-label="Resumen de la política"
+      className="grid gap-5 border-b border-line pb-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)] lg:items-center lg:gap-10"
+    >
+      <div>
+        <p className="font-mono text-[36px] leading-none font-medium tracking-tight text-brand sm:text-[44px]">
+          {threshold.slice(0, at)}
+          <span className="ml-2 text-[16px] font-normal text-ink-3">{threshold.slice(at + 1)}</span>
+        </p>
+        <p className="mt-3 flex items-center gap-2 text-[13px] text-ink-2">
+          <span aria-hidden="true" className="h-px w-5 bg-ink-3" />
+          El agente paga solo hasta este monto por factura
+        </p>
+      </div>
+      <div className="grid gap-x-8 sm:grid-cols-2">
+        <dl>
+          <FigureRow
+            label="Límite por pago"
+            detail="Ningún pago lo supera"
+            value={usd(get(["limits", "per_payment", "amount"]))}
+          />
+          <FigureRow
+            label="Presupuesto"
+            detail={`Lo máximo ${period}`}
+            value={usd(get(["limits", "budget", "amount"]))}
+          />
+        </dl>
+        <dl className="sm:border-l sm:border-line sm:pl-8">
+          <FigureRow
+            label="Beneficiarios permitidos"
+            detail="Fuera de la lista, se escala o se frena"
+            value={`${String(allowed)} de ${String(payees)}`}
+          />
+          <FigureRow
+            label="Reglas que vigilan cada factura"
+            detail={`${String(CONFIGURABLE_RULES.length)} ajustables · ${String(FIXED_RULES.length)} fijas`}
+            value={String(CONFIGURABLE_RULES.length + FIXED_RULES.length)}
+          />
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Reglas que la política no puede ablandar, agrupadas por su salida: se muestran sin control,
+ * para que se vea que existen y qué hacen.
  */
 function FixedRules() {
+  const groups = [
+    { onFail: "frenar", title: "Frenan siempre", dot: "bg-hold-solid", tone: "text-hold" },
+    {
+      onFail: "escalar",
+      title: "Escalan siempre",
+      dot: "bg-escalate-solid",
+      tone: "text-escalate",
+    },
+  ] as const;
   return (
-    <section aria-labelledby="reglas-fijas" className="card px-4 pt-3 pb-2">
-      <h3 id="reglas-fijas" className="text-[13px] font-semibold text-ink">
-        Siempre se aplican
+    <section aria-labelledby="reglas-fijas" className="card px-5 pt-4 pb-3">
+      <h3 id="reglas-fijas" className="flex flex-wrap items-center gap-2.5">
+        <span className="text-[16px] font-semibold text-ink">Siempre se aplican</span>
+        <Badge>
+          <LockIcon />
+          {FIXED_RULES.length} fijas
+        </Badge>
       </h3>
-      <p className="mb-1 text-[12px] text-ink-3">
+      <p className="mt-0.5 text-[12px] leading-snug text-ink-3">
         Controles de seguridad con su salida fija: ninguna política los apaga ni los ablanda.
       </p>
-      <ul className="divide-y divide-line">
-        {FIXED_RULES.map((code) => {
-          const onFail = RULES[code].defaultOnFail;
-          return (
-            <li
-              key={code}
-              title={code}
-              className="flex items-center justify-between gap-4 py-2 text-[13px]"
-            >
-              <span className="min-w-0">
-                <span className="block text-ink">{RULES[code].title}</span>
-                <span className="block text-[12px] leading-snug text-ink-3">
-                  {FIXED_RULE_COPY[code]}
-                </span>
-              </span>
-              <span
-                className={`inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-0.5 text-[12px] font-medium ${
-                  onFail === "frenar" ? "bg-hold-tint text-hold" : "bg-escalate-tint text-escalate"
-                }`}
-              >
-                <LockIcon />
-                {onFail === "frenar" ? "Frenar" : "Escalar"}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+      {groups.map((group) => {
+        const codes = FIXED_RULES.filter((code) => RULES[code].defaultOnFail === group.onFail);
+        return (
+          <div key={group.onFail} className="mt-4 border-t border-line pt-3">
+            <h4 className={`caps flex items-center gap-2 ${group.tone}`}>
+              <span aria-hidden="true" className={`size-1.5 rounded-full ${group.dot}`} />
+              {group.title} · {codes.length}
+            </h4>
+            <ul className="mt-1">
+              {codes.map((code) => (
+                <li key={code} title={code} className="py-1.5 text-[13px]">
+                  <span className="block text-ink">{RULES[code].title}</span>
+                  <span className="block text-[12px] leading-snug text-ink-3">
+                    {FIXED_RULE_COPY[code]}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
     </section>
   );
 }
@@ -193,7 +280,7 @@ function RuleChoice({
           {help}
         </span>
       </span>
-      <span className="inline-flex shrink-0 rounded-[var(--radius-control)] border border-control p-0.5">
+      <span className="inline-flex shrink-0 rounded-[var(--radius-control)] bg-surface-sunken p-0.5">
         {options.map((option) => (
           <label
             key={option.value}
@@ -241,16 +328,23 @@ function AllowedPayees({
     );
   }
   return (
-    <div className="py-1">
-      <p className="py-1 text-[12px] text-ink-3">
-        {allowed.length - orphans} de {payees.length} permitidos
-        {orphans > 0 ? ` · ${String(orphans)} en la lista ya no están registrados` : ""}
-      </p>
-      <ul className="max-h-56 overflow-y-auto">
+    <div className="pb-1">
+      {orphans > 0 ? (
+        <p className="py-1 text-[12px] text-escalate">
+          {orphans} en la lista ya no {orphans === 1 ? "está registrado" : "están registrados"}.
+        </p>
+      ) : null}
+      <div className="caps flex items-center gap-3 border-b border-line px-1 pb-2">
+        <span className="w-4 shrink-0" />
+        <span className="flex-1">Beneficiario</span>
+        <span className="w-10 text-center">País</span>
+        <span className="w-24 text-right">Estado</span>
+      </div>
+      <ul className="divide-y divide-line">
         {payees.map((payee) => (
           <li key={payee.id}>
             <label
-              className={`flex items-center gap-3 rounded-[var(--radius-control)] px-1 py-1.5 text-[13px] hover:bg-surface-hover ${
+              className={`flex h-10 items-center gap-3 px-1 text-[13px] hover:bg-surface-hover ${
                 disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
               }`}
             >
@@ -262,11 +356,15 @@ function AllowedPayees({
                 className="size-4 shrink-0 accent-[var(--brand)]"
               />
               <span className="min-w-0 flex-1 truncate text-ink">{payee.name}</span>
-              <span className="font-mono text-[11px] text-ink-3">{payee.country}</span>
-              <span
-                className={`w-20 text-right text-[12px] ${payee.verified ? "text-ink-2" : "text-ink-3"}`}
-              >
-                {payee.verified ? "verificado" : "sin verificar"}
+              <span className="w-10 text-center font-mono text-[12px] text-ink-2">
+                {payee.country}
+              </span>
+              <span className="inline-flex w-24 items-center justify-end gap-1.5 text-[12px] text-ink-2">
+                <span
+                  aria-hidden="true"
+                  className={`size-1.5 rounded-full ${payee.verified ? "bg-pay-solid" : "bg-escalate-solid"}`}
+                />
+                {payee.verified ? "Verificado" : "Sin verificar"}
               </span>
             </label>
           </li>
@@ -316,6 +414,7 @@ export function PolicyWorkbench({
   const setAt = (path: readonly (string | number)[], value: unknown) =>
     setYaml(writePolicyYaml(yaml, path, value));
   const dirty = yaml !== initialYaml;
+  const allowedKnown = allowed.filter((id) => payees.some((p) => p.id === id)).length;
   const openSave = () => {
     previewDialog.current?.close();
     dialog.current?.showModal();
@@ -331,6 +430,9 @@ export function PolicyWorkbench({
           El YAML tiene errores de sintaxis: corrígelo en «Como código» para volver a usar el
           formulario.
         </p>
+      ) : null}
+      {parsed.ok ? (
+        <PolicySummary get={parsed.get} allowed={allowedKnown} payees={payees.length} />
       ) : null}
       <div className="grid items-start gap-3 lg:grid-cols-2">
         <div className="space-y-3">
@@ -360,7 +462,7 @@ export function PolicyWorkbench({
                 onChange={(e) => setAt(BUDGET_PERIOD_PATH, e.target.value)}
                 // El margen alinea el selector con los campos numéricos: ancho de la unidad
                 // (w-10) más su separación (gap-1.5).
-                className="mr-[2.875rem] h-8 w-28 rounded-[var(--radius-control)] border border-control bg-surface px-2 text-ink"
+                className="mr-[2.875rem] h-9 w-28 rounded-[var(--radius-control)] border border-transparent bg-surface-sunken px-2.5 font-mono text-[13px] text-ink hover:border-control focus:border-control"
               >
                 <option value="month">mes</option>
                 <option value="week">semana</option>
@@ -380,6 +482,7 @@ export function PolicyWorkbench({
           </Group>
           <Group
             title="A quién se puede pagar"
+            badge={`${String(allowedKnown)} de ${String(payees.length)} permitidos`}
             hint="Beneficiarios a los que el agente paga sin preguntar. Uno fuera de la lista sigue la regla «Beneficiario fuera de la lista»."
           >
             <AllowedPayees
@@ -393,6 +496,7 @@ export function PolicyWorkbench({
         <div className="space-y-3">
           <Group
             title="Si una regla no se cumple"
+            badge={`${String(CONFIGURABLE_RULES.length)} ajustables`}
             hint="Qué hace el agente con la factura: Escalar la deja para que la decida una persona; Frenar la detiene y no se paga."
           >
             {CONFIGURABLE_RULES.map((code: RuleCode) => (

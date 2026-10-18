@@ -17,6 +17,7 @@ import {
 } from "@/src/usecases";
 
 import { DataTable, type Column } from "../../_components/data-table";
+import { FigureRow } from "../../_components/figure-row";
 import { PageHeader } from "../../_components/page-header";
 import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
@@ -59,37 +60,6 @@ function splitMoney(m: Money): { readonly figure: string; readonly currency: str
 
 const invoicesWord = (n: number) => `${String(n)} ${n === 1 ? "factura" : "facturas"}`;
 
-/** Una fila de cifra de la franja de arriba: nombre y detalle a la izquierda, valor a la derecha. */
-function Figure({
-  label,
-  detail,
-  value,
-  href,
-}: {
-  readonly label: string;
-  readonly detail: string;
-  readonly value: string;
-  readonly href: string | null;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-4 border-b border-line py-3 last:border-b-0">
-      <dt className="min-w-0 text-[13px] text-ink-2">
-        {label}
-        <span className="block text-[12px] text-ink-3">{detail}</span>
-      </dt>
-      <dd className="font-mono text-[14px] whitespace-nowrap text-ink">
-        {href ? (
-          <Link href={href} className="underline-offset-4 hover:underline">
-            {value}
-          </Link>
-        ) : (
-          value
-        )}
-      </dd>
-    </div>
-  );
-}
-
 /**
  * Franja de arriba: lo pagado en el periodo en grande y, al lado, lo que se frenó, lo que
  * escaló, lo que espera a una persona y lo que queda del presupuesto.
@@ -116,13 +86,13 @@ function Summary({ view, now }: { readonly view: MetricsView; readonly now: Date
       </Link>
       <div className="grid gap-x-8 sm:grid-cols-2">
         <dl>
-          <Figure
+          <FigureRow
             label="Frenado"
             detail={`${invoicesWord(outcomes.frenar.invoiceIds.length)} que no se pagaron`}
             value={formatMoney(outcomes.frenar.total)}
             href={drillHref({ kind: "verdict", verdict: "frenar" })}
           />
-          <Figure
+          <FigureRow
             label="Escalado"
             detail={`${invoicesWord(outcomes.escalar.invoiceIds.length)} para una persona`}
             value={formatMoney(outcomes.escalar.total)}
@@ -130,7 +100,7 @@ function Summary({ view, now }: { readonly view: MetricsView; readonly now: Date
           />
         </dl>
         <dl className="sm:border-l sm:border-line sm:pl-8">
-          <Figure
+          <FigureRow
             label="Esperando a una persona"
             detail={
               oldest
@@ -140,7 +110,7 @@ function Summary({ view, now }: { readonly view: MetricsView; readonly now: Date
             value={String(waiting.length)}
             href={oldest ? metric("pendientes") : null}
           />
-          <Figure
+          <FigureRow
             label="Presupuesto disponible"
             detail={`De ${formatMoney(budget.limit)} en el periodo`}
             value={formatMoney(left)}
