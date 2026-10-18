@@ -4,13 +4,14 @@ import { notFound } from "next/navigation";
 
 import { GALLERY, GALLERY_PREVIEW_DIR } from "@/src/dataset/gallery";
 import { datasetReceiptKey, loadBatchCases } from "@/src/dataset/demo-seed";
-import { loadGalleryInvoices } from "@/src/usecases";
+import { loadGalleryInvoices, loadInvoiceBuilder } from "@/src/usecases";
 
 import { PageHeader } from "../../_components/page-header";
 import { VerdictPill } from "../../_components/verdict-pill";
 import { appContext } from "../../_data/context";
 import { UploadPanel } from "../facturas/upload-panel";
 
+import { InvoiceBuilder } from "./invoice-builder";
 import { TryCase } from "./try-case";
 
 export const metadata = { title: "Probar el agente · Yunque" };
@@ -38,6 +39,7 @@ export default async function ProbarPage() {
     cases.map((c) => c.receiptKey),
   );
   const tried = cases.filter((c) => done.has(c.receiptKey)).length;
+  const vendors = await loadInvoiceBuilder(db, organization.id);
 
   return (
     <div className="space-y-6">
@@ -94,6 +96,27 @@ export default async function ProbarPage() {
           );
         })}
       </ul>
+
+      <section
+        aria-labelledby="armada"
+        data-tour="armar"
+        className="grid gap-5 card p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]"
+      >
+        <div className="space-y-2">
+          <h2 id="armada" className="text-[17px] font-semibold text-ink">
+            Arma tu propia factura
+          </h2>
+          <p className="text-[13px] leading-relaxed text-ink-2">
+            Elige el proveedor, el monto, la cuenta y lo que dice la factura. Yunque la arma con el
+            formato de su país y el agente la lee y la decide como a cualquier otra.
+          </p>
+          <p className="text-[13px] leading-relaxed text-ink-2">
+            Prueba a engañarlo: cambia la cuenta, infla el monto o escribe una instrucción, incluso
+            en texto invisible. Con los datos que cuadran, la paga sola.
+          </p>
+        </div>
+        <InvoiceBuilder vendors={vendors} />
+      </section>
 
       <section
         aria-labelledby="propia"
