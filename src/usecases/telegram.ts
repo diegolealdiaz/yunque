@@ -22,7 +22,7 @@ import {
   TELEGRAM_LINK_TTL_MS,
   TelegramLinkTokenSchema,
   UlidSchema,
-  deliveredByPerson,
+  deliveredFromOutside,
   telegramReceiptKey,
   type Ulid,
 } from "@/src/domain";
@@ -401,7 +401,7 @@ export async function summarizeSamples(
     (invoice) =>
       invoice.received_at >= since &&
       !invoice.receipt_key.startsWith("seed:") &&
-      !deliveredByPerson(invoice.receipt_key),
+      !deliveredFromOutside(invoice.receipt_key),
   );
   const decisions = await listLatestDecisions(
     db,

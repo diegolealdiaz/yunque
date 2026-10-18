@@ -1,6 +1,6 @@
 import { maskAccount, type Vendor, type Verdict } from "@/src/domain";
 import { usdMicros } from "@/src/ui/format";
-import { FIELD_LABEL, RAIL_LABEL, ruleTitle } from "@/src/ui/labels";
+import { FIELD_LABEL, FIELD_SOURCE_CHIP, RAIL_LABEL, ruleTitle } from "@/src/ui/labels";
 import { reasonFor } from "@/src/ui/reasons";
 import type { InvoiceDetail, RuleTrace } from "@/src/usecases";
 
@@ -100,11 +100,11 @@ function ReadFields({ detail }: { readonly detail: InvoiceDetail }) {
                       className={`truncate text-ink ${field.name === "payee_name" ? "" : "font-mono"} ${flag ? "font-semibold" : ""}`}
                     >
                       {displayValue(field, currency)}
-                      {field.source === "humano" ? (
+                      {field.source === "modelo" ? null : (
                         <span className="ml-1.5 rounded-sm border border-line-strong px-1 font-sans text-[11px] font-normal text-ink-2">
-                          a mano
+                          {FIELD_SOURCE_CHIP[field.source]}
                         </span>
-                      ) : null}
+                      )}
                     </span>
                     <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
                   </span>

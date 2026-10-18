@@ -14,7 +14,7 @@ import {
 } from "@/src/db/repositories";
 import {
   deliveredByBot,
-  deliveredByPerson,
+  deliveredFromOutside,
   type AuditEvent,
   type Currency,
   type Decision,
@@ -120,7 +120,7 @@ export function notificationsFor(input: {
   const matters = decision.verdict !== "pagar" || decision.actor.kind === "humano";
   const telegram =
     deliveredByBot(invoice.receipt_key) ||
-    (input.telegramLinked && deliveredByPerson(invoice.receipt_key) && matters);
+    (input.telegramLinked && deliveredFromOutside(invoice.receipt_key) && matters);
   const channels = telegram ? (["pantalla", "telegram"] as const) : (["pantalla"] as const);
   return channels.map((channel) => ({
     id: input.newId(),

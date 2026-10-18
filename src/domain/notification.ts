@@ -37,14 +37,16 @@ export const NotificationSchema = z.strictObject({
 export type Notification = Readonly<z.infer<typeof NotificationSchema>>;
 
 /**
- * La factura la entregó una persona (D24): la subió en pantalla, la mandó por correo real o
- * por el bot de Telegram. Las facturas de ejemplo de la demo (lote, bandeja simulada,
- * historial) no, aunque su canal sea correo o Telegram: no se avisan una por una.
+ * La factura llegó de afuera de la demo (D24, D32): una persona la subió en pantalla o la
+ * mandó por correo real o por el bot de Telegram, u otro agente la pidió por la API. Las
+ * facturas de ejemplo de la demo (lote, bandeja simulada, historial) no, aunque su canal sea
+ * correo o Telegram: no se avisan una por una.
  */
-export function deliveredByPerson(receiptKey: ReceiptKey): boolean {
+export function deliveredFromOutside(receiptKey: ReceiptKey): boolean {
   return (
     receiptKey.startsWith("upload:") ||
     receiptKey.startsWith("telegram:") ||
+    receiptKey.startsWith("api:") ||
     receiptKey.startsWith(`inbox:${INBOUND_DELIVERY_PREFIX}`)
   );
 }

@@ -389,6 +389,19 @@ export const telegramUpdates = sqliteTable(
   (t) => [index("telegram_updates_chat_idx").on(t.chatId, t.status, t.receivedAt)],
 );
 
+/**
+ * Llave de la API de decisión de cada empresa (D32): una por empresa, guardada solo por su
+ * huella. Generar otra la reemplaza y anula la anterior; vence con el acceso de cliente.
+ */
+export const apiKeys = sqliteTable("api_keys", {
+  organizationId: id("organization_id")
+    .primaryKey()
+    .references(() => organizations.id),
+  keyHash: text("key_hash").notNull().unique(),
+  createdAt: timestamp("created_at"),
+  expiresAt: timestamp("expires_at"),
+});
+
 /** Cada llamada al modelo, con costo y latencia. */
 export const llmCalls = sqliteTable(
   "llm_calls",

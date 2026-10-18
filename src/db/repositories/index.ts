@@ -4,6 +4,7 @@
  */
 
 export * from "./access";
+export * from "./api-keys";
 export * from "./approvals";
 export * from "./decisions";
 export * from "./events";

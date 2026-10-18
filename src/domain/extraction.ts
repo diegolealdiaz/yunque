@@ -15,7 +15,11 @@ import { Sha256Schema } from "./hash";
  * motivo; el resto de campos admite un `Missing` explícito con su razón.
  */
 
-export const FieldSourceSchema = z.enum(["modelo", "humano"]);
+/**
+ * `api`: el campo lo mandó otro agente por la API de decisión (D32). Se verifica contra su
+ * documento como uno del modelo y nunca vale como corrección de una persona.
+ */
+export const FieldSourceSchema = z.enum(["modelo", "humano", "api"]);
 export type FieldSource = z.infer<typeof FieldSourceSchema>;
 
 export const EvidenceSchema = z.strictObject({

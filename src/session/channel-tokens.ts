@@ -1,8 +1,8 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 /**
- * Llaves de los canales de cliente: correo de entrada (D23) y Telegram (D24). Puro: no
- * depende de Next ni de la base.
+ * Llaves de los canales de cliente: correo de entrada (D23), Telegram (D24) y la API de
+ * decisión (D32). Puro: no depende de Next ni de la base.
  *
  * - El token de una dirección es la parte después del + y nadie lo adivina: 60 bits de azar
  *   en base32 minúscula, válidos en cualquier dirección de correo.
@@ -23,6 +23,22 @@ export function newInboundToken(): string {
 /** Token de un enlace de conexión de Telegram: 16 caracteres base32, 80 bits de azar. */
 export function newTelegramLinkToken(): string {
   return Array.from(randomBytes(16), (b) => BASE32[b % 32]).join("");
+}
+
+/** Prefijo de una llave de la API: la delata si aparece pegada en un log o un repositorio. */
+export const API_KEY_PREFIX = "yq_";
+
+/** Llave de la API de una empresa: `yq_` y 32 caracteres base32, 160 bits de azar. */
+export function newApiKey(): string {
+  return API_KEY_PREFIX + Array.from(randomBytes(32), (b) => BASE32[b % 32]).join("");
+}
+
+/**
+ * Huella de una llave de la API: lo único que se guarda. Con 160 bits de azar, un hash sin
+ * sal basta; la llave no es una contraseña que alguien elija.
+ */
+export function apiKeyHash(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
 }
 
 /** Igualdad de tiempo constante entre un valor recibido y el esperado. */
