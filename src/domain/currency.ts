@@ -98,3 +98,16 @@ export function isSupportedCurrency(value: string): value is Currency {
 export function railSupportsCurrency(rail: Rail, currency: Currency): boolean {
   return CURRENCY_SPECS[currency].rails.includes(rail);
 }
+
+/** Cómo se le paga a una cuenta, en una palabra corta para la persona. */
+export const RAIL_NAME: Readonly<Record<Rail, string>> = {
+  ach: "ACH",
+  wire: "Wire",
+  sepa: "SEPA",
+  bre_b: "Bre-B",
+  transferencia_co: "Transferencia",
+  pix: "Pix",
+  ted: "TED",
+  spei: "SPEI",
+  cbu: "CBU",
+};

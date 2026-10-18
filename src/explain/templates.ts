@@ -1,7 +1,7 @@
 import {
   ExtractedFieldNameSchema,
+  FIELD_PHRASE,
   type ChecklistItem,
-  type ExtractedFieldName,
   type Finding,
   type FindingCode,
 } from "@/src/domain";
@@ -25,28 +25,10 @@ type Template = {
 
 const s = sanitizeDocumentText;
 
-/** Cada campo leído, como lo nombra una persona: nunca el nombre interno. */
-const FIELD_NAME: Readonly<Record<ExtractedFieldName, string>> = {
-  payee_name: "el beneficiario",
-  payee_tax_id: "la identificación",
-  invoice_number: "el número de factura",
-  issue_date: "la fecha de emisión",
-  due_date: "la fecha de vencimiento",
-  currency: "la moneda",
-  subtotal: "el subtotal",
-  taxes: "los impuestos",
-  total: "el monto",
-  bank_account: "la cuenta",
-  bank_holder: "el titular",
-  hours: "las horas",
-  purchase_order: "la orden de compra",
-  description: "el concepto",
-};
-
 /** El campo de un hallazgo en palabras, o `fallback` si no es un campo conocido. */
 function fieldName(f: Finding, fallback: string): string {
   const parsed = ExtractedFieldNameSchema.safeParse(f.field);
-  return parsed.success ? FIELD_NAME[parsed.data] : fallback;
+  return parsed.success ? FIELD_PHRASE[parsed.data] : fallback;
 }
 
 export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {

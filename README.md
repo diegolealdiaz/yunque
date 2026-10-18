@@ -30,7 +30,7 @@ Si el navegador recarga en bucle con `npm run dev`, usa `npm run build && npm ru
 | Comando | Qué hace |
 |---|---|
 | `npm test` | Pruebas unitarias, de propiedad, de base y del pipeline completo, sin red |
-| `npm run eval` | Set de regresión contra la decisión esperada de cada caso. Sin clave: `EVAL_SOURCE=ideal npm run eval` |
+| `npm run eval` | Set de regresión sobre las lecturas grabadas del modelo real, sin red ni clave. `EVAL_SOURCE=ideal npm run eval` lo corre con un Lector perfecto |
 | `npm run check` | Typecheck, lint, formato, pruebas y build. Se corre antes de cada commit |
 | `npm run db:generate` | Genera una migración desde `src/db/schema.ts` |
 | `npm run dataset` | Regenera el dataset de ejemplo desde el manifiesto y las plantillas |

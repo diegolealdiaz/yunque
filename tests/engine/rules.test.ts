@@ -472,6 +472,7 @@ describe("matriz de fronteras (P-20)", () => {
       );
       expect(result.findings.map((f) => f.code)).toEqual(["unsupported_currency_or_rail"]);
       expect(result.verdict).toBe("frenar");
+      expect(result.findings[0]?.observed).toBe("COP por Pix");
     });
   });
 
@@ -569,6 +570,8 @@ describe("matriz de fronteras (P-20)", () => {
     it("cita ausente escala", () => {
       const verification = { ...baseContext().verification, evidence_missing: ["total" as const] };
       expect(codes(baseContext({ verification }))).toEqual(["evidence_missing"]);
+      // El campo se nombra para la persona, no con su nombre interno.
+      expect(evaluate(baseContext({ verification })).findings[0]?.observed).toBe("el monto");
     });
     it("totales: cuadran o sin desglose no dispara; diferencia mayor a una unidad escala", () => {
       expect(

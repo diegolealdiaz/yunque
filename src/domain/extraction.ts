@@ -80,6 +80,24 @@ export const ExtractedFieldNameSchema = ExtractedFieldsSchema.keyof();
 export type ExtractedFieldName = z.infer<typeof ExtractedFieldNameSchema>;
 export const EXTRACTED_FIELD_NAMES = ExtractedFieldNameSchema.options;
 
+/** Cada campo leído como lo nombra una persona en una frase: nunca el nombre interno. */
+export const FIELD_PHRASE: Readonly<Record<ExtractedFieldName, string>> = {
+  payee_name: "el beneficiario",
+  payee_tax_id: "la identificación",
+  invoice_number: "el número de factura",
+  issue_date: "la fecha de emisión",
+  due_date: "la fecha de vencimiento",
+  currency: "la moneda",
+  subtotal: "el subtotal",
+  taxes: "los impuestos",
+  total: "el monto",
+  bank_account: "la cuenta",
+  bank_holder: "el titular",
+  hours: "las horas",
+  purchase_order: "la orden de compra",
+  description: "el concepto",
+};
+
 /** Candidatos alternativos que el modelo vio para un campo: base de `field_ambiguous`. */
 export const AmbiguitySchema = z.strictObject({
   field: ExtractedFieldNameSchema,

@@ -1,4 +1,5 @@
 import {
+  RAIL_NAME,
   isPresent,
   isSupportedCurrency,
   maskAccount,
@@ -152,8 +153,8 @@ export const unsupportedCurrencyOrRail: Rule = {
     return fail({
       code: "unsupported_currency_or_rail",
       action: "frenar",
-      observed: `${code} por ${account.rail}`,
-      threshold: `${account.currency} por ${account.rail}`,
+      observed: `${code} por ${RAIL_NAME[account.rail]}`,
+      threshold: `${account.currency} por ${RAIL_NAME[account.rail]}`,
       field: "currency",
       evidence,
       message: `La cuenta registrada de ${ctx.payee.vendor.name} no recibe ${code} por ${account.rail}`,

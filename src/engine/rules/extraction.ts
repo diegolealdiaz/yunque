@@ -1,4 +1,5 @@
 import {
+  FIELD_PHRASE,
   formatMoney,
   isPresent,
   money,
@@ -138,7 +139,7 @@ export const evidenceMissing: Rule = {
     return fail({
       code: "evidence_missing",
       action: "escalar",
-      observed: missing.join(", "),
+      observed: missing.map((name) => FIELD_PHRASE[name]).join(", "),
       threshold: "cita presente en el documento",
       field: first,
       message: `La cita del campo ${first} no aparece en el documento o no respalda el valor leído`,
