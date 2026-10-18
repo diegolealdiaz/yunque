@@ -257,3 +257,63 @@ table {
     background-image: none;
   }
 }
+
+/*
+ * Portada animada (app/_landing/motion.tsx). Antes de hidratar, lo que la entrada va a mostrar
+ * queda oculto si hay movimiento (`data-motion="on"`, puesto por el script de arranque); la
+ * animación lo muestra y al terminar levanta el velo. Sin JavaScript, se levanta solo.
+ */
+:root[data-motion="on"] [data-intro] {
+  visibility: hidden;
+}
+
+/* Brillo que cruza la tarjeta de ejemplo una vez, al final de la entrada. */
+.card-shine {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 45%;
+  pointer-events: none;
+  opacity: 0;
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.14) 50%,
+    transparent 100%
+  );
+}
+
+:root:not([data-theme="dark"]) .card-shine {
+  background-image: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgb(255 255 255 / 0.6) 50%,
+    transparent 100%
+  );
+}
+
+/* Conector que se dibuja entre pasos: `--draw` va de 0 a 1 con la animación; sin ella, 1. */
+.draw-line {
+  transform: scaleX(var(--draw, 1));
+  transform-origin: left center;
+}
+
+/* Tarjeta que se levanta bajo el puntero, solo donde hay puntero. */
+@media (hover: hover) and (pointer: fine) {
+  .card-lift {
+    transition:
+      transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
+      border-color 0.2s ease-out;
+  }
+
+  .card-lift:hover {
+    transform: translateY(-4px);
+    border-color: var(--line-strong);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-lift,
+  .card-lift:hover {
+    transform: none;
+  }
+}

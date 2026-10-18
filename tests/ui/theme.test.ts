@@ -16,7 +16,17 @@ describe("tema de la interfaz", () => {
   });
 
   describe("script de arranque", () => {
-    function run(stored: string | null, prefersDark: boolean, storageFails = false) {
+    let lastMotion: {
+      before: string | undefined;
+      timers: (() => void)[];
+      dataset: Record<string, string>;
+    } = { before: undefined, timers: [], dataset: {} };
+    function run(
+      stored: string | null,
+      prefersDark: boolean,
+      storageFails = false,
+      reduceMotion = false,
+    ) {
       const dataset: Record<string, string> = {};
       const root = { dataset };
       const storage = {
@@ -25,12 +35,18 @@ describe("tema de la interfaz", () => {
           return key === THEME_STORAGE_KEY ? stored : null;
         },
       };
-      const matchMedia = () => ({ matches: prefersDark });
-      new Function("document", "localStorage", "matchMedia", THEME_BOOT_SCRIPT)(
+      const matchMedia = (query: string) => ({
+        matches: query.includes("reduced-motion") ? reduceMotion : prefersDark,
+      });
+      const timers: (() => void)[] = [];
+      const setTimeout = (fn: () => void) => timers.push(fn);
+      new Function("document", "localStorage", "matchMedia", "setTimeout", THEME_BOOT_SCRIPT)(
         { documentElement: root },
         storage,
         matchMedia,
+        setTimeout,
       );
+      lastMotion = { before: dataset["motion"], timers, dataset };
       return root.dataset["theme"];
     }
 
@@ -43,6 +59,16 @@ describe("tema de la interfaz", () => {
       expect(run(null, true)).toBe("dark");
       expect(run(null, false)).toBe("light");
       expect(run("otro", true)).toBe("dark");
+    });
+
+    it("arma el velo de la entrada salvo con «reducir movimiento», y se levanta solo", () => {
+      run(null, false);
+      expect(lastMotion.before).toBe("on");
+      lastMotion.timers.forEach((fire) => fire());
+      expect(lastMotion.dataset["motion"]).toBe("done");
+      run(null, false, false, true);
+      expect(lastMotion.before).toBeUndefined();
+      expect(lastMotion.timers).toHaveLength(0);
     });
 
     it("con el almacenamiento bloqueado, queda claro", () => {

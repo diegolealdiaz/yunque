@@ -19,9 +19,19 @@ export function otherTheme(theme: Theme): Theme {
 }
 
 /**
+ * Si la animación de entrada no arranca (sin JavaScript, un error), el velo se levanta solo
+ * a los pocos segundos: el contenido nunca queda oculto.
+ */
+export const MOTION_FAILSAFE_MS = 4000;
+
+/**
  * Script que corre en <head> antes de pintar: lee la elección guardada o la del sistema y
  * la pone en `data-theme`. Si el almacenamiento está bloqueado, queda el tema claro.
+ * También arma el velo de la entrada animada (`data-motion="on"`), salvo con "reducir
+ * movimiento": lo que la portada anima al entrar no se ve antes de que la animación lo muestre.
  */
 export const THEME_BOOT_SCRIPT = `(function(){var d=document.documentElement;try{var t=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
-)});if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}d.dataset.theme=t}catch(e){d.dataset.theme="light"}})()`;
+)});if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}d.dataset.theme=t}catch(e){d.dataset.theme="light"}try{if(!matchMedia("(prefers-reduced-motion: reduce)").matches){d.dataset.motion="on";setTimeout(function(){d.dataset.motion="done"},${String(
+  MOTION_FAILSAFE_MS,
+)})}}catch(e){}})()`;

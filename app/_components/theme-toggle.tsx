@@ -23,7 +23,7 @@ function currentTheme(): Theme {
   return isTheme(value) ? value : "light";
 }
 
-export function ThemeToggle() {
+export function ThemeToggle({ compact = false }: { readonly compact?: boolean }) {
   // En el servidor no se sabe el tema: el botón se pinta sin texto hasta hidratar.
   const theme = useSyncExternalStore(subscribe, currentTheme, () => null);
 
@@ -45,9 +45,11 @@ export function ThemeToggle() {
       aria-label={
         theme ? `${label}. Cambiar a tema ${theme === "dark" ? "claro" : "oscuro"}` : label
       }
-      className="flex h-9 w-full items-center justify-between rounded-[var(--radius-control)] border border-line-strong px-3 text-[13px] text-ink-2 hover:bg-surface-hover hover:text-ink"
+      className={`flex h-9 items-center rounded-[var(--radius-control)] border border-line-strong text-[13px] text-ink-2 hover:bg-surface-hover hover:text-ink ${
+        compact ? "w-9 justify-center" : "w-full justify-between px-3"
+      }`}
     >
-      <span>{label}</span>
+      {compact ? null : <span>{label}</span>}
       {theme === "dark" ? <MoonIcon /> : <SunIcon />}
     </button>
   );
