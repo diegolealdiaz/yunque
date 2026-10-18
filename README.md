@@ -21,7 +21,7 @@ Requisitos: Node 22 (ver `.nvmrc`).
 1. `npm ci`
 2. `cp .env.example .env.local` y completa `APPROVAL_SIGNING_SECRET` y `SESSION_SECRET` con `openssl rand -hex 32` (deben ser distintos). Sin `OPENROUTER_API_KEY` la app arranca, pero el Lector queda apagado y toda factura escala como ilegible.
 3. `npm run db:migrate` crea `data/yunque.db`. `npm run dev` no corre las migraciones.
-4. `npm run dev` y abre http://localhost:3000. En modo demo (`DEMO_MODE=true`, el valor por defecto) cada visitante recibe su propia empresa de ejemplo al primer acceso. Con `DEMO_MODE=false`, siembra la empresa base con `npm run seed`.
+4. `npm run dev` y abre http://localhost:3000: la portada presenta el producto y "Probar la demo" entra a él. En modo demo (`DEMO_MODE=true`, el valor por defecto) cada visitante recibe su propia empresa de ejemplo al entrar al producto. Con `DEMO_MODE=false`, siembra la empresa base con `npm run seed`.
 
 Si el navegador recarga en bucle con `npm run dev`, usa `npm run build && npm run start`.
 

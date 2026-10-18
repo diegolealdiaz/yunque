@@ -187,6 +187,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-141 | Tema: sin elección guardada sigue al sistema; la elección guardada manda; con el almacenamiento bloqueado queda el claro; el selector alterna entre los dos | unidad |
 | P-142 | "¿Fue clara la explicación?": sin opiniones no hay ninguna; la opinión queda como evento en la bitácora y en la línea de tiempo sin cambiar la decisión; la más reciente es la que cuenta; no se opina sobre una decisión que ya no es la vigente; un comentario de más de 500 caracteres no se guarda | pipeline |
 | P-143 | Pulido de listas: Facturas filtra por "decididas desde", como las pagadas de hoy en Pendientes; las listas dicen "hace 12 min", "ayer" o la fecha exacta desde una semana; la lista de beneficiarios permitidos se lee y se cambia en el YAML sin duplicados y sin tocar el resto | pipeline + unidad |
+| P-144 | Portada: cada «Probar la demo» lleva al producto; muestra las tres salidas y un ejemplo con regla, valor y umbral; las cifras de controles y casos llegan del código, no escritas en la sección; marca lo que anima y el menú del teléfono empieza cerrado; el script de arranque arma el velo de la entrada salvo con «reducir movimiento» y lo levanta solo | unidad (render en servidor) |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

@@ -16,7 +16,7 @@ De ahí salen los principios.
 
 ## 2. Principios
 
-1. **La bandeja es la pantalla principal, no un tablero de gráficos.** La persona entra a trabajar, no a mirar. Lo primero que ve es lo que requiere su decisión, ordenado por urgencia. Los gráficos viven en Métricas y se consultan cuando se quieren.
+1. **La bandeja es la pantalla principal del producto, no un tablero de gráficos.** La persona entra a trabajar, no a mirar. Lo primero que ve es lo que requiere su decisión, ordenado por urgencia. Los gráficos viven en Métricas y se consultan cuando se quieren.
 2. **Cada veredicto lleva su regla al lado.** Nunca se muestra "escalada" sin el identificador de la regla, el valor observado y el umbral que la disparó. La explicación en prosa complementa, no sustituye.
 3. **Excepciones primero.** Lo que el agente resolvió solo se ve en una línea y se puede abrir; lo que no pudo resolver ocupa el espacio. La pantalla se vacía cuando el trabajo se termina, y eso es una buena noticia visible.
 4. **La evidencia está a un clic, nunca a una pestaña.** Documento y campos extraídos conviven en la misma vista. Seleccionar un campo lleva a la cita exacta en el documento.
@@ -219,7 +219,7 @@ Página mínima: base, política cargada, proveedor del modelo, antigüedad del 
 | Botones | Un solo primario por pantalla, con el degradado de marca. Lo demás es secundario: borde y texto en tinta. Deshabilitado se sigue leyendo: borde y texto tenue, nunca invisible |
 | Iconos | Un solo set de línea, 16 px, sin ilustraciones |
 | Espaciado | Rejilla de 4 px. Tablas con filas de 44 px. Radios de 6 px en controles, 8 px en botones de navegación, 16 px en tarjetas y redondos en chips y píldoras |
-| Movimiento | Solo transiciones de estado (fila que cambia de veredicto, contador que baja). Sin animaciones de entrada |
+| Movimiento | En el producto, solo transiciones de estado (fila que cambia de veredicto, contador que baja), sin animaciones de entrada. La única excepción es la portada: los controles de la tarjeta de ejemplo aparecen uno tras otro, como los revisa el agente. Con "reducir movimiento" del sistema, nada se anima |
 | Montos | Formato de la moneda con separadores locales y código ISO al final: `4.800.000 COP`, `1,250.00 USD`. Nunca símbolos ambiguos |
 | Fechas | Relativas en listas ("vence en 2 días"), absolutas en detalle y bitácora |
 
@@ -262,3 +262,30 @@ Cuando aparezca una duda que este documento no cubra, se responde en este orden:
 2. ¿Lo que se muestra existe como dato? Si no, primero el dato.
 3. ¿Cabe en los nueve componentes? Si no, se justifica el décimo en `decisiones.md`.
 4. ¿La persona de finanzas lo entiende sin que se lo expliquen? Si no, se reescribe la microcopia antes que el diseño.
+
+## 11. Portada
+
+La portada pública vive en `/` y presenta el producto a quien llega por el enlace; el producto empieza en `/pendientes`. La portada no lee ni crea empresas: la empresa de ejemplo nace solo al entrar al producto con "Probar la demo", así un rastreador que abre la portada no llena la base.
+
+Orden, de arriba abajo:
+
+1. **Barra fija** con el nombre, tres anclas (Cómo funciona, Control, Preguntas), el selector de tema y un solo botón: "Probar la demo".
+2. **Primer bloque.** Titular de velocidad con control ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Al lado, una tarjeta de decisión de ejemplo: la factura, sus controles con valor contra umbral en mono y el veredicto, más una pagada y una frenada debajo.
+3. **Tres salidas.** Pagar, Frenar y Escalar, cada una con su color, qué significa y casos típicos. Fija el vocabulario de toda la página.
+4. **Cómo funciona,** en tres pasos numerados: llega la factura (PDF, foto, correo, Telegram), el agente la revisa contra los controles, la persona decide lo que importa.
+5. **Control,** el centro de la página, con piezas del producto en lugar de promesas: un fragmento de bitácora en mono que solo se agrega, "ver qué cambiaría" antes de guardar, el interruptor de emergencia, el checklist para aprobar y "lo que Yunque nunca hace".
+6. **Datos.** El cero de pagos indebidos en el set de regresión, con el degradado de marca, y las cifras que salen del código: cuántos controles tiene el motor y cuántos casos el lote de ejemplo.
+7. **Preguntas** frecuentes, cortas, que se abren en el sitio.
+8. **Cierre** con el mismo botón del inicio y la misma línea de tranquilidad.
+
+Entre el primer bloque y las tres salidas va **El producto**: la bandeja de Pendientes en una ventana. En escritorio la sección es más alta que la pantalla y la ventana queda fija: al bajar crece de 0,84 a 1 y sus filas aparecen una por una. En el teléfono es una imagen quieta.
+
+**Movimiento** (GSAP, en `app/_landing/motion.tsx`; las secciones solo marcan qué se anima):
+
+- **Entrada**, de unos 3 segundos: la barra baja, el titular sube línea por línea desde una máscara, luego el texto y los botones; la tarjeta de ejemplo entra, sus controles aparecen uno tras otro como los revisa el agente, después el veredicto, y un brillo la cruza una vez. Antes de hidratar, lo que la entrada muestra está oculto para que no parpadee; si la animación no arranca, se muestra solo a los 4 segundos.
+- **Al bajar**: el primer bloque se aleja y la tarjeta va más rápido que el texto. Cada sección entra una vez al cruzar el 85 % de la pantalla: titular por líneas con máscara, texto y tarjetas escalonadas. Los conectores entre los tres pasos se dibujan, y las cifras cuentan hasta su valor y terminan en el texto exacto del servidor.
+- **Bajo el puntero**: botones y enlaces crecen un poco con un resorte corto y vuelven más rápido y sin rebote; las tarjetas se levantan 4 px.
+- **Menú del teléfono**: dos barras que se cruzan en una X moviendo sus puntas, un panel que entra desde la derecha con un resorte corto y filas escalonadas; sale hacia la derecha sin adornos. Esc cierra y devuelve el foco, Tab no sale del menú, la página no se desplaza detrás y al pasar a escritorio se cierra.
+- Con "reducir movimiento" no se anima nada y todo está en su estado final, que es el mismo con o sin animación. Solo se animan transform y opacidad.
+
+Reglas de la portada: un solo botón primario, que siempre lleva al producto; ningún logo de clientes, testimonio ni cifra inventada; nada que el código no haga hoy. Usa los mismos tokens, fuentes y componentes que el producto, en los dos temas.
