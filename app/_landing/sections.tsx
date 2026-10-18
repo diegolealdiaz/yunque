@@ -197,14 +197,18 @@ export function Hero() {
           id="portada-titulo"
           className="mt-6 max-w-4xl text-[42px] leading-[1.03] font-bold tracking-[-0.03em] text-ink sm:text-[68px]"
         >
-          {/* Cada línea sube desde abajo de su máscara; el descenso de la «g» cabe en el relleno. */}
-          <span className="block overflow-hidden pb-[0.08em]">
+          {/*
+            Cada línea sube desde abajo de su máscara. El relleno de abajo deja entero el descenso
+            de la «g» en todos los tamaños; el margen negativo devuelve el espacio entre líneas.
+          */}
+          <span className="-mb-[0.12em] block overflow-hidden pb-[0.2em]">
             <span data-intro="line" className="block">
               Paga tus facturas
             </span>
           </span>
-          <span className="block overflow-hidden pb-[0.12em]">
-            <span data-intro="line" className="hero-figure block">
+          <span className="-mb-[0.12em] block overflow-hidden pb-[0.08em]">
+            {/* El degradado cubre la caja de la línea: el relleno lo extiende hasta la «g». */}
+            <span data-intro="line" className="hero-figure block pb-[0.12em]">
               sin salirte de tus reglas.
             </span>
           </span>
@@ -239,16 +243,13 @@ export function Hero() {
 }
 
 /**
- * Bajo el titular, el producto de verdad: una captura de la demo con una factura frenada
- * porque su cuenta bancaria cambió, y el porqué en palabras. Entra con la animación de
- * apertura.
+ * El producto de verdad, dentro del portal: la bandeja de Pendientes con el lote de ejemplo ya
+ * decidido. Se entiende de un vistazo aun pequeña: el agente ya resolvió y a la persona solo
+ * le llega lo que necesita criterio, cada factura con su veredicto y su motivo.
  */
-export function HeroShot() {
+export function ProductShot() {
   return (
-    <figure
-      data-intro="frame"
-      className="relative mx-auto -mt-2 max-w-5xl overflow-hidden rounded-[18px] border border-line bg-surface shadow-2xl shadow-black/15"
-    >
+    <figure className="relative mx-auto overflow-hidden rounded-[18px] border border-line bg-surface shadow-2xl shadow-black/15">
       <div
         aria-hidden="true"
         className="flex items-center gap-1.5 border-b border-line bg-surface-sunken px-4 py-2.5"
@@ -256,23 +257,21 @@ export function HeroShot() {
         <span className="size-2.5 rounded-full bg-line-strong" />
         <span className="size-2.5 rounded-full bg-line-strong" />
         <span className="size-2.5 rounded-full bg-line-strong" />
-        <span className="ml-3 font-mono text-[11px] text-ink-3">
-          yunque · factura YQ-2026-10-0020
-        </span>
+        <span className="ml-3 font-mono text-[11px] text-ink-3">yunque · pendientes</span>
       </div>
-      {/* En el teléfono, solo la tarjeta del porqué: la pantalla entera no se leería. */}
+      {/* En el teléfono, solo la bandeja: la pantalla entera no se leería. */}
       <Image
-        src="/producto/por-que-movil.webp"
-        alt="Una factura frenada por Yunque: la cuenta bancaria cambió, con la explicación en palabras simples"
+        src="/producto/pendientes-movil.webp"
+        alt="Pendientes: nueve facturas esperan una decisión, cada una con su veredicto y su motivo"
         width={1200}
-        height={481}
+        height={692}
         priority
         sizes="100vw"
         className="block h-auto w-full sm:hidden"
       />
       <Image
-        src="/producto/por-que.webp"
-        alt="Una factura frenada por Yunque: la cuenta bancaria cambió, con la explicación en palabras simples y los datos leídos del documento"
+        src="/producto/pendientes.webp"
+        alt="Pendientes: el agente pagó 14 facturas, frenó 10 y nueve esperan una decisión, cada una con su veredicto y su motivo"
         width={1600}
         height={1000}
         priority
@@ -288,27 +287,36 @@ export function HeroShot() {
  * aparece uno), los controles de cada factura y lo que cuesta y tarda cada decisión.
  */
 export function Numbers({ ruleCount }: { readonly ruleCount: number }) {
+  // `count`: la cifra cuenta hasta su valor al aparecer; el texto final es el del servidor.
   const stats = [
     {
       value: "0",
+      unit: "",
+      count: false,
       label: "pagos indebidos",
       detail: "en el set de prueba; si aparece uno, el cambio no entra",
       hero: true,
     },
     {
       value: String(ruleCount),
+      unit: "",
+      count: true,
       label: "controles",
       detail: "revisan cada factura antes de decidir",
       hero: false,
     },
     {
-      value: "5 s",
+      value: "5",
+      unit: " s",
+      count: true,
       label: "por factura",
       detail: "en promedio, de la llegada a la decisión",
       hero: false,
     },
     {
       value: "0,002",
+      unit: "",
+      count: false,
       label: "USD por factura",
       detail: "lo que cuesta la lectura con IA, medido",
       hero: false,
@@ -324,7 +332,8 @@ export function Numbers({ ruleCount }: { readonly ruleCount: number }) {
               <p
                 className={`num font-mono text-[34px] leading-none font-bold tracking-tight sm:text-[44px] ${stat.hero ? "hero-figure" : "text-ink"}`}
               >
-                {stat.value}
+                <span data-count-to={stat.count ? stat.value : undefined}>{stat.value}</span>
+                {stat.unit}
               </p>
               <p className="mt-3 text-[15px] font-semibold text-ink">{stat.label}</p>
               <p className="mt-1 text-[13px] leading-snug text-ink-3">{stat.detail}</p>
@@ -354,27 +363,51 @@ const STEPS = [
   },
 ] as const;
 
-/** Cómo funciona, en tres pasos; el último muestra los tres veredictos. */
+/**
+ * Cómo funciona, en tres pasos; el último muestra los tres veredictos. En escritorio, encima,
+ * una línea une los tres pasos y se dibuja al bajar, encendiendo cada punto (motion.tsx).
+ */
 export function Steps() {
   return (
-    <ol className="grid gap-4 lg:grid-cols-3">
-      {STEPS.map((step, i) => (
-        <li key={step.n} data-reveal-item className="card card-lift spotlight p-7">
-          <p className="font-mono text-[13px] text-brand">{step.n}</p>
-          <h3 className="mt-3 text-[22px] font-bold tracking-tight text-ink">{step.title}</h3>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{step.body}</p>
-          {i === STEPS.length - 1 ? (
-            <p className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
-              <span className="rounded-full bg-pay-tint px-2.5 py-1 text-pay">Pagar</span>
-              <span className="rounded-full bg-escalate-tint px-2.5 py-1 text-escalate">
-                Escalar
-              </span>
-              <span className="rounded-full bg-hold-tint px-2.5 py-1 text-hold">Frenar</span>
-            </p>
-          ) : null}
-        </li>
-      ))}
-    </ol>
+    <div>
+      <div aria-hidden="true" className="relative mb-6 hidden grid-cols-3 lg:grid">
+        <span className="absolute top-1/2 right-[calc(100%/6)] left-[calc(100%/6)] h-px bg-line-strong" />
+        <span
+          data-steps-line
+          className="absolute top-1/2 right-[calc(100%/6)] left-[calc(100%/6)] h-0.5 -translate-y-1/2 origin-left rounded-full bg-linear-to-r from-brand to-[var(--brand-grad-end)]"
+        />
+        {STEPS.map((step) => (
+          <span key={step.n} className="relative flex justify-center">
+            <span
+              data-step-dot
+              className="inline-flex size-10 items-center justify-center rounded-full border border-brand/30 bg-surface font-mono text-[13px] font-semibold text-brand shadow-sm"
+            >
+              {step.n}
+            </span>
+          </span>
+        ))}
+      </div>
+      <ol className="grid gap-4 lg:grid-cols-3">
+        {STEPS.map((step, i) => (
+          <li key={step.n} data-reveal-item className="card card-lift spotlight p-7">
+            <p className="font-mono text-[13px] text-brand lg:hidden">{step.n}</p>
+            <h3 className="mt-3 text-[22px] font-bold tracking-tight text-ink lg:mt-0">
+              {step.title}
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{step.body}</p>
+            {i === STEPS.length - 1 ? (
+              <p className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
+                <span className="rounded-full bg-pay-tint px-2.5 py-1 text-pay">Pagar</span>
+                <span className="rounded-full bg-escalate-tint px-2.5 py-1 text-escalate">
+                  Escalar
+                </span>
+                <span className="rounded-full bg-hold-tint px-2.5 py-1 text-hold">Frenar</span>
+              </p>
+            ) : null}
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 
@@ -422,7 +455,11 @@ export function Channels() {
           <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{channel.body}</p>
           <dl className="mt-6 divide-y divide-line rounded-[12px] border border-line bg-surface-sunken text-[13px]">
             {channel.sample.map(([label, value]) => (
-              <div key={`${label}-${value}`} className="flex items-center gap-4 px-4 py-2.5">
+              <div
+                key={`${label}-${value}`}
+                data-row
+                className="flex items-center gap-4 px-4 py-2.5"
+              >
                 <dt className="w-16 shrink-0 text-ink-3">{label}</dt>
                 <dd className="truncate font-mono text-[12px] text-ink">{value}</dd>
               </div>
@@ -466,7 +503,10 @@ export function Guarantees() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {GUARANTEES.map((item) => (
           <article key={item.title} data-reveal-item className="card card-lift spotlight p-6">
-            <span className="inline-flex size-8 items-center justify-center rounded-full bg-brand-tint text-brand">
+            <span
+              data-pop-in
+              className="inline-flex size-8 items-center justify-center rounded-full bg-brand-tint text-brand"
+            >
               <CheckIcon className="size-4" />
             </span>
             <h3 className="mt-4 text-[17px] font-bold tracking-tight text-ink">{item.title}</h3>

@@ -14,11 +14,11 @@ import {
   FinalCall,
   Guarantees,
   Hero,
-  HeroShot,
   LandingNav,
   Numbers,
   Steps,
 } from "@/app/_landing/sections";
+import { Portal } from "@/app/_landing/portal";
 import { ProductShowcase } from "@/app/_landing/showcase";
 import { Ticker } from "@/app/_landing/ticker";
 
@@ -35,7 +35,7 @@ describe("portada pública (P-144)", async () => {
       <Announcement sampleCount={33} />
       <LandingNav />
       <Hero />
-      <HeroShot />
+      <Portal />
       {batch ? <Ticker batch={batch} /> : null}
       <Numbers ruleCount={21} />
       <Steps />
@@ -83,6 +83,9 @@ describe("portada pública (P-144)", async () => {
   it("marca lo que anima la portada; sin animación, el HTML ya es el estado final", () => {
     expect(html).toContain('data-intro="line"');
     expect(html).toContain('data-intro="frame"');
+    // El portal: anillos azules que se abren y, al fondo, la captura real del producto.
+    expect(html).toContain("data-portal-ring");
+    expect(html).toMatch(/data-portal-scene[\s\S]*producto%2Fpendientes/);
     expect(html).toContain("data-reveal-title");
     // El menú del teléfono empieza cerrado y anuncia su estado.
     expect(html).toContain('aria-expanded="false"');

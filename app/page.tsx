@@ -6,6 +6,7 @@ import { RULES } from "@/src/domain/rules";
 
 import { loadSampleBatch } from "./_landing/cases";
 import { LandingMotion } from "./_landing/motion";
+import { Portal } from "./_landing/portal";
 import {
   Announcement,
   Channels,
@@ -14,7 +15,6 @@ import {
   FinalCall,
   Guarantees,
   Hero,
-  HeroShot,
   LandingFooter,
   LandingNav,
   Numbers,
@@ -54,7 +54,7 @@ export default async function Home() {
       <LandingNav />
       <main id="contenido" className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
         <Hero />
-        <HeroShot />
+        <Portal />
         {batch ? <Ticker batch={batch} /> : null}
         <div className="space-y-28 py-24">
           <Numbers ruleCount={ruleCount} />

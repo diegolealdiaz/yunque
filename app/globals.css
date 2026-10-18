@@ -454,3 +454,44 @@ select:not([multiple]) {
 [data-nav][data-top="true"] [data-nav-bg] {
   opacity: 0;
 }
+
+/*
+ * Vitrina del producto en la portada (app/_landing/showcase.tsx): cada pantalla entra con un
+ * fundido corto y la pestaña activa muestra cuánto falta para pasar a la siguiente.
+ */
+@keyframes showcase-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.showcase-in {
+  animation: showcase-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes tab-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.tab-progress {
+  animation-name: tab-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .showcase-in,
+  .tab-progress {
+    animation: none;
+  }
+}

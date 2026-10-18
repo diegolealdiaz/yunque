@@ -319,7 +319,7 @@ Es corta y muestra el producto de verdad: la promesa, la prueba con capturas rea
 
 1. **Aviso** sobre la barra: "Demo abierta", con cuántas facturas de ejemplo hay, y enlace a la demo.
 2. **Barra fija** con el nombre, cuatro anclas (Cómo funciona, Producto, Seguridad, Preguntas), el selector de tema y un solo botón: "Probar la demo". Arriba del todo es transparente; al bajar toma fondo y borde.
-3. **Primer bloque, centrado.** Titular ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Debajo, una captura real: una factura frenada porque su cuenta bancaria cambió, con el porqué. En el teléfono, solo la tarjeta del porqué.
+3. **Primer bloque, centrado.** Titular ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Debajo, el **portal**: un marco de anillos azules que, al bajar, se abren hacia afuera mientras la captura real de Pendientes (el agente ya decidió y solo queda lo que necesita a una persona) crece desde el fondo hasta llenar la pantalla. En el teléfono, sin anillos y solo la bandeja.
 4. **Cinta del lote**, de borde a borde: cada caso del lote de ejemplo con su veredicto y su motivo, y los totales por salida. Sale del manifiesto del dataset; si no se puede leer, la cinta no aparece.
 5. **Cifras medidas:** cero pagos indebidos en el set de prueba, los controles de cada factura (del código), el tiempo y el costo por factura medidos.
 6. **Cómo funciona,** en tres tarjetas: recibe, lee y revisa, decide y explica.
@@ -332,7 +332,9 @@ Es corta y muestra el producto de verdad: la promesa, la prueba con capturas rea
 **Movimiento** (GSAP, en `app/_landing/motion.tsx`; las secciones solo marcan qué se anima):
 
 - **Entrada**, de unos 3 segundos: la barra baja, el titular sube línea por línea desde una máscara, luego el texto, los botones y la captura. Lo que la entrada muestra está oculto desde la primera pintura (un script en línea en `<head>`, con el nonce, pone el velo antes de pintar) para que no aparezca, se oculte y vuelva a aparecer; si la animación no arranca, se muestra solo a los 4 segundos.
-- **Al bajar**: el primer bloque se aleja; cada sección entra una vez con su titular por líneas y sus tarjetas escalonadas.
+- **Portal**, en escritorio: la sección queda fija y, al bajar, los anillos se abren hacia afuera mientras la captura crece desde el fondo del túnel hasta llenar la pantalla.
+- **Al bajar**: el primer bloque se aleja; cada sección entra una vez con su titular por líneas y sus tarjetas escalonadas; las cifras cuentan hasta su valor y terminan en el texto exacto del servidor; la línea de "Cómo funciona" se dibuja y enciende cada paso; las capturas de la vitrina llegan inclinadas y se enderezan; los íconos de las garantías aparecen uno tras otro con un rebote; los ejemplos de cada canal entran fila por fila.
+- **Vitrina**: avanza sola cada 6 segundos, con una barra de progreso en la pestaña activa; se detiene bajo el puntero o con el foco dentro, y cada pantalla entra con un fundido corto.
 - **Cinta**: corre sola con CSS y se detiene bajo el puntero.
 - **Bajo el puntero**: botones y enlaces crecen un poco con un resorte corto y vuelven más rápido y sin rebote; las tarjetas se levantan 4 px y una luz de marca sigue al puntero.
 - **Menú del teléfono**: dos barras que se cruzan en una X moviendo sus puntas, un panel que entra desde la derecha con un resorte corto y filas escalonadas; sale hacia la derecha sin adornos. Esc cierra y devuelve el foco, Tab no sale del menú, la página no se desplaza detrás y al pasar a escritorio se cierra.
