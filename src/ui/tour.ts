@@ -1,8 +1,8 @@
 /**
- * El recorrido guiado (docs/interfaz.md §5.9): nueve pasos sobre pantallas reales que explican
+ * El recorrido guiado (docs/interfaz.md §5.9): diez pasos sobre pantallas reales que explican
  * la plataforma a quien entra por primera vez, sin que nadie esté al lado. Empieza con una
  * bienvenida que da el vocabulario (los tres veredictos), sigue el camino de una factura
- * (probar, Pendientes, el porqué y la decisión), muestra el control (Reglas, Métricas y
+ * (probar, armar una factura, Pendientes, el porqué y la decisión), muestra el control (Reglas, Métricas y
  * Bitácora) y termina con una acción concreta. Ningún paso cambia datos.
  */
 
@@ -33,6 +33,12 @@ export const TOUR_STEPS: readonly TourStep[] = [
     anchor: "galeria",
     title: "Prueba al agente en vivo",
     body: "Cada factura de ejemplo trae una situación distinta: un proveedor de siempre, una cuenta bancaria cambiada, un correo que intenta saltarse la revisión. Elige una y mira qué decide en segundos.",
+  },
+  {
+    route: "/probar",
+    anchor: "armar",
+    title: "Arma tu propia factura, y trata de engañarlo",
+    body: "Elige el proveedor, el monto, la cuenta y lo que dice la factura; Yunque la arma y el agente la decide. Usa las trampas rápidas: cambiar la cuenta, inflar el monto o esconder una instrucción, incluso en texto invisible.",
   },
   {
     route: "/probar",

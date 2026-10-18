@@ -240,17 +240,18 @@ La primera entrada de la barra lateral, para que un cliente entienda el producto
 
 ### 5.9 Recorrido guiado (solo en la demo)
 
-La primera vez que alguien entra, nueve pasos sobre pantallas reales explican la plataforma sin que nadie esté al lado. Cada paso lleva a su pantalla, enmarca lo que señala y oscurece lo demás; ninguno cambia datos.
+La primera vez que alguien entra, diez pasos sobre pantallas reales explican la plataforma sin que nadie esté al lado. Cada paso lleva a su pantalla, enmarca lo que señala y oscurece lo demás; ninguno cambia datos.
 
 1. **Bienvenida**, centrada: qué es Yunque, que se trabaja con una empresa de ejemplo sin dinero real, y los tres veredictos con su color (Pagar, Escalar, Frenar).
 2. **Probar el agente**: la galería, cada factura con una situación distinta.
-3. **Tu propia factura**: subirla, o enviarla por correo o Telegram desde "Probar con tu factura".
-4. **Pendientes**: solo lo que necesita a una persona, por vencimiento y con el motivo.
-5. **El porqué**: el detalle de una factura de la empresa (una que espera decisión; si no hay, una frenada), sobre la tarjeta "Por qué".
-6. **Tu decisión**: quién firma, el checklist, aprobar, corregir, rechazar o registrar al proveedor, y la doble firma.
-7. **Reglas**: límites, ver qué cambiaría antes de guardar y los cuatro interruptores.
-8. **Métricas**: autonomía, cero pagos indebidos, costo y tiempo.
-9. **Bitácora**: todo queda escrito; termina con dos acciones, procesar las facturas de ejemplo o probar con una propia.
+3. **Arma tu propia factura**: elegir proveedor, monto, cuenta y nota, y las trampas rápidas para intentar engañarlo.
+4. **Tu propia factura**: subirla, o enviarla por correo o Telegram desde "Probar con tu factura".
+5. **Pendientes**: solo lo que necesita a una persona, por vencimiento y con el motivo.
+6. **El porqué**: el detalle de una factura de la empresa (una que espera decisión; si no hay, una frenada), sobre la tarjeta "Por qué".
+7. **Tu decisión**: quién firma, el checklist, aprobar, corregir, rechazar o registrar al proveedor, y la doble firma.
+8. **Reglas**: límites, ver qué cambiaría antes de guardar y los cuatro interruptores.
+9. **Métricas**: autonomía, cero pagos indebidos, costo y tiempo.
+10. **Bitácora**: todo queda escrito; termina con dos acciones, procesar las facturas de ejemplo o probar con una propia.
 
 La tarjeta muestra el avance con una barra de pasos y va debajo de lo señalado, encima o en una esquina, donde quepa; en el teléfono, abajo. Se avanza y retrocede con los botones o las flechas del teclado; "Saltar", Esc o las acciones del final lo cierran y no vuelve a salir (se recuerda en el navegador); "Ver el recorrido", en la barra lateral, lo abre de nuevo. Por su cuenta solo se abre en las pantallas de entrada, nunca sobre un enlace directo. Con "reducir movimiento", sin animaciones.
 
