@@ -125,7 +125,11 @@ describe("cada número se abre en sus facturas (P-108)", () => {
       drillInvoiceIds(view, { kind: "metric", key }).length;
     expect(count("autonomia")).toBe(view.metrics.autonomy.total);
     expect(count("falsos_pagar")).toBe(view.metrics.false_pay.length);
-    expect(count("costo")).toBe(view.metrics.total);
+    // Costo: el gasto real del periodo, solo las facturas cuya lectura costó. Aquí todas las
+    // del lote pasan por el modelo simulado, así que el total coincide con el de la evaluación.
+    expect(count("costo")).toBe(view.spend.byInvoice.size);
+    expect(view.spend.byInvoice.size).toBeGreaterThan(0);
+    expect(view.spend.totalUsdMicros).toBe(view.metrics.cost.total_usd_micros);
     expect(count("tiempo")).toBe(view.metrics.total);
     expect(count("pendientes")).toBe(view.waiting.length);
     // Exactitud: las facturas con campos medidos; el documento que no es factura no entra.

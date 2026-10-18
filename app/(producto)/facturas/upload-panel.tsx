@@ -129,14 +129,19 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
       {uploads.length > 0 ? (
         <ul aria-live="polite" className="divide-y divide-line card text-[13px]">
           {uploads.map((u) => (
-            <li key={u.key} className="flex items-center gap-3 px-3 py-2">
+            <li
+              key={u.key}
+              className="relative flex items-center gap-3 px-3 py-2 has-[a]:hover:bg-surface-hover"
+            >
               <span className="min-w-0 flex-1 truncate text-ink">{u.name}</span>
               {u.state === "subiendo" ? <VerdictChip verdict="en_proceso" /> : null}
               {u.state === "listo" && u.verdict ? <VerdictChip verdict={u.verdict} /> : null}
               {u.state === "listo" && u.invoiceId ? (
+                // El enlace cubre toda la fila: se abre el detalle desde el nombre, el veredicto
+                // o la referencia.
                 <Link
                   href={`/facturas/${u.invoiceId}`}
-                  className="font-medium text-ink underline underline-offset-4"
+                  className="font-medium text-ink underline underline-offset-4 after:absolute after:inset-0 after:content-['']"
                 >
                   {u.reference ?? "ver"}
                 </Link>

@@ -45,8 +45,10 @@ import { LIST_LIMIT } from "./invoice-list";
  *   que usa `npm run eval`. Así la pantalla y la evaluación dan lo mismo sobre la misma
  *   base (P-91). Una factura subida a mano no tiene veredicto esperado y no entra.
  * - Los de operación: cuánto se pagó, frenó y escaló en el periodo, escaladas esperando,
- *   presupuesto del periodo por moneda y reglas que más dispararon. Salen de todas las
- *   facturas, con la decisión vigente.
+ *   presupuesto del periodo por moneda, reglas que más dispararon y lo que gastó el agente
+ *   leyendo. Salen de todas las facturas, con la decisión vigente; el gasto, con la primera
+ *   decisión del agente, que es la que paga la lectura. Las del lote se leen de lecturas
+ *   guardadas y no gastan.
  *
  * Cada número lleva las facturas que lo componen (`drillInvoiceIds`), para que la pantalla
  * enlace a ellas y el conteo coincida (P-108).
@@ -105,6 +107,11 @@ export type MetricsView = {
   readonly outcomes: Readonly<Record<Verdict, OutcomeSlice>>;
   /** Reglas que dispararon en el periodo, la más frecuente primero. */
   readonly rules: readonly RuleCount[];
+  /** Lo que gastó el agente leyendo en el periodo, por factura: solo las que costaron. */
+  readonly spend: {
+    readonly totalUsdMicros: number;
+    readonly byInvoice: ReadonlyMap<Ulid, number>;
+  };
   /** Fila de pantalla de cada factura citada, para los detalles. */
   readonly invoices: ReadonlyMap<Ulid, InboxRow>;
 };
@@ -184,7 +191,14 @@ export async function loadMetrics(
   const rules = new Map<FindingCode, { action: OnFail; invoiceIds: Ulid[] }>();
   const emptyOutcome = (): { total: number; invoiceIds: Ulid[] } => ({ total: 0, invoiceIds: [] });
   const outcomes = { pagar: emptyOutcome(), frenar: emptyOutcome(), escalar: emptyOutcome() };
+  const spend = new Map<Ulid, number>();
   for (const invoice of invoices) {
+    const first = decisions
+      .get(invoice.id)
+      ?.find((d) => d.actor.kind === "agente" && d.previous_decision_id === null);
+    if (first && first.cost_usd_micros > 0 && inPeriod(first)) {
+      spend.set(invoice.id, first.cost_usd_micros);
+    }
     const current = decisions.get(invoice.id)?.[0];
     if (!current) continue;
     if (invoice.status === "esperando_aprobacion") {
@@ -245,6 +259,7 @@ export async function loadMetrics(
       .map(([code, r]) => ({ code, action: r.action, invoiceIds: r.invoiceIds }))
       .sort((a, b) => b.invoiceIds.length - a.invoiceIds.length || (a.code < b.code ? -1 : 1))
       .slice(0, TOP_RULES),
+    spend: { totalUsdMicros: sumOf(spend.values()), byInvoice: spend },
     invoices: new Map(
       described.flatMap(({ invoice, row }) => (row ? [[invoice.id, row] as const] : [])),
     ),
@@ -282,9 +297,10 @@ export function drillInvoiceIds(view: MetricsView, drill: Drill): Ulid[] {
   const all = view.measured;
   switch (drill.key) {
     case "autonomia":
-    case "costo":
     case "tiempo":
       return all.map((m) => m.invoiceId);
+    case "costo":
+      return [...view.spend.byInvoice.keys()];
     case "falsos_pagar": {
       const ids = new Set(view.metrics.false_pay);
       return all.filter((m) => ids.has(m.row.id)).map((m) => m.invoiceId);
@@ -294,6 +310,12 @@ export function drillInvoiceIds(view: MetricsView, drill: Drill): Ulid[] {
     case "pendientes":
       return view.waiting.map((w) => w.invoiceId);
   }
+}
+
+function sumOf(values: Iterable<number>): number {
+  let total = 0;
+  for (const v of values) total += v;
+  return total;
 }
 
 /** Exactitud de todos los campos juntos: aciertos sobre campos medidos. */

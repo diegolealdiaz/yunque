@@ -183,6 +183,7 @@ function AgentCard({
     return ratio ? percent(ratio.rate) : "—";
   };
   const falsePay = metrics.false_pay.length;
+  const read = view.spend.byInvoice.size;
   return (
     <section aria-labelledby="agente-titulo" data-tour="metricas" className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -244,8 +245,12 @@ function AgentCard({
             />
             <Stat
               label="Costo del agente"
-              value={usdMicros(metrics.cost.per_invoice_usd_micros)}
-              detail={`por factura · ${usdMicros(metrics.cost.total_usd_micros)} en total`}
+              value={usdMicros(read === 0 ? 0 : Math.round(view.spend.totalUsdMicros / read))}
+              detail={
+                read === 0
+                  ? "Las de ejemplo usan lecturas guardadas: sin costo"
+                  : `por factura leída · ${usdMicros(view.spend.totalUsdMicros)} en ${String(read)} ${read === 1 ? "lectura" : "lecturas"}`
+              }
               href={metric("costo")}
             />
             <Stat
@@ -372,8 +377,8 @@ function extraColumns(drill: Drill, view: MetricsView, timeZone: string): ExtraC
         return {
           columns: [{ header: "Costo", align: "right", width: "9rem" }],
           cells: (id) => {
-            const m = measured.get(id);
-            return [m ? <span className="font-mono">{usdMicros(m.row.cost_usd_micros)}</span> : ""];
+            const cost = view.spend.byInvoice.get(id);
+            return [cost === undefined ? "" : <span className="font-mono">{usdMicros(cost)}</span>];
           },
         };
       case "tiempo":
