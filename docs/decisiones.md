@@ -317,3 +317,26 @@ Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verifica
 - **La doble firma es un interruptor de Reglas, encendido por defecto.** Encenderla es inmediato. Apagarla afloja el control, así que la confirma otra persona de la lista una vez. Con ella apagada, una sola persona puede aflojar reglas, encender interruptores, registrar proveedores y aprobar lo que corrigió.
 
 **Consecuencia.** Registrar un proveedor sin verificar no puede llevar a un pago automático: la regla de beneficiario sin verificar escala siempre. Por eso agregarlo a la lista de permitidos no pasa por la propuesta de política de D29. En la bitácora queda quién registró al proveedor, con qué cuenta, y quién lo verificó.
+
+## D32. API de decisión para otros agentes: el mismo camino, con llave de empresa
+
+**Contexto.** Las empresas arman sus propios agentes y quieren que también paguen. Antes de pagar, ese agente necesita preguntarle a alguien si puede: un guardarraíl que aplique las reglas de la empresa y explique su respuesta. Yunque ya es ese guardarraíl para las facturas que llegan por pantalla, correo y Telegram. Falta una puerta para que otro programa haga la misma pregunta.
+
+**Decisión.** `POST /api/decide` recibe una solicitud de pago y devuelve el veredicto con su regla, sus hallazgos y el enlace al acta. `GET /api/decide/{referencia}` devuelve el estado vigente, así el agente sabe cuándo una persona resolvió una escalada. El contrato va en inglés, como es costumbre en una API; los valores del dominio (`pagar`, `frenar`, `escalar`) y los textos para personas van en español.
+
+La solicitud llega de dos formas, y las dos terminan en `processInvoice`:
+
+1. **Con documento.** Un PDF o una imagen, como una subida. Lo lee el Lector.
+2. **Con campos.** Beneficiario, número, moneda, total, cuenta y lo demás, en JSON. Yunque arma con ellos un PDF de la solicitud, siempre igual para los mismos campos, y lo procesa como cualquier documento. Lo lee un lector determinista, sin modelo: cada campo cita su línea del PDF y pasa por el mismo Verificador y el mismo Detector de instrucciones. Una instrucción escondida en el concepto se frena como en una factura. El acta muestra el PDF, así una persona ve qué pidió el agente.
+
+Protecciones:
+
+- **Llave de empresa.** Con el acceso de cliente vigente (D23), "Conectar tu agente" genera una llave `yq_…` de 160 bits de azar. Se muestra una sola vez; en la base queda solo su hash. Vence con el acceso y generar otra anula la anterior. La empresa sale de la llave, nunca del cuerpo.
+- **Los campos de un agente no valen como los de una persona.** Quedan con origen `api`. Se verifican contra el documento como los del modelo, y no cuentan como corrección humana para los cuatro ojos ni para nada que exija a una persona.
+- **Idempotencia.** Cada solicitud trae su `idempotency_key`, que es la llave de recepción (`api:<llave>`). Repetirla devuelve la misma decisión; repetirla con otros datos se rechaza. Los mismos campos con otra llave dan el mismo documento, y el motor los frena como duplicado.
+- **Los mismos topes que la subida,** por empresa y de toda la demo. Con documento también vale el techo de gasto del modelo.
+- **La escalada avisa a la persona.** Una solicitud por API cuenta como entregada desde afuera: si escala o se frena, el chat de Telegram conectado recibe el aviso.
+
+**Por qué no un camino propio de decisión.** Un atajo que evaluara los campos sin documento ni factura registrada tendría su propio registro, su propia idempotencia y su propio acta. Pasar por `processInvoice` deja una sola garantía para todos los canales: misma política, mismo motor, mismo registro.
+
+**Consecuencia.** Un agente puede afirmar cualquier dato, como puede hacerlo una factura. La defensa es la misma: el beneficiario, la cuenta y el monto se contrastan con lo registrado, y lo que no cuadra no se paga. El servidor MCP para conectar asistentes como Claude es un cliente delgado de esta API, sin lógica propia.

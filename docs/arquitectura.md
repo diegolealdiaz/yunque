@@ -229,7 +229,7 @@ Antes de escalar por confianza baja, el pipeline hace una sola segunda pasada co
 | Bandeja de correo simulada | Correos ficticios precargados (remitente, asunto, cuerpo, adjunto). Botón "Revisar correo de ejemplo" | Pipeline, con el cuerpo del correo como contexto extra |
 | Correo real (demo, D23) | Botón "Probar con tu factura": con el acceso de cliente, cada visitante recibe su dirección personal, que vence con el acceso. El proveedor de correo entrante llama a `/api/correo/entrante`; se procesa el primer adjunto PDF o imagen, con topes por dirección y de la demo antes de llamar al modelo | Pipeline, con el cuerpo del correo como contexto extra |
 | Telegram (demo, D24) | Con el acceso de cliente, "Conectar Telegram" da un enlace de un solo uso al bot. El chat conectado recibe avisos de escaladas, frenadas y aprobaciones, y puede enviar facturas en PDF o foto. Webhook en `/api/telegram`; cada `update_id` se guarda y se ignora si se repite | Pipeline completo y cola de avisos |
-| API de decisión (planeada, paso 31) | `POST /api/decide` recibe un archivo o campos ya extraídos y devuelve el veredicto con hallazgos. Documentado en el README como "para tu propio agente" | Pipeline completo |
+| API de decisión (D32) | Con el acceso de cliente, "Conectar tu agente" da una llave de empresa. `POST /api/decide` recibe un PDF o imagen, o los campos en JSON, y devuelve el veredicto con su regla, hallazgos y enlace al acta. Con campos, Yunque arma el PDF de la solicitud y lo lee sin modelo. `GET /api/decide/{referencia}` da el estado vigente. El servidor MCP en `mcp/` la expone a asistentes | Pipeline completo y cola de avisos |
 
 Todos los canales terminan en la misma función `processInvoice(deps, input)`. Un canal nuevo es un adaptador de 50 líneas.
 
@@ -277,6 +277,7 @@ yunque/
     api/acceso/           acceso de cliente (D23, D24): código, y dirección de correo personal
     api/correo/           webhook del correo real de la demo (D23)
     api/telegram/         webhook del bot y enlace de conexión de un chat (D24)
+    api/decide/           API de decisión para otros agentes, con llave de empresa (D32)
     api/health/           salud con frescura
   src/
     config.ts             variables de entorno validadas con zod; la app no arranca si falta algo
@@ -285,7 +286,7 @@ yunque/
     extraction/           normalización, llamada al modelo (único módulo que importa el SDK), verificador
     resolve/              resolutor de beneficiario y comparación de cuenta
     explain/              plantillas y resumen en prosa
-    documents/            orden de pago en PDF, armada con los datos de la decisión
+    documents/            orden de pago y solicitud de un agente en PDF
     session/              firmas HMAC: visitante, aprobador y contenido a aprobar; tokens de los canales de cliente
     telegram/             cliente de la API de bots (único módulo que llama a Telegram) y esquema del webhook
     dataset/              manifiesto, plantillas, generador, bandeja simulada y semilla de la demo
@@ -299,6 +300,7 @@ yunque/
     seed/                 empresa, vendors, política inicial
     files/                archivos subidos y páginas renderizadas en local (ignorado por git)
   scripts/                migrate, seed, generate-dataset, eval y env (carga .env.local)
+  mcp/                    servidor MCP: cliente delgado de la API de decisión para asistentes (D32)
   tests/                  una carpeta por módulo de src/, más:
     pipeline/             casos de uso completos con extractor simulado, sin red
     regression/           set completo y set adversarial contra decisión esperada
@@ -312,7 +314,7 @@ yunque/
   docs/
 ```
 
-Dirección de las dependencias: `app` habla con `usecases`; `usecases` orquesta `engine`, `extraction`, `resolve`, `explain`, `documents` y `db`; `domain` no depende de nadie. Solo `app/_data` toca `src/db` directo, para abrir la conexión y sembrar la empresa del visitante. `src/ui` puede leer los tipos de salida de los casos de uso, porque los presenta. El adaptador de la API para otros agentes (paso 31) entrará en `app/api/decide/` y también terminará en `processInvoice`, como ya lo hacen el correo real y Telegram.
+Dirección de las dependencias: `app` habla con `usecases`; `usecases` orquesta `engine`, `extraction`, `resolve`, `explain`, `documents` y `db`; `domain` no depende de nadie. Solo `app/_data` toca `src/db` directo, para abrir la conexión y sembrar la empresa del visitante. `src/ui` puede leer los tipos de salida de los casos de uso, porque los presenta. El adaptador de la API para otros agentes (D32) vive en `app/api/decide/` y también termina en `processInvoice`, como el correo real y Telegram.
 
 ## 9. Infraestructura y lo que dejamos fuera
 
