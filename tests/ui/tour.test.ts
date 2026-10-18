@@ -7,7 +7,7 @@ import { NAV_ITEMS } from "@/app/_components/sidebar";
 import { TOUR_INVOICE_ROUTE, TOUR_STEPS } from "@/src/ui/tour";
 
 /**
- * P-147: el recorrido guiado. Nueve pasos: empieza con una bienvenida centrada que da los tres
+ * P-147: el recorrido guiado. Diez pasos: empieza con una bienvenida centrada que da los tres
  * veredictos, sigue por pantallas de la barra y por el detalle de una factura, y termina con
  * acciones. Cada paso que señala algo lo señala en un elemento que su pantalla de verdad tiene.
  */
@@ -26,8 +26,8 @@ const SOURCES: Readonly<Record<string, readonly string[]>> = {
 };
 
 describe("recorrido guiado (P-147)", () => {
-  it("nueve pasos: bienvenida centrada primero, acciones al final, rutas de la barra o el detalle", () => {
-    expect(TOUR_STEPS).toHaveLength(9);
+  it("diez pasos: bienvenida centrada primero, acciones al final, rutas de la barra o el detalle", () => {
+    expect(TOUR_STEPS).toHaveLength(10);
     expect(TOUR_STEPS[0]).toMatchObject({ route: "/probar", anchor: null, extra: "veredictos" });
     expect(TOUR_STEPS.at(-1)?.extra).toBe("acciones");
     const sections = new Set<string>([...NAV_ITEMS.map((item) => item.href), TOUR_INVOICE_ROUTE]);

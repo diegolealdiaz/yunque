@@ -10,7 +10,7 @@ import { tourInvoice } from "../_actions/tour";
 import { VerdictPill } from "./verdict-pill";
 
 /**
- * Recorrido guiado (docs/interfaz.md §5.9): la primera vez que alguien entra, nueve pasos
+ * Recorrido guiado (docs/interfaz.md §5.9): la primera vez que alguien entra, diez pasos
  * sobre pantallas reales. La bienvenida va centrada y da el vocabulario; cada paso siguiente
  * lleva a su pantalla, enmarca lo que señala y oscurece lo demás, con la tarjeta debajo,
  * encima o en una esquina, donde quepa. Los pasos del detalle abren una factura de la
