@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { GuidedTour } from "../_components/guided-tour";
 import { KeyboardShortcuts } from "../_components/shortcuts";
 import { Sidebar } from "../_components/sidebar";
 import { shellState } from "../_data/inbox";
@@ -30,6 +31,7 @@ export default async function ProductLayout({ children }: { children: ReactNode 
         <div className="mx-auto w-full max-w-[88rem] lg:h-full">{children}</div>
       </main>
       <KeyboardShortcuts />
+      {state.demo ? <GuidedTour /> : null}
       <div aria-hidden="true" className="brand-frame" />
     </div>
   );

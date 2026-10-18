@@ -51,7 +51,7 @@ export default async function ProbarPage() {
         }
       />
 
-      <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ul data-tour="galeria" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {cases.map((c) => {
           const invoice = done.get(c.receiptKey);
           return (

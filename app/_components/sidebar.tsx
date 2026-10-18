@@ -18,6 +18,7 @@ import {
   RulesIcon,
 } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
+import { TOUR_OPEN_EVENT } from "@/src/ui/tour";
 
 /**
  * Barra lateral (docs/interfaz.md §4): cinco destinos en orden de uso y, abajo, el estado
@@ -238,7 +239,20 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
               </dd>
             </div>
           </dl>
-          <div className="mt-4">
+          <div className="mt-4 space-y-2">
+            {state.demo ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpenOn(null);
+                  window.dispatchEvent(new Event(TOUR_OPEN_EVENT));
+                }}
+                className="flex h-9 w-full items-center gap-2 rounded-[var(--radius-control)] px-3 text-[13px] text-ink-2 hover:bg-surface-hover hover:text-ink"
+              >
+                <PlayIcon />
+                Ver el recorrido
+              </button>
+            ) : null}
             <ThemeToggle />
           </div>
         </div>

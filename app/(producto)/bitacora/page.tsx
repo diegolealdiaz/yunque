@@ -156,6 +156,7 @@ export default async function BitacoraPage({
 
       <section
         aria-label="Resumen de la bitácora"
+        data-tour="bitacora"
         className="grid gap-5 card px-5 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6"
       >
         <div>

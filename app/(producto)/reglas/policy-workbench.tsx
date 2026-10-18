@@ -154,6 +154,7 @@ function PolicySummary({
   return (
     <section
       aria-label="Resumen de la política"
+      data-tour="limites"
       className="grid gap-5 border-b border-line pb-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)] lg:items-center lg:gap-10"
     >
       <div>

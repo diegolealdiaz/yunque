@@ -77,7 +77,7 @@ export default async function PendientesPage() {
         </dl>
       </header>
 
-      <section aria-labelledby="esperan">
+      <section aria-labelledby="esperan" data-tour="pendientes">
         <div id="esperan">
           <SectionTitle title="Esperan tu decisión" count={waiting} />
         </div>
