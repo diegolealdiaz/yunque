@@ -15,6 +15,7 @@ export * from "./gallery";
 export * from "./health";
 export * from "./inbound-email";
 export * from "./inbox";
+export * from "./invoice-builder";
 export * from "./invoice-detail";
 export * from "./invoice-list";
 export * from "./metrics";

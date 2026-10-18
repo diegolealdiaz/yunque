@@ -29,8 +29,11 @@ const PRINTABLE = new RegExp(`^[${chars(0x20, 0x7e)}${chars(0xa1, 0xac)}${chars(
  */
 const MAX_WORD = 60;
 
-/** Texto de una línea que el documento muestra y cita tal como llegó. */
-function line(max: number) {
+/**
+ * Texto de una línea que un documento generado muestra y cita tal como llegó. Lo usan la
+ * solicitud de la API y la factura que arma un cliente en la demo.
+ */
+export function printableLine(max: number) {
   return z
     .string()
     .trim()
@@ -44,7 +47,7 @@ function line(max: number) {
     });
 }
 
-const DecimalAmount = z.string().regex(/^(0|[1-9][0-9]{0,12})(\.[0-9]{1,2})?$/, {
+export const DecimalAmountSchema = z.string().regex(/^(0|[1-9][0-9]{0,12})(\.[0-9]{1,2})?$/, {
   error: 'Monto decimal con punto y hasta dos decimales, por ejemplo "1200.00"',
 });
 
@@ -53,22 +56,22 @@ export const PaymentRequestSchema = z.strictObject({
   idempotency_key: z.string().regex(/^[A-Za-z0-9._:-]{1,120}$/, {
     error: "Entre 1 y 120 letras, números, punto, guion, guion bajo o dos puntos",
   }),
-  payee_name: line(200),
-  invoice_number: line(MAX_WORD),
+  payee_name: printableLine(200),
+  invoice_number: printableLine(MAX_WORD),
   currency: CurrencySchema,
-  total: DecimalAmount.refine((v) => /[1-9]/.test(v), {
+  total: DecimalAmountSchema.refine((v) => /[1-9]/.test(v), {
     error: "El total debe ser mayor que cero",
   }),
-  payee_tax_id: line(50).optional(),
+  payee_tax_id: printableLine(50).optional(),
   issue_date: z.iso.date().optional(),
   due_date: z.iso.date().optional(),
-  subtotal: DecimalAmount.optional(),
-  taxes: DecimalAmount.optional(),
-  bank_account: line(64).min(4).optional(),
-  bank_holder: line(200).optional(),
-  purchase_order: line(50).optional(),
+  subtotal: DecimalAmountSchema.optional(),
+  taxes: DecimalAmountSchema.optional(),
+  bank_account: printableLine(64).min(4).optional(),
+  bank_holder: printableLine(200).optional(),
+  purchase_order: printableLine(50).optional(),
   hours: z.number().int().min(0).max(10_000).optional(),
-  description: line(500).optional(),
+  description: printableLine(500).optional(),
 });
 export type PaymentRequest = z.infer<typeof PaymentRequestSchema>;
 
