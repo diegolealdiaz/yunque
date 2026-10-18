@@ -275,6 +275,7 @@ yunque/
                           y manda el resumen de los ejemplos a Telegram al terminar (resumen/)
     api/bandeja/          lee un correo de la bandeja simulada (solo en la demo)
     api/acceso/           acceso de cliente (D23, D24): código, y dirección de correo personal
+    api/armar/            arma la factura que elige el cliente con la plantilla del dataset y la procesa como subida
     api/correo/           webhook del correo real de la demo (D23)
     api/telegram/         webhook del bot y enlace de conexión de un chat (D24)
     api/decide/           API de decisión para otros agentes, con llave de empresa (D32)
