@@ -7,7 +7,16 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import type { Controls } from "@/src/domain";
 
-import { ChartIcon, CloseIcon, InboxIcon, ListIcon, LogIcon, MenuIcon, RulesIcon } from "./icons";
+import {
+  ChartIcon,
+  CloseIcon,
+  InboxIcon,
+  ListIcon,
+  LogIcon,
+  MenuIcon,
+  PlayIcon,
+  RulesIcon,
+} from "./icons";
 import { ThemeToggle } from "./theme-toggle";
 
 /**
@@ -26,14 +35,17 @@ export type ShellState = {
   readonly pendingCount: number;
   readonly controls: Controls;
   readonly health: HealthLevel;
+  /** Es la demo: aparece "Probar el agente". */
+  readonly demo: boolean;
 };
 
 export const NAV_ITEMS = [
-  { href: "/pendientes", label: "Pendientes", Icon: InboxIcon, shortcut: "p" },
-  { href: "/facturas", label: "Facturas", Icon: ListIcon, shortcut: "f" },
-  { href: "/reglas", label: "Reglas", Icon: RulesIcon, shortcut: "r" },
-  { href: "/metricas", label: "Métricas", Icon: ChartIcon, shortcut: "m" },
-  { href: "/bitacora", label: "Bitácora", Icon: LogIcon, shortcut: "b" },
+  { href: "/probar", label: "Probar el agente", Icon: PlayIcon, shortcut: "t", demoOnly: true },
+  { href: "/pendientes", label: "Pendientes", Icon: InboxIcon, shortcut: "p", demoOnly: false },
+  { href: "/facturas", label: "Facturas", Icon: ListIcon, shortcut: "f", demoOnly: false },
+  { href: "/reglas", label: "Reglas", Icon: RulesIcon, shortcut: "r", demoOnly: false },
+  { href: "/metricas", label: "Métricas", Icon: ChartIcon, shortcut: "m", demoOnly: false },
+  { href: "/bitacora", label: "Bitácora", Icon: LogIcon, shortcut: "b", demoOnly: false },
 ] as const;
 
 const HEALTH: Readonly<Record<HealthLevel, { label: string; dot: string }>> = {
@@ -153,35 +165,37 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
         </div>
         <nav aria-label="Secciones" className="flex-1 px-3">
           <ul className="space-y-0.5">
-            {NAV_ITEMS.map(({ href, label, Icon }) => {
-              const active = pathname === href || pathname.startsWith(`${href}/`);
-              return (
-                <li key={href}>
-                  <Link
-                    href={href}
-                    aria-current={active ? "page" : undefined}
-                    className={`flex h-9 items-center gap-2.5 rounded-[8px] px-3 text-[14px] ${
-                      active
-                        ? "bg-brand-tint font-semibold text-brand"
-                        : "text-ink-2 hover:bg-surface-hover hover:text-ink"
-                    }`}
-                  >
-                    <Icon />
-                    <span className="flex-1">{label}</span>
-                    {href === "/pendientes" && state.pendingCount > 0 ? (
-                      <span
-                        aria-label={`${String(state.pendingCount)} esperan decisión`}
-                        className={`num rounded-full px-2 font-mono text-[11px] font-semibold ${
-                          active ? "bg-brand text-on-brand" : "bg-surface-hover text-ink"
-                        }`}
-                      >
-                        {state.pendingCount}
-                      </span>
-                    ) : null}
-                  </Link>
-                </li>
-              );
-            })}
+            {NAV_ITEMS.filter((item) => state.demo || !item.demoOnly).map(
+              ({ href, label, Icon }) => {
+                const active = pathname === href || pathname.startsWith(`${href}/`);
+                return (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex h-9 items-center gap-2.5 rounded-[8px] px-3 text-[14px] ${
+                        active
+                          ? "bg-brand-tint font-semibold text-brand"
+                          : "text-ink-2 hover:bg-surface-hover hover:text-ink"
+                      }`}
+                    >
+                      <Icon />
+                      <span className="flex-1">{label}</span>
+                      {href === "/pendientes" && state.pendingCount > 0 ? (
+                        <span
+                          aria-label={`${String(state.pendingCount)} esperan decisión`}
+                          className={`num rounded-full px-2 font-mono text-[11px] font-semibold ${
+                            active ? "bg-brand text-on-brand" : "bg-surface-hover text-ink"
+                          }`}
+                        >
+                          {state.pendingCount}
+                        </span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              },
+            )}
           </ul>
         </nav>
         <div className="mx-3 border-t border-line px-2 pt-4 pb-4">

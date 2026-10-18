@@ -10,6 +10,7 @@ import {
   type DatasetSources,
   type GenerationResult,
 } from "./generate";
+import { GALLERY, GALLERY_PREVIEW_DIR } from "./gallery";
 import { historyCase } from "./history";
 import { idealExtraction } from "./ideal";
 import { HISTORY_DOCUMENTS_FILE, SAMPLE_PREFIX } from "./demo-seed";
@@ -69,4 +70,32 @@ export async function writeHistoryDocuments(
     `${JSON.stringify(HistoryDocumentsSchema.parse(documents), null, 2)}\n`,
   );
   return documents;
+}
+
+/**
+ * La miniatura de cada caso de la galería: la primera página, renderizada con la misma
+ * ingesta (en un correo, la de su adjunto), en `public/muestras/<id>.png`.
+ */
+export async function writeGalleryPreviews(
+  result: GenerationResult,
+  root: string = process.cwd(),
+): Promise<number> {
+  const out = path.join(root, "public", GALLERY_PREVIEW_DIR);
+  await mkdir(out, { recursive: true });
+  for (const { id } of GALLERY) {
+    const generated = result.truth.cases.find((c) => c.id === id);
+    const bytes = generated ? result.files.get(generated.file) : undefined;
+    if (!generated || !bytes) throw new Error(`La galería nombra un caso que no existe: ${id}`);
+    const storage = new MemoryFileStorage();
+    const received = receiveDocument(
+      { bytes, originalName: generated.file, storagePrefix: "galeria" },
+      LIMITS,
+    );
+    const doc = await normalizeDocument(received, "galeria", storage, LIMITS);
+    const first = doc.pages[0];
+    const png = first ? storage.files.get(first.pngKey)?.bytes : undefined;
+    if (!png) throw new Error(`El caso ${id} no tiene página para la miniatura`);
+    await writeFile(path.join(out, `${id}.png`), png);
+  }
+  return GALLERY.length;
 }

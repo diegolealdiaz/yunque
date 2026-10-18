@@ -137,3 +137,10 @@ export const UploadIcon = (p: IconProps) => (
     <path d="M8 11V3M4.5 6.5 8 3l3.5 3.5M3 13h10" />
   </Icon>
 );
+
+export const PlayIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M6.75 5.75v4.5L10.25 8z" />
+  </Icon>
+);

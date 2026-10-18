@@ -51,7 +51,7 @@ const HEALTH_LEVEL: Readonly<Record<HealthStatus, HealthLevel>> = {
 };
 
 export const shellState = cache(async (): Promise<ShellState> => {
-  const { db, organization } = await appContext();
+  const { config, db, organization } = await appContext();
   const [inbox, policy, health] = await Promise.all([
     inboxView(),
     loadCurrentPolicy(db, organization.id),
@@ -67,5 +67,6 @@ export const shellState = cache(async (): Promise<ShellState> => {
       autonomy: "recomendar",
     },
     health: HEALTH_LEVEL[health.status],
+    demo: config.demo.enabled,
   };
 });

@@ -13,7 +13,9 @@ import { NAV_ITEMS } from "./sidebar";
  * Ninguno actúa mientras se escribe en un campo. Aprobar no tiene atajo a propósito.
  */
 
-const SECTION_BY_KEY = new Map<string, string>(NAV_ITEMS.map((item) => [item.shortcut, item.href]));
+const SECTION_BY_KEY = new Map<string, string>(
+  NAV_ITEMS.filter((item) => !item.demoOnly).map((item) => [item.shortcut, item.href]),
+);
 /** Ventana para la segunda tecla de `G` + letra. */
 const CHORD_MS = 1200;
 
