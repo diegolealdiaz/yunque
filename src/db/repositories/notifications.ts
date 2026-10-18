@@ -1,6 +1,6 @@
 import { and, asc, eq, lte } from "drizzle-orm";
 
-import { NotificationSchema, type Notification, type Ulid } from "@/src/domain";
+import { NotificationSchema, UlidSchema, type Notification, type Ulid } from "@/src/domain";
 
 import type { Executor } from "../client";
 import { parseRow } from "../rows";
@@ -89,6 +89,23 @@ export async function listDueNotifications(
     limit,
   });
   return rows.map(toNotification);
+}
+
+/**
+ * Empresas con algún aviso pendiente cuyo próximo intento ya llegó: el cron entrega los de
+ * cada una. Sin filtro de organización, y solo devuelve ids.
+ */
+export async function listOrganizationsWithDueNotifications(
+  exec: Executor,
+  nowIso: string,
+  limit = 100,
+): Promise<Ulid[]> {
+  const rows = await exec
+    .selectDistinct({ organizationId: notifications.organizationId })
+    .from(notifications)
+    .where(and(eq(notifications.status, "pendiente"), lte(notifications.nextAttemptAt, nowIso)))
+    .limit(limit);
+  return rows.map((row) => UlidSchema.parse(row.organizationId));
 }
 
 /**

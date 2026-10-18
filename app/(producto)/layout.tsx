@@ -1,8 +1,10 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { GuidedTour } from "../_components/guided-tour";
 import { KeyboardShortcuts } from "../_components/shortcuts";
 import { Sidebar } from "../_components/sidebar";
+import { DemoFullError } from "../_data/context";
 import { shellState } from "../_data/inbox";
 
 /**
@@ -13,7 +15,11 @@ import { shellState } from "../_data/inbox";
  * izquierda.
  */
 export default async function ProductLayout({ children }: { children: ReactNode }) {
-  const state = await shellState();
+  const state = await shellState().catch((error: unknown) => {
+    if (error instanceof DemoFullError) return null;
+    throw error;
+  });
+  if (state === null) return <DemoFull />;
   return (
     <div className="flex h-dvh flex-col lg:flex-row">
       <a
@@ -34,5 +40,23 @@ export default async function ProductLayout({ children }: { children: ReactNode 
       {state.demo ? <GuidedTour /> : null}
       <div aria-hidden="true" className="brand-frame" />
     </div>
+  );
+}
+
+/** Visitante nuevo con el tope de empresas de ejemplo del día ya alcanzado. */
+function DemoFull() {
+  return (
+    <main className="flex min-h-dvh items-center justify-center px-4">
+      <div className="max-w-md space-y-3 text-center">
+        <h1 className="text-[20px] font-semibold text-ink">La demo está llena por hoy</h1>
+        <p className="text-[14px] text-ink-2">
+          Cada visitante recibe su propia empresa de ejemplo, y hoy ya se crearon todas las que
+          permite la demo. Vuelve mañana y tendrás la tuya.
+        </p>
+        <Link href="/" className="inline-block text-[14px] font-medium text-brand hover:underline">
+          Volver a la portada
+        </Link>
+      </div>
+    </main>
   );
 }

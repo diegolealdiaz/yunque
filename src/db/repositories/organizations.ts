@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, isNotNull, isNull, sql } from "drizzle-orm";
 
 import {
   BalanceSchema,
@@ -69,6 +69,21 @@ export async function findOrganizationByVisitor(
     where: eq(organizations.demoVisitorId, visitorId),
   });
   return row ? toOrganization(row) : null;
+}
+
+/**
+ * Empresas de ejemplo de la demo creadas desde `since` (ISO): base del tope de visitantes
+ * nuevos por día. Sin filtro de organización, y solo devuelve un número.
+ */
+export async function countVisitorOrganizationsSince(
+  exec: Executor,
+  since: string,
+): Promise<number> {
+  const [row] = await exec
+    .select({ n: count() })
+    .from(organizations)
+    .where(and(isNotNull(organizations.demoVisitorId), gte(organizations.createdAt, since)));
+  return row?.n ?? 0;
 }
 
 /**

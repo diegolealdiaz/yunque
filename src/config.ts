@@ -93,6 +93,10 @@ const EnvSchema = z.object({
   DATABASE_AUTH_TOKEN: env(text("DATABASE_AUTH_TOKEN").optional()),
 
   BLOB_READ_WRITE_TOKEN: env(text("BLOB_READ_WRITE_TOKEN").optional()),
+  /** Vercel la manda como `Authorization: Bearer` al llamar los cron de vercel.json. */
+  CRON_SECRET: env(secret("CRON_SECRET").optional()),
+  /** La pone Vercel en sus funciones ("1"); en local no existe. */
+  VERCEL: env(text("VERCEL").optional()),
 
   APPROVAL_SIGNING_SECRET: env(secret("APPROVAL_SIGNING_SECRET")),
   SESSION_SECRET: env(secret("SESSION_SECRET")),
@@ -106,6 +110,9 @@ const EnvSchema = z.object({
     integer("MAX_INVOICES_PER_VISITOR_PER_DAY", 1, 10_000).default(50),
   ),
   MAX_INVOICES_PER_DAY: env(integer("MAX_INVOICES_PER_DAY", 1, 100_000).default(500)),
+  MAX_DEMO_ORGANIZATIONS_PER_DAY: env(
+    integer("MAX_DEMO_ORGANIZATIONS_PER_DAY", 1, 100_000).default(200),
+  ),
 
   DISPLAY_TIMEZONE: env(timeZone("DISPLAY_TIMEZONE").default("America/Bogota")),
 
@@ -181,7 +188,12 @@ export type Config = {
   readonly model: ModelConfig | null;
   readonly database: { readonly url: string; readonly authToken: string | null };
   readonly blob: { readonly token: string | null };
-  readonly secrets: { readonly approvalSigning: string; readonly session: string };
+  readonly secrets: {
+    readonly approvalSigning: string;
+    readonly session: string;
+    /** Secreto del cron de Vercel; null fuera de Vercel, y la ruta del cron queda cerrada. */
+    readonly cron: string | null;
+  };
   /** Tope absoluto por pago en centavos de USD. Ninguna política puede superarlo. */
   readonly systemHardCapUsdCents: number;
   readonly demo: {
@@ -190,6 +202,8 @@ export type Config = {
     readonly maxPagesRendered: number;
     readonly maxInvoicesPerVisitorPerDay: number;
     readonly maxInvoicesPerDay: number;
+    /** Empresas de ejemplo nuevas por día: cada visitante nuevo siembra una. */
+    readonly maxOrganizationsPerDay: number;
   };
   readonly displayTimeZone: string;
   /**
@@ -235,6 +249,15 @@ function crossChecks(env: Env): string[] {
 
   if (env.NODE_ENV === "production" && env.OPENROUTER_API_KEY === undefined) {
     problems.push("OPENROUTER_API_KEY es requerida en producción");
+  }
+
+  // En Vercel el disco es de solo lectura: los archivos subidos van a Blob.
+  if (env.VERCEL === "1" && env.BLOB_READ_WRITE_TOKEN === undefined) {
+    problems.push("BLOB_READ_WRITE_TOKEN es requerida en Vercel");
+  }
+  // Sin el secreto, la ruta del cron responde 401 y los avisos atrasados nunca salen.
+  if (env.VERCEL === "1" && env.CRON_SECRET === undefined) {
+    problems.push("CRON_SECRET es requerida en Vercel");
   }
 
   // Fuera de la demo, quien firma es solo un nombre elegido de la lista: no hay inicio de
@@ -302,7 +325,11 @@ function toConfig(env: Env): Config {
           },
     database: { url: env.DATABASE_URL, authToken: env.DATABASE_AUTH_TOKEN ?? null },
     blob: { token: env.BLOB_READ_WRITE_TOKEN ?? null },
-    secrets: { approvalSigning: env.APPROVAL_SIGNING_SECRET, session: env.SESSION_SECRET },
+    secrets: {
+      approvalSigning: env.APPROVAL_SIGNING_SECRET,
+      session: env.SESSION_SECRET,
+      cron: env.CRON_SECRET ?? null,
+    },
     systemHardCapUsdCents: env.SYSTEM_HARD_CAP_USD_CENTS,
     demo: {
       enabled: env.DEMO_MODE,
@@ -310,6 +337,7 @@ function toConfig(env: Env): Config {
       maxPagesRendered: env.MAX_PAGES_RENDERED,
       maxInvoicesPerVisitorPerDay: env.MAX_INVOICES_PER_VISITOR_PER_DAY,
       maxInvoicesPerDay: env.MAX_INVOICES_PER_DAY,
+      maxOrganizationsPerDay: env.MAX_DEMO_ORGANIZATIONS_PER_DAY,
     },
     displayTimeZone: env.DISPLAY_TIMEZONE,
     telegram:
@@ -349,7 +377,11 @@ function toConfig(env: Env): Config {
       model: config.model === null ? null : { ...config.model, apiKey: REDACTED },
       database: { ...config.database, authToken: config.database.authToken && REDACTED },
       blob: { token: config.blob.token && REDACTED },
-      secrets: { approvalSigning: REDACTED, session: REDACTED },
+      secrets: {
+        approvalSigning: REDACTED,
+        session: REDACTED,
+        cron: config.secrets.cron && REDACTED,
+      },
       telegram:
         config.telegram === null
           ? null

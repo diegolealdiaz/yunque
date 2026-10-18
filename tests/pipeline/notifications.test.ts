@@ -122,6 +122,23 @@ describe("cola de avisos (P-87)", () => {
     expect(health.status).toBe("degradada");
   }, 60_000);
 
+  it("P-149 el cron encuentra las empresas con avisos atrasados, y solo cuando ya toca", async () => {
+    const result = await process("mateo_chat", "telegram");
+    const due = (at: Date) => repos.listOrganizationsWithDueNotifications(p.t.db, at.toISOString());
+    const pending = await notificationsOf(result.invoice.id);
+    const firstDue = pending.map((n) => Date.parse(n.next_attempt_at ?? "")).sort()[0] ?? 0;
+
+    expect(await due(new Date(firstDue - 1000))).toEqual([]);
+    expect(await due(new Date(firstDue))).toEqual([p.organizationId]);
+
+    // Telegram falla y queda esperando su reintento: el cron lo vuelve a ver cuando vence.
+    await deliverDueNotifications(deps({ pantalla: ok, telegram: broken }), {
+      organizationId: p.organizationId,
+    });
+    expect(await due(clock)).toEqual([]);
+    expect(await due(new Date(clock.getTime() + retryDelayMs(1)))).toEqual([p.organizationId]);
+  });
+
   it("dos entregas a la vez no mandan el mismo aviso dos veces", async () => {
     await process("nube_oct", "batch");
     await process("camila_oct", "batch");

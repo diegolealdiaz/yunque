@@ -56,6 +56,7 @@ describe("loadConfig (P-02)", () => {
       maxPagesRendered: 5,
       maxInvoicesPerVisitorPerDay: 50,
       maxInvoicesPerDay: 500,
+      maxOrganizationsPerDay: 200,
     });
     expect(config.displayTimeZone).toBe("America/Bogota");
     expect(config.telegram).toBeNull();
@@ -88,6 +89,21 @@ describe("loadConfig (P-02)", () => {
   it("exige la clave del modelo en producción", () => {
     const problems = problemsOf({ ...without("OPENROUTER_API_KEY"), NODE_ENV: "production" });
     expect(problems.some((p) => p.includes("OPENROUTER_API_KEY"))).toBe(true);
+  });
+
+  it("exige el almacén de Blob en Vercel, no en un servidor local", () => {
+    const problems = problemsOf({ ...valid, VERCEL: "1" });
+    expect(problems.some((p) => p.includes("BLOB_READ_WRITE_TOKEN"))).toBe(true);
+    expect(problems.some((p) => p.includes("CRON_SECRET"))).toBe(true);
+    expect(
+      loadConfig({
+        ...valid,
+        VERCEL: "1",
+        BLOB_READ_WRITE_TOKEN: "vercel_blob_rw_x",
+        CRON_SECRET: "c".repeat(64),
+      }).blob.token,
+    ).toBe("vercel_blob_rw_x");
+    expect(loadConfig({ ...valid, NODE_ENV: "production" }).blob.token).toBeNull();
   });
 
   it("rechaza apagar la demo en producción mientras no haya inicio de sesión", () => {

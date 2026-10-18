@@ -10,7 +10,7 @@
 | Evaluación | Pitch en vivo con demo | Guion ensayado, datos precargados y botón de reinicio de demo |
 | Stack | Next.js (App Router) + TypeScript, un solo proyecto | UI y API juntos, un solo deploy |
 | Base de datos | SQLite vía libSQL. Local: archivo. Producción: Turso | Mismo driver en local y en producción, sin servidor que mantener |
-| Hosting | Vercel (app) + Turso (datos) + Vercel Blob (archivos subidos; hoy en disco local, Blob entra con el despliegue del paso 29) | Deploy automático desde GitHub, URL estable para la entrega |
+| Hosting | Vercel (app) + Turso (datos) + Vercel Blob privado (archivos subidos; en local, disco) | Deploy automático desde GitHub, URL estable para la entrega |
 | Modelo | OpenRouter (clave existente) con Vercel AI SDK. Principal: Claude Haiku 5.5 ($0.10 / $0.50 por millón de tokens). Respaldo: Claude Sonnet 5.5 ($2 / $10) solo cuando la confianza de extracción es baja. Ambos configurables por variable de entorno | Costo por factura por debajo de un centavo; el modelo solo extrae y explica, nunca decide |
 | Documentos | Lectura y renderizado de PDF con PDFium en WebAssembly en el servidor (texto con capa, PNG cuando no la hay). El navegador nunca abre el PDF original: ve una imagen. Generación de PDF por plantilla JSON para el dataset y para la orden de pago | Sin binarios nativos, corre en funciones sin estado. Quita del navegador la superficie de ataque del PDF (scripts, enlaces, adjuntos) |
 | Idioma | Español en interfaz y registro | Los clientes leen en español |
@@ -323,7 +323,8 @@ Telegram ───┤        │
 Postmark ───┘        │   (correo entrante de la demo, D23)
                      ├─► Turso (libSQL): vendors, políticas, facturas, decisiones,
                      │       ledger, notifications (outbox), audit_events
-                     ├─► Vercel Blob: binarios de facturas subidas (hoy disco local; paso 29)
+                     ├─► Vercel Blob (privado): originales y páginas renderizadas
+                     ├─► Vercel Cron: entrega diaria de avisos atrasados (/api/avisos)
                      ├─► OpenRouter: extracción (Haiku 5.5) y respaldo (Sonnet 5.5)
                      └─► Telegram Bot API: avisos y respuestas a los chats conectados
 GitHub ──► GitHub Actions (typecheck, lint, test) ──► Vercel (preview por rama, producción desde master)

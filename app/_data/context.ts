@@ -6,10 +6,16 @@ import { getConfig, type Config } from "@/src/config";
 import { loadDemoSeed } from "@/src/dataset/demo-seed";
 import { getDatabase, type Database } from "@/src/db/client";
 import { DbError } from "@/src/db/errors";
-import { findBaseOrganization, findOrganizationByVisitor } from "@/src/db/repositories";
+import {
+  countVisitorOrganizationsSince,
+  findBaseOrganization,
+  findOrganizationByVisitor,
+} from "@/src/db/repositories";
 import { loadSeedData, seedDatasetOrganization } from "@/src/db/seed";
 import { createUlidGenerator, type Organization } from "@/src/domain";
 import { VISITOR_COOKIE, verifyVisitor } from "@/src/session";
+
+import { businessDayStart } from "./limits";
 
 /**
  * Contexto de cada petición de la app, solo en el servidor: configuración, base y la empresa
@@ -30,6 +36,17 @@ export type AppContext = {
 
 const newId = createUlidGenerator();
 
+/**
+ * La demo ya sembró hoy todas las empresas de ejemplo que permite su tope. Quien ya tiene la
+ * suya sigue entrando; un visitante nuevo ve una pantalla que lo explica.
+ */
+export class DemoFullError extends Error {
+  constructor() {
+    super("La demo alcanzó el tope de visitantes nuevos de hoy");
+    this.name = "DemoFullError";
+  }
+}
+
 /** Copia de la demo de un visitante: la existente, o una nueva sembrada al primer acceso. */
 async function visitorOrganization(
   db: Database,
@@ -38,6 +55,10 @@ async function visitorOrganization(
 ): Promise<Organization> {
   const existing = await findOrganizationByVisitor(db, visitorId);
   if (existing) return existing;
+  // El conteo y la siembra no van en una transacción: dos visitantes a la vez pueden pasar
+  // el tope por uno. Es un freno contra el abuso, no una cuota exacta.
+  const seededToday = await countVisitorOrganizationsSince(db, businessDayStart(config));
+  if (seededToday >= config.demo.maxOrganizationsPerDay) throw new DemoFullError();
   const [data, seed] = await Promise.all([loadSeedData(), loadDemoSeed()]);
   try {
     const seeded = await seedDatasetOrganization(db, {

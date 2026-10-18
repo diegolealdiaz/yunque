@@ -76,6 +76,10 @@ describe("migraciones y esquema (P-40, P-41)", () => {
       "consumeTelegramLink",
       "findTelegramChat",
       "findTelegramUpdate",
+      // Despliegue: el cron recorre las empresas con avisos atrasados y el tope de visitantes
+      // cuenta las empresas de ejemplo del día. Solo devuelven ids o un número.
+      "listOrganizationsWithDueNotifications",
+      "countVisitorOrganizationsSince",
     ]);
     // La caché por contenido (D14) exige su ámbito en la firma en lugar de la organización.
     const scoped = new Set(["getCachedExtraction", "putCachedExtraction"]);
