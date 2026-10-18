@@ -101,7 +101,7 @@ export default async function ReglasPage() {
           </span>
         }
         actions={
-          <div className="w-64">
+          <div className="shrink-0">
             <ApproverPicker
               approvers={locked.approvers}
               approver={signer}

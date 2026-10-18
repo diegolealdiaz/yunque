@@ -167,3 +167,6 @@ export const RULES: Readonly<Record<RuleCode, RuleMeta>> = {
 export const CONFIGURABLE_RULES: readonly RuleCode[] = RULE_CODES.filter(
   (c) => RULES[c].configurable,
 );
+
+/** Reglas con la acción de fábrica: la política no las puede ablandar. */
+export const FIXED_RULES: readonly RuleCode[] = RULE_CODES.filter((c) => !RULES[c].configurable);

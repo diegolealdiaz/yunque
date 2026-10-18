@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { defaultPolicy, policyEditToYaml } from "@/src/domain/policy";
-import { CONFIGURABLE_RULES } from "@/src/domain/rules";
+import { CONFIGURABLE_RULES, FIXED_RULES } from "@/src/domain/rules";
 import {
   ALLOWED_PAYEES_PATH,
   BUDGET_PERIOD_PATH,
   LIMIT_FIELDS,
   PARAMETER_FIELDS,
+  FIXED_RULE_COPY,
   RULE_COPY,
   displayValue,
   parseFieldInput,
@@ -48,6 +49,12 @@ describe("formulario de la política", () => {
       expect(copy?.help(get)).not.toContain("—");
     }
     expect(RULE_COPY.vendor_velocity?.help(get)).toContain("5 o más facturas");
+  });
+
+  it("cada regla fija tiene su frase y ninguna configurable está entre las fijas", () => {
+    for (const code of FIXED_RULES) expect(FIXED_RULE_COPY[code], code).toBeTruthy();
+    expect(FIXED_RULES).toHaveLength(13);
+    expect(FIXED_RULES.some((code) => CONFIGURABLE_RULES.includes(code))).toBe(false);
   });
 
   it("muestra dólares y porcentajes, y guarda centavos y puntos básicos", () => {

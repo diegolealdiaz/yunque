@@ -151,6 +151,27 @@ export const RULE_COPY: Readonly<Partial<Record<RuleCode, RuleCopy>>> = {
   },
 };
 
+/**
+ * Cada regla fija dicha en palabras de producto. Una prueba exige una entrada por cada regla
+ * fija.
+ */
+export const FIXED_RULE_COPY: Readonly<Partial<Record<RuleCode, string>>> = {
+  bank_account_mismatch: "La cuenta de la factura no es la registrada del beneficiario.",
+  account_holder_mismatch: "El titular de la cuenta no es el beneficiario.",
+  vendor_not_verified: "El beneficiario está en la lista pero aún no se verificó.",
+  amount_over_hard_limit: "El pago supera el límite por pago o el tope absoluto del sistema.",
+  amount_over_approval_threshold: "El pago supera el umbral de aprobación.",
+  insufficient_balance: "La cuenta origen no tiene saldo para este pago.",
+  unsupported_currency_or_rail:
+    "La moneda no se puede pagar o no es la de la cuenta del beneficiario.",
+  field_low_confidence: "El agente leyó un dato clave con poca seguridad.",
+  field_ambiguous: "Un dato clave tiene dos valores posibles en el documento.",
+  evidence_missing: "Un dato leído no se encuentra en el documento.",
+  totals_mismatch: "El subtotal, los impuestos y el total no cuadran.",
+  suspicious_instructions: "El documento trae instrucciones para el agente.",
+  extraction_unreadable: "El documento no se pudo leer o no es una factura.",
+};
+
 /** El YAML leído una vez: si tiene errores de sintaxis y cómo consultar cada clave. */
 export function readPolicyYaml(yaml: string): { readonly ok: boolean; readonly get: PolicyGetter } {
   const doc = parseDocument(yaml);

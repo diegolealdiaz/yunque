@@ -2,11 +2,12 @@
 
 import { useActionState, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { CONFIGURABLE_RULES, RULES, type RuleCode } from "@/src/domain/rules";
+import { CONFIGURABLE_RULES, FIXED_RULES, RULES, type RuleCode } from "@/src/domain/rules";
 import type { PayeeOption } from "@/src/usecases";
 import {
   ALLOWED_PAYEES_PATH,
   BUDGET_PERIOD_PATH,
+  FIXED_RULE_COPY,
   LIMIT_FIELDS,
   PARAMETER_FIELDS,
   RULE_COPY,
@@ -22,6 +23,7 @@ import {
 } from "@/src/ui/policy-form";
 
 import { ActionOutcome } from "../../_components/action-outcome";
+import { LockIcon } from "../../_components/icons";
 import { PolicyEditor, type PolicyTab, type ProtectedKey } from "../../_components/policy-editor";
 
 import { previewAction, saveAction } from "./actions";
@@ -110,6 +112,50 @@ function Group({
       <p className="mb-1 text-[12px] text-ink-3">{hint}</p>
       <div className="divide-y divide-line">{children}</div>
     </fieldset>
+  );
+}
+
+/**
+ * Reglas que la política no puede ablandar: se muestran con su salida y un candado, sin
+ * control, para que se vea que existen y qué hacen.
+ */
+function FixedRules() {
+  return (
+    <section aria-labelledby="reglas-fijas" className="card px-4 pt-3 pb-2">
+      <h3 id="reglas-fijas" className="text-[13px] font-semibold text-ink">
+        Siempre se aplican
+      </h3>
+      <p className="mb-1 text-[12px] text-ink-3">
+        Controles de seguridad con su salida fija: ninguna política los apaga ni los ablanda.
+      </p>
+      <ul className="divide-y divide-line">
+        {FIXED_RULES.map((code) => {
+          const onFail = RULES[code].defaultOnFail;
+          return (
+            <li
+              key={code}
+              title={code}
+              className="flex items-center justify-between gap-4 py-2 text-[13px]"
+            >
+              <span className="min-w-0">
+                <span className="block text-ink">{RULES[code].title}</span>
+                <span className="block text-[12px] leading-snug text-ink-3">
+                  {FIXED_RULE_COPY[code]}
+                </span>
+              </span>
+              <span
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-[var(--radius-control)] px-2.5 py-0.5 text-[12px] font-medium ${
+                  onFail === "frenar" ? "bg-hold-tint text-hold" : "bg-escalate-tint text-escalate"
+                }`}
+              >
+                <LockIcon />
+                {onFail === "frenar" ? "Frenar" : "Escalar"}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
@@ -344,21 +390,24 @@ export function PolicyWorkbench({
             />
           </Group>
         </div>
-        <Group
-          title="Si una regla no se cumple"
-          hint="Qué hace el agente con la factura: Escalar la deja para que la decida una persona; Frenar la detiene y no se paga."
-        >
-          {CONFIGURABLE_RULES.map((code: RuleCode) => (
-            <RuleChoice
-              key={code}
-              code={code}
-              value={String(parsed.get(["rules", code, "on_fail"]) ?? "")}
-              help={RULE_COPY[code]?.help(parsed.get) ?? ""}
-              disabled={!parsed.ok}
-              onChange={(next) => setAt(["rules", code, "on_fail"], next)}
-            />
-          ))}
-        </Group>
+        <div className="space-y-3">
+          <Group
+            title="Si una regla no se cumple"
+            hint="Qué hace el agente con la factura: Escalar la deja para que la decida una persona; Frenar la detiene y no se paga."
+          >
+            {CONFIGURABLE_RULES.map((code: RuleCode) => (
+              <RuleChoice
+                key={code}
+                code={code}
+                value={String(parsed.get(["rules", code, "on_fail"]) ?? "")}
+                help={RULE_COPY[code]?.help(parsed.get) ?? ""}
+                disabled={!parsed.ok}
+                onChange={(next) => setAt(["rules", code, "on_fail"], next)}
+              />
+            ))}
+          </Group>
+          <FixedRules />
+        </div>
       </div>
     </div>
   );
@@ -383,21 +432,15 @@ export function PolicyWorkbench({
   const actions = (
     <>
       <p className="mr-auto text-[12px] text-ink-2">
-        {!canSign
-          ? "Elige arriba quién firma para poder guardar."
-          : dirty
-            ? "Cambios sin guardar."
-            : "Sin cambios."}
+        {!canSign ? "Elige arriba quién firma para poder guardar." : "Cambios sin guardar."}
       </p>
-      {dirty ? (
-        <button
-          type="button"
-          onClick={() => setYaml(initialYaml)}
-          className="h-8 px-2 text-[13px] text-ink-2 underline underline-offset-4"
-        >
-          Descartar
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => setYaml(initialYaml)}
+        className="h-8 px-2 text-[13px] text-ink-2 underline underline-offset-4"
+      >
+        Descartar
+      </button>
       <form action={runPreview} onSubmit={() => setPreviewedYaml(yaml)}>
         <input type="hidden" name="yaml" value={yaml} />
         <button
@@ -410,7 +453,7 @@ export function PolicyWorkbench({
       </form>
       <button
         type="button"
-        disabled={!dirty || !canSign || saving}
+        disabled={!canSign || saving}
         onClick={openSave}
         className="h-8 btn-primary px-3 text-[13px]"
       >
@@ -429,7 +472,8 @@ export function PolicyWorkbench({
         form={form}
         yaml={editor}
         protectedKeys={protectedKeys}
-        actions={actions}
+        // La barra fija aparece solo con algo que guardar, para no tapar la página sin motivo.
+        actions={dirty ? actions : null}
         versions={versions}
         extraTabs={extraTabs}
       />

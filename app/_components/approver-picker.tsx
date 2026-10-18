@@ -31,7 +31,7 @@ export function ApproverPicker({
           key={approver ?? "ninguno"}
           name="approver"
           defaultValue={approver ?? ""}
-          className={`h-8 w-full rounded-[var(--radius-control)] ${inline ? "" : "mt-1"} border border-control bg-surface px-2 text-ink`}
+          className={`h-8 w-full rounded-[var(--radius-control)] ${inline ? "min-w-44" : "mt-1"} border border-control bg-surface px-2 text-ink`}
         >
           <option value="" disabled>
             Elige un aprobador
