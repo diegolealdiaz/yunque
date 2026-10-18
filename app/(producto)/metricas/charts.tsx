@@ -14,8 +14,19 @@ import { drillHref } from "./drill";
  * colores de la interfaz siguen siendo los del veredicto.
  */
 
-const frame = "card p-4";
-const heading = "caps";
+const frame = "card p-5 sm:p-6";
+
+/** Título de la tarjeta, con el periodo en una píldora al lado. */
+function Heading({ title, periodKey }: { readonly title: string; readonly periodKey: string }) {
+  return (
+    <figcaption className="flex flex-wrap items-center gap-3">
+      <span className="text-[17px] font-semibold text-ink">{title}</span>
+      <span className="rounded-full bg-surface-sunken px-2.5 py-0.5 font-mono text-[12px] text-ink-2">
+        {periodKey}
+      </span>
+    </figcaption>
+  );
+}
 
 /** Un tono de verde por moneda, del más fuerte al más claro; lo de antes, en gris. */
 const SLICE_TONES = [
@@ -36,10 +47,13 @@ export function BudgetChartCard({ budget }: { readonly budget: BudgetChart }) {
   const tone = (i: number) => SLICE_TONES[Math.min(i, SLICE_TONES.length - 1)];
   return (
     <figure className={frame}>
-      <figcaption className={heading}>Pagado contra presupuesto · {budget.periodKey}</figcaption>
-      <p className="num mt-2 text-[14px] text-ink">
-        {formatMoney(budget.committed)} de {formatMoney(budget.limit)}{" "}
-        <span className="text-ink-3">({percent(share(budget.committed.amount, limit) / 100)})</span>
+      <Heading title="Presupuesto" periodKey={budget.periodKey} />
+      <p className="caps mt-4">Comprometido</p>
+      <p className="mt-1 font-mono text-[22px] text-ink">
+        {formatMoney(budget.committed)}{" "}
+        <span className="text-[13px] text-ink-3">
+          de {formatMoney(budget.limit)} · {percent(share(budget.committed.amount, limit) / 100)}
+        </span>
       </p>
       <div
         aria-hidden="true"
@@ -106,11 +120,11 @@ export function RulesChartCard({
   const most = Math.max(1, ...rules.map((r) => r.invoiceIds.length));
   return (
     <figure className={frame}>
-      <figcaption className={heading}>Reglas que más dispararon · {periodKey}</figcaption>
+      <Heading title="Reglas que más dispararon" periodKey={periodKey} />
       {rules.length === 0 ? (
         <p className="mt-3 text-[13px] text-ink-3">Ninguna regla disparó en el periodo.</p>
       ) : (
-        <ol className="mt-3 space-y-2">
+        <ol className="mt-4 space-y-2.5">
           {rules.map((rule) => {
             const style = ACTION_STYLE[rule.action];
             const count = rule.invoiceIds.length;

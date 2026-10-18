@@ -125,6 +125,24 @@ describe("cada número se abre en sus facturas (P-108)", () => {
     );
   });
 
+  it("cada veredicto del periodo y cada tipo de caso se abre en sus facturas", async () => {
+    const view = await metrics();
+    for (const verdict of ["pagar", "frenar", "escalar"] as const) {
+      const ids = drillInvoiceIds(view, { kind: "verdict", verdict });
+      expect(ids).toHaveLength(view.outcomes[verdict].invoiceIds.length);
+      for (const id of ids) {
+        const decision = await repos.getLatestDecision(p.t.db, p.organizationId, id);
+        expect(decision?.verdict).toBe(verdict);
+      }
+    }
+    expect(view.outcomes.frenar.invoiceIds.length).toBeGreaterThan(0);
+    expect(view.outcomes.pagar.total.currency).toBe("USD");
+    for (const group of ["normal", "trampa", "adversarial"] as const) {
+      const ids = drillInvoiceIds(view, { kind: "group", group });
+      expect(ids).toHaveLength(view.metrics.by_group[group].total);
+    }
+  });
+
   it("cada barra de regla y de moneda lista facturas que de verdad la componen", async () => {
     const view = await metrics();
     expect(view.rules.length).toBeGreaterThan(0);

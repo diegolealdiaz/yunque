@@ -1,9 +1,11 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { loadExpectedCases } from "@/src/dataset/demo-seed";
-import { ExtractedFieldNameSchema, formatMoney, type Ulid } from "@/src/domain";
+import { ExtractedFieldNameSchema, formatMoney, money, type Money, type Ulid } from "@/src/domain";
+import type { CaseGroup } from "@/src/eval/metrics";
 import { duration, instant, percent, usdMicros } from "@/src/ui/format";
-import { FIELD_LABEL, VERDICT_LABEL, ruleTitle } from "@/src/ui/labels";
+import { FIELD_LABEL, VERDICT_LABEL, VERDICT_PARTICIPLE, ruleTitle } from "@/src/ui/labels";
 import {
   businessDateAt,
   drillInvoiceIds,
@@ -16,7 +18,6 @@ import {
 
 import { DataTable, type Column } from "../../_components/data-table";
 import { PageHeader } from "../../_components/page-header";
-import { StatCard } from "../../_components/stat-card";
 import { EmptyState } from "../../_components/states";
 import { VerdictChip } from "../../_components/verdict-chip";
 import { appContext } from "../../_data/context";
@@ -27,7 +28,8 @@ import { drillFromParam, drillHref } from "./drill";
 export const metadata = { title: "Métricas · Yunque" };
 
 /**
- * Métricas (docs/interfaz.md §5.5): seis tarjetas y dos gráficos, nada más. Cada número es
+ * Métricas (docs/interfaz.md §5.5): la franja del periodo, cómo decide el agente y dos
+ * gráficos, nada más. Cada número es
  * un enlace a las facturas que lo componen, que se listan abajo en la misma pantalla: un
  * número sin origen no se puede defender. Los del set de regresión se calculan con el mismo
  * código que `npm run eval` (P-91).
@@ -48,80 +50,290 @@ function mismatches(m: MeasuredInvoice): string {
     .join(", ");
 }
 
-function Cards({
+/** Un monto partido en cifra y moneda, para poner la cifra en grande. */
+function splitMoney(m: Money): { readonly figure: string; readonly currency: string } {
+  const text = formatMoney(m);
+  const at = text.lastIndexOf(" ");
+  return { figure: text.slice(0, at), currency: text.slice(at + 1) };
+}
+
+const invoicesWord = (n: number) => `${String(n)} ${n === 1 ? "factura" : "facturas"}`;
+
+/** Una fila de cifra de la franja de arriba: nombre y detalle a la izquierda, valor a la derecha. */
+function Figure({
+  label,
+  detail,
+  value,
+  href,
+}: {
+  readonly label: string;
+  readonly detail: string;
+  readonly value: string;
+  readonly href: string | null;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-b border-line py-3 last:border-b-0">
+      <dt className="min-w-0 text-[13px] text-ink-2">
+        {label}
+        <span className="block text-[12px] text-ink-3">{detail}</span>
+      </dt>
+      <dd className="font-mono text-[14px] whitespace-nowrap text-ink">
+        {href ? (
+          <Link href={href} className="underline-offset-4 hover:underline">
+            {value}
+          </Link>
+        ) : (
+          value
+        )}
+      </dd>
+    </div>
+  );
+}
+
+/**
+ * Franja de arriba: lo pagado en el periodo en grande y, al lado, lo que se frenó, lo que
+ * escaló, lo que espera a una persona y lo que queda del presupuesto.
+ */
+function Summary({ view, now }: { readonly view: MetricsView; readonly now: Date }) {
+  const { outcomes, budget, waiting } = view;
+  const paid = splitMoney(outcomes.pagar.total);
+  const left = money(Math.max(0, budget.limit.amount - budget.committed.amount), "USD");
+  const oldest = waiting[0];
+  return (
+    <section
+      aria-label={`Resumen del periodo ${budget.periodKey}`}
+      className="grid gap-6 border-b border-line pb-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)] lg:items-center lg:gap-10"
+    >
+      <Link href={drillHref({ kind: "verdict", verdict: "pagar" })} className="group block w-fit">
+        <p className="font-mono text-[40px] leading-none font-medium tracking-tight text-pay sm:text-[52px]">
+          {paid.figure}
+          <span className="ml-2 text-[18px] font-normal text-ink-3">{paid.currency}</span>
+        </p>
+        <p className="mt-3 flex items-center gap-2 text-[13px] text-ink-2 group-hover:text-ink">
+          <span aria-hidden="true" className="h-px w-5 bg-ink-3" />
+          Pagado en {budget.periodKey} · {invoicesWord(outcomes.pagar.invoiceIds.length)}
+        </p>
+      </Link>
+      <div className="grid gap-x-8 sm:grid-cols-2">
+        <dl>
+          <Figure
+            label="Frenado"
+            detail={`${invoicesWord(outcomes.frenar.invoiceIds.length)} que no se pagaron`}
+            value={formatMoney(outcomes.frenar.total)}
+            href={drillHref({ kind: "verdict", verdict: "frenar" })}
+          />
+          <Figure
+            label="Escalado"
+            detail={`${invoicesWord(outcomes.escalar.invoiceIds.length)} para una persona`}
+            value={formatMoney(outcomes.escalar.total)}
+            href={drillHref({ kind: "verdict", verdict: "escalar" })}
+          />
+        </dl>
+        <dl className="sm:border-l sm:border-line sm:pl-8">
+          <Figure
+            label="Esperando a una persona"
+            detail={
+              oldest
+                ? `La más antigua, hace ${duration(now.getTime() - Date.parse(oldest.since))}`
+                : "Nada espera a una persona"
+            }
+            value={String(waiting.length)}
+            href={oldest ? metric("pendientes") : null}
+          />
+          <Figure
+            label="Presupuesto disponible"
+            detail={`De ${formatMoney(budget.limit)} en el periodo`}
+            value={formatMoney(left)}
+            href={null}
+          />
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+/** Una cifra de la tarjeta del agente: nombre en mayúsculas, valor en mono y su detalle. */
+function Stat({
+  label,
+  value,
+  detail,
+  href,
+  tone = "text-ink",
+}: {
+  readonly label: string;
+  readonly value: string;
+  readonly detail: string;
+  readonly href: string;
+  readonly tone?: string;
+}) {
+  return (
+    <Link href={href} className="group block min-w-0 py-1 lg:px-5 lg:first:pl-0">
+      <span className="caps block">{label}</span>
+      <span className={`mt-1.5 block font-mono text-[24px] leading-tight ${tone}`}>{value}</span>
+      <span className="mt-1 block text-[12px] leading-snug text-ink-3 group-hover:text-ink-2">
+        {detail}
+      </span>
+    </Link>
+  );
+}
+
+const GROUPS: readonly {
+  readonly group: CaseGroup;
+  readonly label: string;
+  readonly what: string;
+}[] = [
+  { group: "normal", label: "Normales", what: "Cobros legítimos: deberían pagarse solos." },
+  {
+    group: "trampa",
+    label: "Trampas",
+    what: "Duplicadas, cuenta distinta, sin presupuesto o sobre el umbral.",
+  },
+  {
+    group: "adversarial",
+    label: "Adversariales",
+    what: "Documentos hechos para engañar al agente.",
+  },
+];
+
+/**
+ * Cómo decide el agente, medido sobre el lote con veredicto esperado: las cinco cifras del
+ * set de regresión y el resultado por tipo de caso.
+ */
+function AgentCard({
   view,
   measuring,
-  now,
 }: {
   readonly view: MetricsView;
   readonly measuring: boolean;
-  readonly now: Date;
 }) {
-  const { metrics, waiting } = view;
-  const none = metrics.total === 0;
-  const unmeasured = measuring
-    ? "Procesa el periodo para medir"
-    : "Solo se mide el lote con veredicto esperado";
+  const { metrics } = view;
   const fields = overallFieldAccuracy(metrics);
   const accuracy = (field: string) => {
     const ratio = metrics.field_accuracy[field];
     return ratio ? percent(ratio.rate) : "—";
   };
-  const oldest = waiting[0];
+  const falsePay = metrics.false_pay.length;
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      <StatCard
-        label="Autonomía"
-        value={none ? "—" : percent(metrics.autonomy.rate)}
-        detail={
-          none
-            ? unmeasured
-            : `${String(metrics.autonomy.hits)} de ${String(metrics.total)} correctas sin persona · escala ${percent(metrics.escalation.rate)}`
-        }
-        href={none ? null : metric("autonomia")}
-      />
-      <StatCard
-        label="Falsos pagar"
-        value={none ? "—" : String(metrics.false_pay.length)}
-        detail={none ? unmeasured : "Pagadas que debían frenarse o escalarse"}
-        href={none ? null : metric("falsos_pagar")}
-        emphasis
-      />
-      <StatCard
-        label="Exactitud por campo"
-        value={none || fields.total === 0 ? "—" : percent(fields.rate)}
-        detail={
-          none ? unmeasured : `Monto ${accuracy("total")} · beneficiario ${accuracy("payee_name")}`
-        }
-        href={none ? null : metric("exactitud")}
-      />
-      <StatCard
-        label="Costo por factura"
-        value={none ? "—" : usdMicros(metrics.cost.per_invoice_usd_micros)}
-        detail={
-          none
-            ? unmeasured
-            : `${usdMicros(metrics.cost.total_usd_micros)} en ${String(metrics.total)} facturas`
-        }
-        href={none ? null : metric("costo")}
-      />
-      <StatCard
-        label="Tiempo medio de decisión"
-        value={none ? "—" : duration(metrics.latency.mean_ms)}
-        detail={none ? unmeasured : `La más lenta ${duration(metrics.latency.max_ms)}`}
-        href={none ? null : metric("tiempo")}
-      />
-      <StatCard
-        label="Pendiente más antiguo"
-        value={oldest ? duration(now.getTime() - Date.parse(oldest.since)) : "Ninguno"}
-        detail={
-          oldest
-            ? `${String(waiting.length)} ${waiting.length === 1 ? "escalada espera" : "escaladas esperan"} a una persona`
-            : "Nada espera a una persona"
-        }
-        href={oldest ? metric("pendientes") : null}
-      />
-    </div>
+    <section aria-labelledby="agente-titulo" className="card p-5 sm:p-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 id="agente-titulo" className="text-[19px] font-semibold text-ink">
+          Cómo decide el agente
+        </h2>
+        {metrics.total > 0 ? (
+          <span className="rounded-full bg-surface-sunken px-2.5 py-0.5 text-[12px] text-ink-2">
+            {invoicesWord(metrics.total)} del lote ·{" "}
+            <span className={falsePay === 0 ? "font-medium text-pay" : "font-medium text-hold"}>
+              {String(falsePay)} falsos pagar
+            </span>
+          </span>
+        ) : null}
+        {metrics.total > 0 ? (
+          <Link
+            href={metric("autonomia")}
+            className="ml-auto text-[13px] text-ink-2 underline-offset-4 hover:text-ink hover:underline"
+          >
+            Ver cada caso →
+          </Link>
+        ) : null}
+      </div>
+
+      {metrics.total === 0 ? (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-control)] bg-surface-sunken px-4 py-4 text-[13px]">
+          <p className="text-ink-2">
+            {measuring
+              ? "Aún no hay facturas medidas. Procesa las facturas de ejemplo y aquí verás cuántas decidió bien el agente, con cada caso."
+              : "Solo se mide el lote con veredicto esperado."}
+          </p>
+          {measuring ? (
+            <Link href="/facturas" className="h-8 btn-primary inline-flex items-center px-3">
+              Ir a procesar
+            </Link>
+          ) : null}
+        </div>
+      ) : (
+        <>
+          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-0 lg:divide-x lg:divide-line">
+            <Stat
+              label="Autonomía"
+              value={percent(metrics.autonomy.rate)}
+              detail={`${String(metrics.autonomy.hits)} de ${String(metrics.total)} correctas sin persona`}
+              href={metric("autonomia")}
+            />
+            <Stat
+              label="Falsos pagar"
+              value={String(falsePay)}
+              detail="Pagadas que debían frenarse o escalarse"
+              href={metric("falsos_pagar")}
+              tone={falsePay === 0 ? "text-pay" : "text-hold"}
+            />
+            <Stat
+              label="Exactitud por campo"
+              value={fields.total === 0 ? "—" : percent(fields.rate)}
+              detail={`Monto ${accuracy("total")} · beneficiario ${accuracy("payee_name")}`}
+              href={metric("exactitud")}
+            />
+            <Stat
+              label="Costo por factura"
+              value={usdMicros(metrics.cost.per_invoice_usd_micros)}
+              detail={`${usdMicros(metrics.cost.total_usd_micros)} en total`}
+              href={metric("costo")}
+            />
+            <Stat
+              label="Tiempo medio"
+              value={duration(metrics.latency.mean_ms)}
+              detail={`La más lenta, ${duration(metrics.latency.max_ms)}`}
+              href={metric("tiempo")}
+            />
+          </div>
+
+          <table className="mt-6 w-full border-collapse text-[13px]">
+            <caption className="sr-only">Resultado por tipo de caso</caption>
+            <thead>
+              <tr className="caps text-left">
+                <th scope="col" className="pb-2 font-semibold">
+                  Tipo de caso
+                </th>
+                <th scope="col" className="hidden pb-2 font-semibold md:table-cell">
+                  Qué prueba
+                </th>
+                <th scope="col" className="pb-2 text-right font-semibold">
+                  Acertó
+                </th>
+                <th scope="col" className="w-20 pb-2 text-right font-semibold">
+                  Tasa
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {GROUPS.map(({ group, label, what }) => {
+                const ratio = metrics.by_group[group];
+                return (
+                  <tr key={group} className="h-11 border-t border-line">
+                    <th scope="row" className="text-left font-medium">
+                      <Link
+                        href={drillHref({ kind: "group", group })}
+                        className="text-ink underline-offset-4 hover:underline"
+                      >
+                        {label}
+                      </Link>
+                    </th>
+                    <td className="hidden text-ink-3 md:table-cell">{what}</td>
+                    <td className="text-right font-mono text-ink-2">
+                      {String(ratio.hits)} de {String(ratio.total)}
+                    </td>
+                    <td
+                      className={`text-right font-mono ${ratio.hits === ratio.total ? "text-pay" : "text-escalate"}`}
+                    >
+                      {ratio.total === 0 ? "—" : percent(ratio.rate)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -137,43 +349,47 @@ const DRILL_TITLE: Readonly<Record<Extract<Drill, { kind: "metric" }>["key"], st
 function drillTitle(drill: Drill): string {
   if (drill.kind === "metric") return DRILL_TITLE[drill.key];
   if (drill.kind === "rule") return `Regla: ${ruleTitle(drill.code)}`;
+  if (drill.kind === "verdict") return `${VERDICT_PARTICIPLE[drill.verdict]} en el periodo`;
+  if (drill.kind === "group") {
+    return `${GROUPS.find((g) => g.group === drill.group)?.label ?? drill.group}: lo que decidió el agente contra lo esperado`;
+  }
   return `Pagado en ${drill.currency}`;
 }
 
-/** Columnas propias de cada número, además de referencia, beneficiario y veredicto vigente. */
-function extraColumns(
-  drill: Drill,
-  view: MetricsView,
-  timeZone: string,
-): {
+type ExtraColumns = {
   readonly columns: readonly Column[];
   readonly cells: (id: Ulid) => readonly ReactNode[];
-} {
+};
+
+/** Columnas propias de cada número, además de referencia, beneficiario y veredicto vigente. */
+function extraColumns(drill: Drill, view: MetricsView, timeZone: string): ExtraColumns {
   const measured = new Map(view.measured.map((m) => [m.invoiceId, m]));
   const waiting = new Map(view.waiting.map((w) => [w.invoiceId, w]));
+  const verdicts: ExtraColumns = {
+    columns: [
+      { header: "Esperado", width: "7rem" },
+      { header: "Agente", width: "7rem" },
+      { header: "Resultado", width: "7rem" },
+    ],
+    cells: (id: Ulid) => {
+      const m = measured.get(id);
+      if (!m) return ["", "", ""];
+      const hit = m.row.actual.verdict === m.row.expected.verdict;
+      return [
+        VERDICT_LABEL[m.row.expected.verdict],
+        VERDICT_LABEL[m.row.actual.verdict],
+        <span key="h" className={hit ? "text-ink-2" : "font-medium text-hold"}>
+          {hit ? "Acierto" : "Error"}
+        </span>,
+      ];
+    },
+  };
+  if (drill.kind === "group") return verdicts;
   if (drill.kind === "metric") {
     switch (drill.key) {
       case "autonomia":
       case "falsos_pagar":
-        return {
-          columns: [
-            { header: "Esperado", width: "7rem" },
-            { header: "Agente", width: "7rem" },
-            { header: "Resultado", width: "7rem" },
-          ],
-          cells: (id) => {
-            const m = measured.get(id);
-            if (!m) return ["", "", ""];
-            const hit = m.row.actual.verdict === m.row.expected.verdict;
-            return [
-              VERDICT_LABEL[m.row.expected.verdict],
-              VERDICT_LABEL[m.row.actual.verdict],
-              <span key="h" className={hit ? "text-ink-2" : "font-medium text-hold"}>
-                {hit ? "Acierto" : "Error"}
-              </span>,
-            ];
-          },
-        };
+        return verdicts;
       case "exactitud":
         return {
           columns: [{ header: "Campos distintos" }],
@@ -244,7 +460,7 @@ function DrillTable({
           { header: "Referencia", width: "9rem" },
           { header: "Beneficiario" },
           ...extra.columns,
-          { header: "Veredicto vigente", width: "16rem" },
+          { header: "Veredicto vigente", width: "20rem" },
         ]}
         rows={ids.map((id) => {
           const current = view.invoices.get(id);
@@ -318,7 +534,8 @@ export default async function MetricasPage({
           </span>
         }
       />
-      <Cards view={view} measuring={config.demo.enabled} now={now} />
+      <Summary view={view} now={now} />
+      <AgentCard view={view} measuring={config.demo.enabled} />
       <div className="grid gap-4 lg:grid-cols-2">
         <BudgetChartCard budget={view.budget} />
         <RulesChartCard rules={view.rules} periodKey={view.budget.periodKey} />

@@ -20,8 +20,15 @@ import {
   type Money,
   type OnFail,
   type Ulid,
+  type Verdict,
 } from "@/src/domain";
-import { computeMetrics, type EvalRow, type Metrics, type Ratio } from "@/src/eval/metrics";
+import {
+  computeMetrics,
+  type CaseGroup,
+  type EvalRow,
+  type Metrics,
+  type Ratio,
+} from "@/src/eval/metrics";
 import { evalRowFor } from "@/src/eval/rows";
 
 import { engineNow } from "./business-day";
@@ -37,8 +44,9 @@ import { LIST_LIMIT } from "./invoice-list";
  *   agente (no la de una persona después) y con el mismo `computeMetrics` y la misma fila
  *   que usa `npm run eval`. Así la pantalla y la evaluación dan lo mismo sobre la misma
  *   base (P-91). Una factura subida a mano no tiene veredicto esperado y no entra.
- * - Los de operación: escaladas esperando, presupuesto del periodo por moneda y reglas que
- *   más dispararon. Salen de todas las facturas, con la decisión vigente.
+ * - Los de operación: cuánto se pagó, frenó y escaló en el periodo, escaladas esperando,
+ *   presupuesto del periodo por moneda y reglas que más dispararon. Salen de todas las
+ *   facturas, con la decisión vigente.
  *
  * Cada número lleva las facturas que lo componen (`drillInvoiceIds`), para que la pantalla
  * enlace a ellas y el conteo coincida (P-108).
@@ -74,6 +82,13 @@ export type BudgetChart = {
   readonly earlier: Money;
 };
 
+/** Facturas del periodo con un veredicto vigente y cuánto suman en la moneda del presupuesto. */
+export type OutcomeSlice = {
+  /** Las facturas sin monto leído cuentan, pero no suman. */
+  readonly total: Money;
+  readonly invoiceIds: readonly Ulid[];
+};
+
 export type RuleCount = {
   readonly code: FindingCode;
   readonly action: OnFail;
@@ -86,6 +101,8 @@ export type MetricsView = {
   /** Escaladas esperando, la más vieja primero. */
   readonly waiting: readonly WaitingInvoice[];
   readonly budget: BudgetChart;
+  /** Lo decidido en el periodo, por veredicto vigente. */
+  readonly outcomes: Readonly<Record<Verdict, OutcomeSlice>>;
   /** Reglas que dispararon en el periodo, la más frecuente primero. */
   readonly rules: readonly RuleCount[];
   /** Fila de pantalla de cada factura citada, para los detalles. */
@@ -165,6 +182,8 @@ export async function loadMetrics(
   const waiting: WaitingInvoice[] = [];
   const paid = new Map<Currency, { paid: number; committed: number; invoiceIds: Ulid[] }>();
   const rules = new Map<FindingCode, { action: OnFail; invoiceIds: Ulid[] }>();
+  const emptyOutcome = (): { total: number; invoiceIds: Ulid[] } => ({ total: 0, invoiceIds: [] });
+  const outcomes = { pagar: emptyOutcome(), frenar: emptyOutcome(), escalar: emptyOutcome() };
   for (const invoice of invoices) {
     const current = decisions.get(invoice.id)?.[0];
     if (!current) continue;
@@ -172,6 +191,9 @@ export async function loadMetrics(
       waiting.push({ invoiceId: invoice.id, since: current.decided_at });
     }
     if (!inPeriod(current)) continue;
+    const outcome = outcomes[current.verdict];
+    outcome.invoiceIds.push(invoice.id);
+    if (current.amount) outcome.total += toUsd(current.amount, organization.fx).amount;
     // Pagar sin orden es el modo de prueba: no comprometió presupuesto ni saldo.
     if (current.verdict === "pagar" && current.payment_order && current.amount) {
       const slice = paid.get(current.amount.currency) ?? { paid: 0, committed: 0, invoiceIds: [] };
@@ -214,6 +236,11 @@ export async function loadMetrics(
       byCurrency,
       earlier: money(Math.max(0, committed - fromInvoices), budget.currency),
     },
+    outcomes: {
+      pagar: { ...outcomes.pagar, total: money(outcomes.pagar.total, "USD") },
+      frenar: { ...outcomes.frenar, total: money(outcomes.frenar.total, "USD") },
+      escalar: { ...outcomes.escalar, total: money(outcomes.escalar.total, "USD") },
+    },
     rules: [...rules]
       .map(([code, r]) => ({ code, action: r.action, invoiceIds: r.invoiceIds }))
       .sort((a, b) => b.invoiceIds.length - a.invoiceIds.length || (a.code < b.code ? -1 : 1))
@@ -224,9 +251,14 @@ export async function loadMetrics(
   };
 }
 
-/** Qué número se abre: una tarjeta, una regla del gráfico o una moneda del presupuesto. */
+/**
+ * Qué número se abre: una tarjeta, un veredicto del periodo, un tipo de caso del lote, una
+ * regla del gráfico o una moneda del presupuesto.
+ */
 export type Drill =
   | { readonly kind: "metric"; readonly key: MetricKey }
+  | { readonly kind: "verdict"; readonly verdict: Verdict }
+  | { readonly kind: "group"; readonly group: CaseGroup }
   | { readonly kind: "rule"; readonly code: FindingCode }
   | { readonly kind: "currency"; readonly currency: Currency };
 
@@ -237,6 +269,10 @@ export type Drill =
 export function drillInvoiceIds(view: MetricsView, drill: Drill): Ulid[] {
   if (drill.kind === "rule") {
     return [...(view.rules.find((r) => r.code === drill.code)?.invoiceIds ?? [])];
+  }
+  if (drill.kind === "verdict") return [...view.outcomes[drill.verdict].invoiceIds];
+  if (drill.kind === "group") {
+    return view.measured.filter((m) => m.row.group === drill.group).map((m) => m.invoiceId);
   }
   if (drill.kind === "currency") {
     return [
