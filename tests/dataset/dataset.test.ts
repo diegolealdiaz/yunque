@@ -72,6 +72,9 @@ describe("generación (P-51)", () => {
     for (const c of a.truth.cases) {
       expect(byId.get(c.id), `${c.id}: regenera con npm run dataset`).toBe(c.document_hash);
     }
+    // El historial también se pinta: sus PDF son los del repositorio.
+    expect(a.truth.history).toHaveLength(src.history.length);
+    expect(committed.history).toEqual(a.truth.history);
   }, 60_000);
 
   it("cada literal del manifiesto aparece en el texto del PDF; el duplicado exacto comparte hash", async () => {

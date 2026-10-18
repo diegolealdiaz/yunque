@@ -120,10 +120,14 @@ function RuleList({ detail }: { readonly detail: InvoiceDetail }) {
       <SubTitle>
         {detail.rulesFromEscalation ? "Controles de la escalada aprobada" : "Controles"}
       </SubTitle>
-      {detail.rules.length === 0 ? (
+      {detail.fromHistory ? (
         <p className="mt-2 text-[13px] text-ink-2">
-          Del historial de ejemplo: llegó ya decidida, sin el detalle de sus controles.
+          {detail.rules.length === 0
+            ? "Del historial de ejemplo: se decidió antes de la demo y no guarda el detalle de sus controles."
+            : "Del historial de ejemplo: solo guarda el control que la decidió."}
         </p>
+      ) : detail.rules.length === 0 ? (
+        <p className="mt-2 text-[13px] text-ink-2">Sin controles registrados.</p>
       ) : null}
       {failed.length > 0 ? (
         <ul className="mt-1">

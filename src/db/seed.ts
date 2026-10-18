@@ -12,6 +12,9 @@ import {
   FxTableSchema,
   VerificationSchema,
   defaultPolicy,
+  formatMoney,
+  jsonHash,
+  maskAccount,
   money,
   paymentOrderFor,
   periodKey,
@@ -20,13 +23,21 @@ import {
   toUsd,
   type Currency,
   type Decision,
+  type Extraction,
+  type ExtractionRecord,
+  type Finding,
   type InvoiceStatus,
+  type Money,
+  type Policy,
+  type Sha256,
   type Organization,
   type PolicyVersion,
   type UlidGenerator,
   type Vendor,
   type Verdict,
 } from "@/src/domain";
+
+import { explainDecision } from "@/src/explain";
 
 import { withWriteTransaction, type Database, type Executor } from "./client";
 import {
@@ -36,6 +47,7 @@ import {
   ensureLedgerPeriod,
   getPolicyVersion,
   insertDecision,
+  insertExtraction,
   insertInvoice,
   insertVendor,
   nextReference,
@@ -187,6 +199,9 @@ async function seedOrganizationWith(tx: Executor, options: SeedOptions): Promise
   return { organization, vendors, vendorsByKey, policyVersionId: version.id };
 }
 
+/** Quién "leyó" las facturas del historial: su lectura viene del dataset, no de un modelo. */
+const HISTORY_READER = "historial-de-ejemplo";
+
 // ---------------------------------------------------------------------------
 // Historial: facturas de meses anteriores ya decididas, y lo comprometido del mes en curso.
 // Sin esto, las reglas de historial (primer pago, monto atípico, duplicados) no tendrían
@@ -202,6 +217,27 @@ export type HistorySeedEntry = {
   readonly amount: number;
   readonly verdict: Verdict;
   readonly resolution: "aprobada" | "rechazada" | null;
+  /** La regla que la frenó o escaló; null si se pagó. */
+  readonly rule?: HistoryRule | null;
+  /** Cuenta que trajo el documento, si no es la registrada. */
+  readonly bank_account?: string | null;
+};
+
+/** Reglas cuyo hallazgo sabe escribir la semilla, con los valores y palabras del motor. */
+export type HistoryRule = "bank_account_mismatch" | "amount_over_approval_threshold";
+
+/**
+ * Documento ya renderizado y lectura de una factura del historial, generados con el dataset
+ * (`generado/historial/documentos.json`). Sus llaves apuntan a archivos que vienen con la
+ * app, así la semilla no escribe archivos.
+ */
+export type HistorySeedDocument = {
+  readonly document_hash: Sha256;
+  readonly file_key: string;
+  readonly size_bytes: number;
+  readonly text: string;
+  readonly page_keys: readonly string[];
+  readonly extraction: Extraction;
 };
 
 export type HistorySeedOptions = {
@@ -209,6 +245,8 @@ export type HistorySeedOptions = {
   readonly vendorsByKey: ReadonlyMap<string, Vendor>;
   readonly policyVersion: PolicyVersion;
   readonly entries: readonly HistorySeedEntry[];
+  /** Documento de cada factura, por número; sin él, la factura queda sin archivo ni lectura. */
+  readonly documents?: ReadonlyMap<string, HistorySeedDocument>;
   /** Presupuesto del periodo en curso ya comprometido, en centavos de USD. */
   readonly committedUsdCents: number;
   /** Día de negocio (`YYYY-MM-DD`) que fija el periodo del presupuesto. */
@@ -223,10 +261,59 @@ function historyStatus(entry: HistorySeedEntry): InvoiceStatus {
 }
 
 /**
+ * El hallazgo de la regla que frenó o escaló una factura del historial, escrito como lo
+ * escribe el motor (`src/engine/rules`): mismos valores, mismo formato, mismo mensaje.
+ */
+function historyFinding(
+  rule: HistoryRule,
+  args: {
+    readonly vendor: Vendor;
+    readonly entry: HistorySeedEntry;
+    readonly amount: Money;
+    readonly amountUsd: Money;
+    readonly policy: Policy;
+    readonly extraction: Extraction | null;
+  },
+): Finding {
+  const fields = args.extraction?.kind === "invoice" ? args.extraction.fields : null;
+  switch (rule) {
+    case "amount_over_approval_threshold":
+      return {
+        code: rule,
+        severity: "block",
+        action: "escalar",
+        observed:
+          args.amount.currency === "USD"
+            ? formatMoney(args.amount)
+            : `${formatMoney(args.amount)} (≈ ${formatMoney(args.amountUsd)})`,
+        threshold: formatMoney(args.policy.limits.approval_threshold),
+        field: "total",
+        evidence: fields?.total.value === null ? null : (fields?.total.evidence ?? null),
+        message: "El monto supera el umbral que requiere aprobación de una persona",
+      };
+    case "bank_account_mismatch": {
+      const read = (args.entry.bank_account ?? "").replace(/[^A-Za-z0-9]+/g, "").toUpperCase();
+      return {
+        code: rule,
+        severity: "block",
+        action: "frenar",
+        observed: maskAccount(read),
+        threshold: maskAccount(args.vendor.account.account_number),
+        field: "bank_account",
+        evidence:
+          fields?.bank_account.value === null ? null : (fields?.bank_account.evidence ?? null),
+        message: "La cuenta del documento no coincide con la registrada del beneficiario",
+      };
+    }
+  }
+}
+
+/**
  * Siembra el historial en la transacción de quien llama: por cada entrada, una factura en su
  * estado final, su decisión y su evento; después, el periodo de presupuesto ya comprometido.
- * Las facturas del historial no tienen archivo: su hash es sintético y su archivo queda
- * `pendiente`. Sus decisiones no llevan hallazgos y su explicación lo dice.
+ * Con su documento generado, cada factura trae sus páginas y su lectura, como las del lote, y
+ * la que no se pagó, el hallazgo de su regla. Sin él, su hash es sintético, su archivo queda
+ * `pendiente` y su decisión no lleva hallazgos.
  */
 async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promise<void> {
   const { organization, policyVersion, newId } = options;
@@ -243,7 +330,9 @@ async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promi
       organization.reference_prefix,
       new Date(receivedAt),
     );
-    const documentHash = sha256Hex(`historial:${organization.id}:${String(i)}`);
+    const doc = options.documents?.get(entry.invoice_number) ?? null;
+    const documentHash =
+      doc?.document_hash ?? sha256Hex(`historial:${organization.id}:${String(i)}`);
     const invoiceId = newId();
     await insertInvoice(tx, {
       id: invoiceId,
@@ -253,13 +342,13 @@ async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promi
       receipt_key: `seed:historial-${String(i)}`,
       source_kind: "pdf",
       document_hash: documentHash,
-      file_key: `${organization.id}/historial/${String(i)}`,
-      file_state: "pendiente",
-      original_name: `historial-${entry.invoice_number}`,
+      file_key: doc?.file_key ?? `${organization.id}/historial/${String(i)}`,
+      file_state: doc ? "subida" : "pendiente",
+      original_name: doc ? `${entry.invoice_number}.pdf` : `historial-${entry.invoice_number}`,
       mime_type: "application/pdf",
-      size_bytes: 0,
-      page_keys: [],
-      text: null,
+      size_bytes: doc?.size_bytes ?? 0,
+      page_keys: doc ? [...doc.page_keys] : [],
+      text: doc?.text ?? null,
       semantic_key: semanticKey({
         payeeName: vendor.name,
         invoiceNumber: entry.invoice_number,
@@ -273,27 +362,68 @@ async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promi
       updated_at: receivedAt,
     });
     const paid = entry.verdict === "pagar";
+    const amountUsd = toUsd(amount, organization.fx);
+    let record: ExtractionRecord | null = null;
+    if (doc) {
+      record = {
+        extraction: doc.extraction,
+        extraction_hash: jsonHash(doc.extraction),
+        model: HISTORY_READER,
+        prompt_version: HISTORY_READER,
+        schema_version: 1,
+        fallback_used: false,
+      };
+      await insertExtraction(tx, {
+        id: newId(),
+        organization_id: organization.id,
+        invoice_id: invoiceId,
+        document_hash: documentHash,
+        record,
+        created_at: receivedAt,
+      });
+    }
+    const findings =
+      entry.rule && !paid
+        ? [
+            historyFinding(entry.rule, {
+              vendor,
+              entry,
+              amount,
+              amountUsd,
+              policy,
+              extraction: doc?.extraction ?? null,
+            }),
+          ]
+        : [];
     const decision: Decision = {
       id: newId(),
       organization_id: organization.id,
       invoice_id: invoiceId,
       verdict: entry.verdict,
-      findings: [],
-      explanation: `Decisión del historial sembrado: ${entry.verdict}${
-        entry.resolution === null ? "" : `, ${entry.resolution} por una persona`
-      }.`,
+      findings,
+      explanation:
+        findings.length > 0
+          ? explainDecision({
+              evaluation: { verdict: entry.verdict, findings, scheduled_for: null, log: [] },
+              amount,
+              payeeName: vendor.name,
+              policyVersion: policyVersion.version,
+            })
+          : `Decisión del historial sembrado: ${entry.verdict}${
+              entry.resolution === null ? "" : `, ${entry.resolution} por una persona`
+            }.`,
       summary: null,
       scheduled_for: paid ? receivedDay : null,
       payment_order: paid
         ? paymentOrderFor({ vendor, amount, policy, scheduledFor: receivedDay, reference })
         : null,
       amount,
-      amount_usd: { amount: toUsd(amount, organization.fx).amount, currency: "USD" },
+      amount_usd: { amount: amountUsd.amount, currency: "USD" },
       vendor_id: vendor.id,
       policy_version_id: policyVersion.id,
       policy_hash: policyVersion.content_hash,
       document_hash: documentHash,
-      extraction_hash: null,
+      extraction_hash: record?.extraction_hash ?? null,
       field_sources: {},
       previous_decision_id: null,
       dry_run: false,
@@ -310,10 +440,30 @@ async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promi
       actor: { kind: "agente" },
       invoice_id: invoiceId,
       decision_id: decision.id,
-      data: { verdict: entry.verdict, resolution: entry.resolution, seed: true },
+      data: {
+        verdict: entry.verdict,
+        deciding_rule: findings[0]?.code ?? null,
+        resolution: entry.resolution,
+        seed: true,
+      },
       trace_id: `seed-${organization.id}`,
       occurred_at: receivedAt,
     });
+    // La resolución de una persona queda como su propio evento, como cuando se resuelve en la
+    // pantalla: firma el último aprobador de la política, dos horas después de la escalada.
+    if (entry.resolution !== null) {
+      await appendEvent(tx, {
+        id: newId(),
+        organization_id: organization.id,
+        type: entry.resolution === "aprobada" ? "invoice.approved" : "invoice.rejected",
+        actor: { kind: "humano", name: policy.protected.approvers.at(-1) ?? "Aprobador" },
+        invoice_id: invoiceId,
+        decision_id: decision.id,
+        data: { seed: true },
+        trace_id: `seed-${organization.id}`,
+        occurred_at: new Date(Date.parse(receivedAt) + 2 * 3_600_000).toISOString(),
+      });
+    }
   }
 
   const { budget } = policy.limits;
@@ -335,6 +485,7 @@ async function seedHistoryWith(tx: Executor, options: HistorySeedOptions): Promi
 export type DatasetSeedOptions = SeedOptions &
   Pick<HistorySeedOptions, "committedUsdCents" | "today"> & {
     readonly history: readonly HistorySeedEntry[];
+    readonly historyDocuments?: ReadonlyMap<string, HistorySeedDocument>;
   };
 
 /**
@@ -358,6 +509,7 @@ export async function seedDatasetOrganization(
       vendorsByKey: seeded.vendorsByKey,
       policyVersion,
       entries: options.history,
+      ...(options.historyDocuments ? { documents: options.historyDocuments } : {}),
       committedUsdCents: options.committedUsdCents,
       today: options.today,
       newId: options.newId,

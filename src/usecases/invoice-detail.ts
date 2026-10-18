@@ -96,6 +96,11 @@ export type InvoiceDetail = {
    * aprobación no vuelve a correr el motor.
    */
   readonly rulesFromEscalation: boolean;
+  /**
+   * La decisión es del historial de ejemplo: se tomó antes de la demo y solo guarda la regla
+   * que la decidió, sin el registro de los demás controles.
+   */
+  readonly fromHistory: boolean;
   readonly timeline: readonly TimelineItem[];
   readonly checklist: readonly ChecklistItem[];
   /** Lo que firmará la aprobación, en claro. */
@@ -260,6 +265,7 @@ export async function loadInvoiceDetail(
     fields,
     rules: traced ? ruleTrace(traced, events) : [],
     rulesFromEscalation: traced !== decision,
+    fromHistory: events.some((e) => e.decision_id === traced?.id && e.data["seed"] === true),
     timeline: [...events].reverse().map((e) => ({
       id: e.id,
       at: e.occurred_at,

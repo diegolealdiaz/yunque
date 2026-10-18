@@ -1,0 +1,3458 @@
+[
+  {
+    "invoice_number": "F-2270",
+    "document_hash": "375c46b15150149aa66e29da5947cbe2997e2788d626e711dfbc8779093415b8",
+    "file_key": "muestra/historial/historial_01.pdf",
+    "size_bytes": 11103,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nNube Andina SAS\nNIT 901234567-8\nNo. F-2270\nFecha: 20/07/2026\nVence: 04/08/2026\nFacturar a: Forja Labs Inc.\nHosting y soporte, julio 2026\nSubtotal: 4.033.613,45\nIVA 19 %: 766.386,55\nTOTAL: 4.800.000,00\nMoneda: COP\nTitular: Nube Andina SAS\nCuenta: 31245679023",
+    "page_keys": [
+      "muestra/historial/375c46b15150149aa66e29da5947cbe2997e2788d626e711dfbc8779093415b8/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Nube Andina SAS",
+          "evidence": {
+            "literal": "Nube Andina SAS",
+            "quote": "Nube Andina SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "901234567-8",
+          "evidence": {
+            "literal": "901234567-8",
+            "quote": "901234567-8",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "F-2270",
+          "evidence": {
+            "literal": "F-2270",
+            "quote": "F-2270",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "20/07/2026",
+            "quote": "20/07/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "04/08/2026",
+            "quote": "04/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 403361345,
+          "evidence": {
+            "literal": "4.033.613,45",
+            "quote": "4.033.613,45",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 76638655,
+          "evidence": {
+            "literal": "766.386,55",
+            "quote": "766.386,55",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 480000000,
+          "evidence": {
+            "literal": "4.800.000,00",
+            "quote": "4.800.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "31245679023",
+          "evidence": {
+            "literal": "31245679023",
+            "quote": "31245679023",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Nube Andina SAS",
+          "evidence": {
+            "literal": "Nube Andina SAS",
+            "quote": "Nube Andina SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Hosting y soporte, julio 2026",
+          "evidence": {
+            "literal": "Hosting y soporte, julio 2026",
+            "quote": "Hosting y soporte, julio 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "F-2275",
+    "document_hash": "142af7e156cb5dd5401125b1a6f4d58aa0c0b042f3f483ef0d2336407308b4f9",
+    "file_key": "muestra/historial/historial_02.pdf",
+    "size_bytes": 11104,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nNube Andina SAS\nNIT 901234567-8\nNo. F-2275\nFecha: 20/08/2026\nVence: 04/09/2026\nFacturar a: Forja Labs Inc.\nHosting y soporte, agosto 2026\nSubtotal: 4.033.613,45\nIVA 19 %: 766.386,55\nTOTAL: 4.800.000,00\nMoneda: COP\nTitular: Nube Andina SAS\nCuenta: 31245679023",
+    "page_keys": [
+      "muestra/historial/142af7e156cb5dd5401125b1a6f4d58aa0c0b042f3f483ef0d2336407308b4f9/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Nube Andina SAS",
+          "evidence": {
+            "literal": "Nube Andina SAS",
+            "quote": "Nube Andina SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "901234567-8",
+          "evidence": {
+            "literal": "901234567-8",
+            "quote": "901234567-8",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "F-2275",
+          "evidence": {
+            "literal": "F-2275",
+            "quote": "F-2275",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "20/08/2026",
+            "quote": "20/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "04/09/2026",
+            "quote": "04/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 403361345,
+          "evidence": {
+            "literal": "4.033.613,45",
+            "quote": "4.033.613,45",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 76638655,
+          "evidence": {
+            "literal": "766.386,55",
+            "quote": "766.386,55",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 480000000,
+          "evidence": {
+            "literal": "4.800.000,00",
+            "quote": "4.800.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "31245679023",
+          "evidence": {
+            "literal": "31245679023",
+            "quote": "31245679023",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Nube Andina SAS",
+          "evidence": {
+            "literal": "Nube Andina SAS",
+            "quote": "Nube Andina SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Hosting y soporte, agosto 2026",
+          "evidence": {
+            "literal": "Hosting y soporte, agosto 2026",
+            "quote": "Hosting y soporte, agosto 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "F-2280",
+    "document_hash": "e3424797ff14a8efd5ba9e2d7df70a2412badf634186c65cf0b4e064469ee9b1",
+    "file_key": "muestra/historial/historial_03.pdf",
+    "size_bytes": 11111,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nNube Andina SAS\nNIT 901234567-8\nNo. F-2280\nFecha: 20/09/2026\nVence: 05/10/2026\nFacturar a: Forja Labs Inc.\nHosting y soporte, septiembre 2026\nSubtotal: 4.033.613,45\nIVA 19 %: 766.386,55\nTOTAL: 4.800.000,00\nMoneda: COP\nTitular: Nube Andina SAS\nCuenta: 31245679023",
+    "page_keys": [
+      "muestra/historial/e3424797ff14a8efd5ba9e2d7df70a2412badf634186c65cf0b4e064469ee9b1/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Nube Andina SAS",
+          "evidence": {
+            "literal": "Nube Andina SAS",
+            "quote": "Nube Andina SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "901234567-8",
+          "evidence": {
+            "literal": "901234567-8",
+            "quote": "901234567-8",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "F-2280",
+          "evidence": {
+            "literal": "F-2280",
+            "quote": "F-2280",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "20/09/2026",
+            "quote": "20/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "05/10/2026",
+            "quote": "05/10/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 403361345,
+          "evidence": {
+            "literal": "4.033.613,45",
+            "quote": "4.033.613,45",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 76638655,
+          "evidence": {
+            "literal": "766.386,55",
+            "quote": "766.386,55",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 480000000,
+          "evidence": {
+            "literal": "4.800.000,00",
+            "quote": "4.800.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "31245679023",
+          "evidence": {
+            "literal": "31245679023",
+            "quote": "31245679023",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Nube Andina SAS",
+          "evidence": {
+            "literal": "Nube Andina SAS",
+            "quote": "Nube Andina SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Hosting y soporte, septiembre 2026",
+          "evidence": {
+            "literal": "Hosting y soporte, septiembre 2026",
+            "quote": "Hosting y soporte, septiembre 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "CR-112",
+    "document_hash": "e572554434cd591f0696146418810d4406c11671c56545fdf71e7d750cebb9d5",
+    "file_key": "muestra/historial/historial_04.pdf",
+    "size_bytes": 10829,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nCamila Rojas\nNIT 1032456789\nNo. CR-112\nFecha: 20/07/2026\nVence: 04/08/2026\nFacturar a: Forja Labs Inc.\nDiseño de producto, julio 2026\nHoras: 80\nTOTAL: 7.600.000,00\nMoneda: COP\nTitular: Camila Rojas\nCuenta: 40098812345",
+    "page_keys": [
+      "muestra/historial/e572554434cd591f0696146418810d4406c11671c56545fdf71e7d750cebb9d5/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Camila Rojas",
+          "evidence": {
+            "literal": "Camila Rojas",
+            "quote": "Camila Rojas",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "1032456789",
+          "evidence": {
+            "literal": "1032456789",
+            "quote": "1032456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "CR-112",
+          "evidence": {
+            "literal": "CR-112",
+            "quote": "CR-112",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "20/07/2026",
+            "quote": "20/07/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "04/08/2026",
+            "quote": "04/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 760000000,
+          "evidence": {
+            "literal": "7.600.000,00",
+            "quote": "7.600.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "40098812345",
+          "evidence": {
+            "literal": "40098812345",
+            "quote": "40098812345",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Camila Rojas",
+          "evidence": {
+            "literal": "Camila Rojas",
+            "quote": "Camila Rojas",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 80,
+          "evidence": {
+            "literal": "80",
+            "quote": "80",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Diseño de producto, julio 2026",
+          "evidence": {
+            "literal": "Diseño de producto, julio 2026",
+            "quote": "Diseño de producto, julio 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "CR-114",
+    "document_hash": "ce418752aec0149686c4ea09245c9da95b2d1e701f08016e28ca9f0a65477f78",
+    "file_key": "muestra/historial/historial_05.pdf",
+    "size_bytes": 10829,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nCamila Rojas\nNIT 1032456789\nNo. CR-114\nFecha: 20/08/2026\nVence: 04/09/2026\nFacturar a: Forja Labs Inc.\nDiseño de producto, agosto 2026\nHoras: 80\nTOTAL: 7.410.000,00\nMoneda: COP\nTitular: Camila Rojas\nCuenta: 40098812345",
+    "page_keys": [
+      "muestra/historial/ce418752aec0149686c4ea09245c9da95b2d1e701f08016e28ca9f0a65477f78/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Camila Rojas",
+          "evidence": {
+            "literal": "Camila Rojas",
+            "quote": "Camila Rojas",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "1032456789",
+          "evidence": {
+            "literal": "1032456789",
+            "quote": "1032456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "CR-114",
+          "evidence": {
+            "literal": "CR-114",
+            "quote": "CR-114",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "20/08/2026",
+            "quote": "20/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "04/09/2026",
+            "quote": "04/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 741000000,
+          "evidence": {
+            "literal": "7.410.000,00",
+            "quote": "7.410.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "40098812345",
+          "evidence": {
+            "literal": "40098812345",
+            "quote": "40098812345",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Camila Rojas",
+          "evidence": {
+            "literal": "Camila Rojas",
+            "quote": "Camila Rojas",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 80,
+          "evidence": {
+            "literal": "80",
+            "quote": "80",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Diseño de producto, agosto 2026",
+          "evidence": {
+            "literal": "Diseño de producto, agosto 2026",
+            "quote": "Diseño de producto, agosto 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "CR-116",
+    "document_hash": "819f1ecd0484a008af2fefea47bb9c1818b5c66afb71c861f488f48423523c5e",
+    "file_key": "muestra/historial/historial_06.pdf",
+    "size_bytes": 10835,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nCamila Rojas\nNIT 1032456789\nNo. CR-116\nFecha: 20/09/2026\nVence: 05/10/2026\nFacturar a: Forja Labs Inc.\nDiseño de producto, septiembre 2026\nHoras: 80\nTOTAL: 7.600.000,00\nMoneda: COP\nTitular: Camila Rojas\nCuenta: 40098812345",
+    "page_keys": [
+      "muestra/historial/819f1ecd0484a008af2fefea47bb9c1818b5c66afb71c861f488f48423523c5e/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Camila Rojas",
+          "evidence": {
+            "literal": "Camila Rojas",
+            "quote": "Camila Rojas",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "1032456789",
+          "evidence": {
+            "literal": "1032456789",
+            "quote": "1032456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "CR-116",
+          "evidence": {
+            "literal": "CR-116",
+            "quote": "CR-116",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "20/09/2026",
+            "quote": "20/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "05/10/2026",
+            "quote": "05/10/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 760000000,
+          "evidence": {
+            "literal": "7.600.000,00",
+            "quote": "7.600.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "40098812345",
+          "evidence": {
+            "literal": "40098812345",
+            "quote": "40098812345",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Camila Rojas",
+          "evidence": {
+            "literal": "Camila Rojas",
+            "quote": "Camila Rojas",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 80,
+          "evidence": {
+            "literal": "80",
+            "quote": "80",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Diseño de producto, septiembre 2026",
+          "evidence": {
+            "literal": "Diseño de producto, septiembre 2026",
+            "quote": "Diseño de producto, septiembre 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "0451",
+    "document_hash": "84ce9a549488dc94cc6196e6d7fe2f32037dbfb690464792eb349e5990a506a7",
+    "file_key": "muestra/historial/historial_07.pdf",
+    "size_bytes": 11408,
+    "text": "RECIBO DE HONORARIOS\nReceptor: Forja Labs Inc. (extranjero sin establecimiento permanente)\nServicio Importe\nForma de pago: transferencia SPEI\nMateo Hernández\nRFC HEMM900101AB1\nFolio 0451\nFecha de emisión: 20/07/2026\nVencimiento: 04/08/2026\nCliente: Forja Labs Inc.\nDesarrollo de software, julio 2026\nHoras trabajadas: 120\nSubtotal: 67,241.38\nIVA 16 %: 10,758.62\nTotal: 78,000.00\nMoneda: MXN\nBeneficiario: Mateo Hernández Martínez\nCLABE: 012180001234567891",
+    "page_keys": [
+      "muestra/historial/84ce9a549488dc94cc6196e6d7fe2f32037dbfb690464792eb349e5990a506a7/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Mateo Hernández",
+          "evidence": {
+            "literal": "Mateo Hernández",
+            "quote": "Mateo Hernández",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "HEMM900101AB1",
+          "evidence": {
+            "literal": "HEMM900101AB1",
+            "quote": "HEMM900101AB1",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "0451",
+          "evidence": {
+            "literal": "0451",
+            "quote": "0451",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "20/07/2026",
+            "quote": "20/07/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "04/08/2026",
+            "quote": "04/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "MXN",
+          "evidence": {
+            "literal": "MXN",
+            "quote": "MXN",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 6724138,
+          "evidence": {
+            "literal": "67,241.38",
+            "quote": "67,241.38",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 1075862,
+          "evidence": {
+            "literal": "10,758.62",
+            "quote": "10,758.62",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 7800000,
+          "evidence": {
+            "literal": "78,000.00",
+            "quote": "78,000.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "012180001234567891",
+          "evidence": {
+            "literal": "012180001234567891",
+            "quote": "012180001234567891",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Mateo Hernández Martínez",
+          "evidence": {
+            "literal": "Mateo Hernández Martínez",
+            "quote": "Mateo Hernández Martínez",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 120,
+          "evidence": {
+            "literal": "120",
+            "quote": "120",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Desarrollo de software, julio 2026",
+          "evidence": {
+            "literal": "Desarrollo de software, julio 2026",
+            "quote": "Desarrollo de software, julio 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "0453",
+    "document_hash": "4aec00f1107d5f02555096cfc924090274f87276fb9e082340f0ecfda054851e",
+    "file_key": "muestra/historial/historial_08.pdf",
+    "size_bytes": 11397,
+    "text": "RECIBO DE HONORARIOS\nReceptor: Forja Labs Inc. (extranjero sin establecimiento permanente)\nServicio Importe\nForma de pago: transferencia SPEI\nMateo Hernández\nRFC HEMM900101AB1\nFolio 0453\nFecha de emisión: 20/08/2026\nVencimiento: 04/09/2026\nCliente: Forja Labs Inc.\nDesarrollo de software, agosto 2026\nHoras trabajadas: 120\nSubtotal: 64,439.66\nIVA 16 %: 10,310.34\nTotal: 74,750.00\nMoneda: MXN\nBeneficiario: Mateo Hernández Martínez\nCLABE: 012180001234567891",
+    "page_keys": [
+      "muestra/historial/4aec00f1107d5f02555096cfc924090274f87276fb9e082340f0ecfda054851e/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Mateo Hernández",
+          "evidence": {
+            "literal": "Mateo Hernández",
+            "quote": "Mateo Hernández",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "HEMM900101AB1",
+          "evidence": {
+            "literal": "HEMM900101AB1",
+            "quote": "HEMM900101AB1",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "0453",
+          "evidence": {
+            "literal": "0453",
+            "quote": "0453",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "20/08/2026",
+            "quote": "20/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "04/09/2026",
+            "quote": "04/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "MXN",
+          "evidence": {
+            "literal": "MXN",
+            "quote": "MXN",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 6443966,
+          "evidence": {
+            "literal": "64,439.66",
+            "quote": "64,439.66",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 1031034,
+          "evidence": {
+            "literal": "10,310.34",
+            "quote": "10,310.34",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 7475000,
+          "evidence": {
+            "literal": "74,750.00",
+            "quote": "74,750.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "012180001234567891",
+          "evidence": {
+            "literal": "012180001234567891",
+            "quote": "012180001234567891",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Mateo Hernández Martínez",
+          "evidence": {
+            "literal": "Mateo Hernández Martínez",
+            "quote": "Mateo Hernández Martínez",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 120,
+          "evidence": {
+            "literal": "120",
+            "quote": "120",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Desarrollo de software, agosto 2026",
+          "evidence": {
+            "literal": "Desarrollo de software, agosto 2026",
+            "quote": "Desarrollo de software, agosto 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "0455",
+    "document_hash": "f63c2061b07fcb4ef7dc8e9471c8a35ad86945deb65913ea4b448626f4e73353",
+    "file_key": "muestra/historial/historial_09.pdf",
+    "size_bytes": 11418,
+    "text": "RECIBO DE HONORARIOS\nReceptor: Forja Labs Inc. (extranjero sin establecimiento permanente)\nServicio Importe\nForma de pago: transferencia SPEI\nMateo Hernández\nRFC HEMM900101AB1\nFolio 0455\nFecha de emisión: 20/09/2026\nVencimiento: 05/10/2026\nCliente: Forja Labs Inc.\nDesarrollo de software, septiembre 2026\nHoras trabajadas: 120\nSubtotal: 67,241.38\nIVA 16 %: 10,758.62\nTotal: 78,000.00\nMoneda: MXN\nBeneficiario: Mateo Hernández Martínez\nCLABE: 012180001234567891",
+    "page_keys": [
+      "muestra/historial/f63c2061b07fcb4ef7dc8e9471c8a35ad86945deb65913ea4b448626f4e73353/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Mateo Hernández",
+          "evidence": {
+            "literal": "Mateo Hernández",
+            "quote": "Mateo Hernández",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "HEMM900101AB1",
+          "evidence": {
+            "literal": "HEMM900101AB1",
+            "quote": "HEMM900101AB1",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "0455",
+          "evidence": {
+            "literal": "0455",
+            "quote": "0455",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "20/09/2026",
+            "quote": "20/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "05/10/2026",
+            "quote": "05/10/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "MXN",
+          "evidence": {
+            "literal": "MXN",
+            "quote": "MXN",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 6724138,
+          "evidence": {
+            "literal": "67,241.38",
+            "quote": "67,241.38",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 1075862,
+          "evidence": {
+            "literal": "10,758.62",
+            "quote": "10,758.62",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 7800000,
+          "evidence": {
+            "literal": "78,000.00",
+            "quote": "78,000.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "012180001234567891",
+          "evidence": {
+            "literal": "012180001234567891",
+            "quote": "012180001234567891",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Mateo Hernández Martínez",
+          "evidence": {
+            "literal": "Mateo Hernández Martínez",
+            "quote": "Mateo Hernández Martínez",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 120,
+          "evidence": {
+            "literal": "120",
+            "quote": "120",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Desarrollo de software, septiembre 2026",
+          "evidence": {
+            "literal": "Desarrollo de software, septiembre 2026",
+            "quote": "Desarrollo de software, septiembre 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "2026-07-A",
+    "document_hash": "36a38d0739a3fe5998ce7ce04726e783436ac538532f830682b4b0561af1e131",
+    "file_key": "muestra/historial/historial_10.pdf",
+    "size_bytes": 11215,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nLucía Ferreyra\nTax ID 27345678901\nInvoice # 2026-07-A\nDate: 07/20/2026\nCustomer: Forja Labs Inc. Due: 08/04/2026\nData engineering, July 2026\nHours: 100\nTOTAL DUE: 4,500,000.00\nCurrency: ARS\nBeneficiary: Lucía Ferreyra\nAccount: 0170099220000012345678",
+    "page_keys": [
+      "muestra/historial/36a38d0739a3fe5998ce7ce04726e783436ac538532f830682b4b0561af1e131/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Lucía Ferreyra",
+          "evidence": {
+            "literal": "Lucía Ferreyra",
+            "quote": "Lucía Ferreyra",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "27345678901",
+          "evidence": {
+            "literal": "27345678901",
+            "quote": "27345678901",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "2026-07-A",
+          "evidence": {
+            "literal": "2026-07-A",
+            "quote": "2026-07-A",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "07/20/2026",
+            "quote": "07/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "08/04/2026",
+            "quote": "08/04/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "ARS",
+          "evidence": {
+            "literal": "ARS",
+            "quote": "ARS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 450000000,
+          "evidence": {
+            "literal": "4,500,000.00",
+            "quote": "4,500,000.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "0170099220000012345678",
+          "evidence": {
+            "literal": "0170099220000012345678",
+            "quote": "0170099220000012345678",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Lucía Ferreyra",
+          "evidence": {
+            "literal": "Lucía Ferreyra",
+            "quote": "Lucía Ferreyra",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 100,
+          "evidence": {
+            "literal": "100",
+            "quote": "100",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Data engineering, July 2026",
+          "evidence": {
+            "literal": "Data engineering, July 2026",
+            "quote": "Data engineering, July 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "2026-08-A",
+    "document_hash": "c358a9b8da1216ae70993de2a6d30ff2f5fc5b9b548a7fe7abb069d250c0a985",
+    "file_key": "muestra/historial/historial_11.pdf",
+    "size_bytes": 11130,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nLucía Ferreyra\nTax ID 27345678901\nInvoice # 2026-08-A\nDate: 08/20/2026\nCustomer: Forja Labs Inc. Due: 09/04/2026\nData engineering, August 2026\nHours: 100\nTOTAL DUE: 4,500,000.00\nCurrency: ARS\nBeneficiary: Lucía Ferreyra\nAccount: 0170099220000012345678",
+    "page_keys": [
+      "muestra/historial/c358a9b8da1216ae70993de2a6d30ff2f5fc5b9b548a7fe7abb069d250c0a985/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Lucía Ferreyra",
+          "evidence": {
+            "literal": "Lucía Ferreyra",
+            "quote": "Lucía Ferreyra",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "27345678901",
+          "evidence": {
+            "literal": "27345678901",
+            "quote": "27345678901",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "2026-08-A",
+          "evidence": {
+            "literal": "2026-08-A",
+            "quote": "2026-08-A",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "08/20/2026",
+            "quote": "08/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "09/04/2026",
+            "quote": "09/04/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "ARS",
+          "evidence": {
+            "literal": "ARS",
+            "quote": "ARS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 450000000,
+          "evidence": {
+            "literal": "4,500,000.00",
+            "quote": "4,500,000.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "0170099220000012345678",
+          "evidence": {
+            "literal": "0170099220000012345678",
+            "quote": "0170099220000012345678",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Lucía Ferreyra",
+          "evidence": {
+            "literal": "Lucía Ferreyra",
+            "quote": "Lucía Ferreyra",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 100,
+          "evidence": {
+            "literal": "100",
+            "quote": "100",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Data engineering, August 2026",
+          "evidence": {
+            "literal": "Data engineering, August 2026",
+            "quote": "Data engineering, August 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "2026-09-A",
+    "document_hash": "6d5d59945367677e46c2d4a7e40b0bb676c38f6e78051cf13a390690f698e307",
+    "file_key": "muestra/historial/historial_12.pdf",
+    "size_bytes": 11132,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nLucía Ferreyra\nTax ID 27345678901\nInvoice # 2026-09-A\nDate: 09/20/2026\nCustomer: Forja Labs Inc. Due: 10/05/2026\nData engineering, September 2026\nHours: 100\nTOTAL DUE: 4,320,000.00\nCurrency: ARS\nBeneficiary: Lucía Ferreyra\nAccount: 0170099220000012345678",
+    "page_keys": [
+      "muestra/historial/6d5d59945367677e46c2d4a7e40b0bb676c38f6e78051cf13a390690f698e307/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Lucía Ferreyra",
+          "evidence": {
+            "literal": "Lucía Ferreyra",
+            "quote": "Lucía Ferreyra",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "27345678901",
+          "evidence": {
+            "literal": "27345678901",
+            "quote": "27345678901",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "2026-09-A",
+          "evidence": {
+            "literal": "2026-09-A",
+            "quote": "2026-09-A",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "09/20/2026",
+            "quote": "09/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "10/05/2026",
+            "quote": "10/05/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "ARS",
+          "evidence": {
+            "literal": "ARS",
+            "quote": "ARS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 432000000,
+          "evidence": {
+            "literal": "4,320,000.00",
+            "quote": "4,320,000.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "0170099220000012345678",
+          "evidence": {
+            "literal": "0170099220000012345678",
+            "quote": "0170099220000012345678",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Lucía Ferreyra",
+          "evidence": {
+            "literal": "Lucía Ferreyra",
+            "quote": "Lucía Ferreyra",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": 100,
+          "evidence": {
+            "literal": "100",
+            "quote": "100",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Data engineering, September 2026",
+          "evidence": {
+            "literal": "Data engineering, September 2026",
+            "quote": "Data engineering, September 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "NF-1145",
+    "document_hash": "e06c02384a80e08c7dfd87f335265d60bdad6fc9b0921581b35b1ef9766db602",
+    "file_key": "muestra/historial/historial_13.pdf",
+    "size_bytes": 11205,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nJoão Lima Consultoria ME\nTax ID 12345678000199\nInvoice # NF-1145\nDate: 07/20/2026\nCustomer: Forja Labs Inc. Due: 08/04/2026\nConsultoria financeira, julho 2026\nTOTAL DUE: 8,500.00\nCurrency: BRL\nBeneficiary: João Lima Consultoria ME\nAccount: 12345678000199",
+    "page_keys": [
+      "muestra/historial/e06c02384a80e08c7dfd87f335265d60bdad6fc9b0921581b35b1ef9766db602/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "João Lima Consultoria ME",
+          "evidence": {
+            "literal": "João Lima Consultoria ME",
+            "quote": "João Lima Consultoria ME",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "12345678000199",
+          "evidence": {
+            "literal": "12345678000199",
+            "quote": "12345678000199",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "NF-1145",
+          "evidence": {
+            "literal": "NF-1145",
+            "quote": "NF-1145",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "07/20/2026",
+            "quote": "07/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "08/04/2026",
+            "quote": "08/04/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "BRL",
+          "evidence": {
+            "literal": "BRL",
+            "quote": "BRL",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 850000,
+          "evidence": {
+            "literal": "8,500.00",
+            "quote": "8,500.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "12345678000199",
+          "evidence": {
+            "literal": "12345678000199",
+            "quote": "12345678000199",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "João Lima Consultoria ME",
+          "evidence": {
+            "literal": "João Lima Consultoria ME",
+            "quote": "João Lima Consultoria ME",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Consultoria financeira, julho 2026",
+          "evidence": {
+            "literal": "Consultoria financeira, julho 2026",
+            "quote": "Consultoria financeira, julho 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "NF-1147",
+    "document_hash": "6fac93a94029dd61344306651c0655f52a32bf4410d7b0e5804ad4f2d081e537",
+    "file_key": "muestra/historial/historial_14.pdf",
+    "size_bytes": 11205,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nJoão Lima Consultoria ME\nTax ID 12345678000199\nInvoice # NF-1147\nDate: 08/20/2026\nCustomer: Forja Labs Inc. Due: 09/04/2026\nConsultoria financeira, agosto 2026\nTOTAL DUE: 8,500.00\nCurrency: BRL\nBeneficiary: João Lima Consultoria ME\nAccount: 12345678000199",
+    "page_keys": [
+      "muestra/historial/6fac93a94029dd61344306651c0655f52a32bf4410d7b0e5804ad4f2d081e537/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "João Lima Consultoria ME",
+          "evidence": {
+            "literal": "João Lima Consultoria ME",
+            "quote": "João Lima Consultoria ME",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "12345678000199",
+          "evidence": {
+            "literal": "12345678000199",
+            "quote": "12345678000199",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "NF-1147",
+          "evidence": {
+            "literal": "NF-1147",
+            "quote": "NF-1147",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "08/20/2026",
+            "quote": "08/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "09/04/2026",
+            "quote": "09/04/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "BRL",
+          "evidence": {
+            "literal": "BRL",
+            "quote": "BRL",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 850000,
+          "evidence": {
+            "literal": "8,500.00",
+            "quote": "8,500.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "12345678000199",
+          "evidence": {
+            "literal": "12345678000199",
+            "quote": "12345678000199",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "João Lima Consultoria ME",
+          "evidence": {
+            "literal": "João Lima Consultoria ME",
+            "quote": "João Lima Consultoria ME",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Consultoria financeira, agosto 2026",
+          "evidence": {
+            "literal": "Consultoria financeira, agosto 2026",
+            "quote": "Consultoria financeira, agosto 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "NF-1149",
+    "document_hash": "ad284b9f631b0480101f7843f3ff410d082b34f405d02883593f6f19472f4f4b",
+    "file_key": "muestra/historial/historial_15.pdf",
+    "size_bytes": 11208,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nJoão Lima Consultoria ME\nTax ID 12345678000199\nInvoice # NF-1149\nDate: 09/20/2026\nCustomer: Forja Labs Inc. Due: 10/05/2026\nConsultoria financeira, setembro 2026\nTOTAL DUE: 8,500.00\nCurrency: BRL\nBeneficiary: João Lima Consultoria ME\nAccount: 12345678000199",
+    "page_keys": [
+      "muestra/historial/ad284b9f631b0480101f7843f3ff410d082b34f405d02883593f6f19472f4f4b/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "João Lima Consultoria ME",
+          "evidence": {
+            "literal": "João Lima Consultoria ME",
+            "quote": "João Lima Consultoria ME",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "12345678000199",
+          "evidence": {
+            "literal": "12345678000199",
+            "quote": "12345678000199",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "NF-1149",
+          "evidence": {
+            "literal": "NF-1149",
+            "quote": "NF-1149",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "09/20/2026",
+            "quote": "09/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "10/05/2026",
+            "quote": "10/05/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "BRL",
+          "evidence": {
+            "literal": "BRL",
+            "quote": "BRL",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "taxes": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "total": {
+          "value": 850000,
+          "evidence": {
+            "literal": "8,500.00",
+            "quote": "8,500.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "12345678000199",
+          "evidence": {
+            "literal": "12345678000199",
+            "quote": "12345678000199",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "João Lima Consultoria ME",
+          "evidence": {
+            "literal": "João Lima Consultoria ME",
+            "quote": "João Lima Consultoria ME",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Consultoria financeira, setembro 2026",
+          "evidence": {
+            "literal": "Consultoria financeira, setembro 2026",
+            "quote": "Consultoria financeira, setembro 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "INV-10350",
+    "document_hash": "5e139878d904049cbaa27ffcfcde7860674b144afa1c99259538a07d61ea7675",
+    "file_key": "muestra/historial/historial_16.pdf",
+    "size_bytes": 10954,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nStackline Cloud Inc.\nTax ID 84-1234567\nInvoice # INV-10350\nDate: 07/20/2026\nCustomer: Forja Labs Inc. Due: 08/04/2026\nCloud platform, Team plan, July 2026\nSubtotal: 2,490.00\nTax: 0.00\nTOTAL DUE: 2,490.00\nCurrency: USD\nBeneficiary: Stackline Cloud Inc.\nAccount: 000123456789",
+    "page_keys": [
+      "muestra/historial/5e139878d904049cbaa27ffcfcde7860674b144afa1c99259538a07d61ea7675/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "84-1234567",
+          "evidence": {
+            "literal": "84-1234567",
+            "quote": "84-1234567",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "INV-10350",
+          "evidence": {
+            "literal": "INV-10350",
+            "quote": "INV-10350",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "07/20/2026",
+            "quote": "07/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "08/04/2026",
+            "quote": "08/04/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "USD",
+          "evidence": {
+            "literal": "USD",
+            "quote": "USD",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 0,
+          "evidence": {
+            "literal": "0.00",
+            "quote": "0.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "000123456789",
+          "evidence": {
+            "literal": "000123456789",
+            "quote": "000123456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Cloud platform, Team plan, July 2026",
+          "evidence": {
+            "literal": "Cloud platform, Team plan, July 2026",
+            "quote": "Cloud platform, Team plan, July 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "INV-10358",
+    "document_hash": "d3345e9af2e6f4bbde6dad86224afc5c8730795290b30e94058e55f3387f1f36",
+    "file_key": "muestra/historial/historial_17.pdf",
+    "size_bytes": 10875,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nStackline Cloud Inc.\nTax ID 84-1234567\nInvoice # INV-10358\nDate: 08/20/2026\nCustomer: Forja Labs Inc. Due: 09/04/2026\nCloud platform, Team plan, August 2026\nSubtotal: 2,490.00\nTax: 0.00\nTOTAL DUE: 2,490.00\nCurrency: USD\nBeneficiary: Stackline Cloud Inc.\nAccount: 000123456789",
+    "page_keys": [
+      "muestra/historial/d3345e9af2e6f4bbde6dad86224afc5c8730795290b30e94058e55f3387f1f36/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "84-1234567",
+          "evidence": {
+            "literal": "84-1234567",
+            "quote": "84-1234567",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "INV-10358",
+          "evidence": {
+            "literal": "INV-10358",
+            "quote": "INV-10358",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "08/20/2026",
+            "quote": "08/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "09/04/2026",
+            "quote": "09/04/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "USD",
+          "evidence": {
+            "literal": "USD",
+            "quote": "USD",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 0,
+          "evidence": {
+            "literal": "0.00",
+            "quote": "0.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "000123456789",
+          "evidence": {
+            "literal": "000123456789",
+            "quote": "000123456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Cloud platform, Team plan, August 2026",
+          "evidence": {
+            "literal": "Cloud platform, Team plan, August 2026",
+            "quote": "Cloud platform, Team plan, August 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "INV-10366",
+    "document_hash": "4289b24af0cf5db16b9e78b1c6cae3923ad81c2e4414714b82e1fe26f035befe",
+    "file_key": "muestra/historial/historial_18.pdf",
+    "size_bytes": 10881,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nStackline Cloud Inc.\nTax ID 84-1234567\nInvoice # INV-10366\nDate: 09/20/2026\nCustomer: Forja Labs Inc. Due: 10/05/2026\nCloud platform, Team plan, September 2026\nSubtotal: 2,490.00\nTax: 0.00\nTOTAL DUE: 2,490.00\nCurrency: USD\nBeneficiary: Stackline Cloud Inc.\nAccount: 000123456789",
+    "page_keys": [
+      "muestra/historial/4289b24af0cf5db16b9e78b1c6cae3923ad81c2e4414714b82e1fe26f035befe/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "84-1234567",
+          "evidence": {
+            "literal": "84-1234567",
+            "quote": "84-1234567",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "INV-10366",
+          "evidence": {
+            "literal": "INV-10366",
+            "quote": "INV-10366",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "09/20/2026",
+            "quote": "09/20/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "10/05/2026",
+            "quote": "10/05/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "USD",
+          "evidence": {
+            "literal": "USD",
+            "quote": "USD",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 0,
+          "evidence": {
+            "literal": "0.00",
+            "quote": "0.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "000123456789",
+          "evidence": {
+            "literal": "000123456789",
+            "quote": "000123456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Cloud platform, Team plan, September 2026",
+          "evidence": {
+            "literal": "Cloud platform, Team plan, September 2026",
+            "quote": "Cloud platform, Team plan, September 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "AH-5510",
+    "document_hash": "d63216ed6bc0e15ffd2a32c5b54afd07b6db81a2c5beb30c39e340af6123a594",
+    "file_key": "muestra/historial/historial_19.pdf",
+    "size_bytes": 11331,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nAndes Hardware SAS\nNIT 900876543-2\nNo. AH-5510\nFecha: 20/07/2026\nVence: 04/08/2026\nFacturar a: Forja Labs Inc.\nEquipos de red y cableado\nSubtotal: 15.126.050,42\nIVA 19 %: 2.873.949,58\nTOTAL: 18.000.000,00\nMoneda: COP\nTitular: Andes Hardware SAS\nCuenta: 60011223344",
+    "page_keys": [
+      "muestra/historial/d63216ed6bc0e15ffd2a32c5b54afd07b6db81a2c5beb30c39e340af6123a594/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "900876543-2",
+          "evidence": {
+            "literal": "900876543-2",
+            "quote": "900876543-2",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "AH-5510",
+          "evidence": {
+            "literal": "AH-5510",
+            "quote": "AH-5510",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-07-20",
+          "evidence": {
+            "literal": "20/07/2026",
+            "quote": "20/07/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-08-04",
+          "evidence": {
+            "literal": "04/08/2026",
+            "quote": "04/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 1512605042,
+          "evidence": {
+            "literal": "15.126.050,42",
+            "quote": "15.126.050,42",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 287394958,
+          "evidence": {
+            "literal": "2.873.949,58",
+            "quote": "2.873.949,58",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 1800000000,
+          "evidence": {
+            "literal": "18.000.000,00",
+            "quote": "18.000.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "60011223344",
+          "evidence": {
+            "literal": "60011223344",
+            "quote": "60011223344",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Equipos de red y cableado",
+          "evidence": {
+            "literal": "Equipos de red y cableado",
+            "quote": "Equipos de red y cableado",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "AH-5520",
+    "document_hash": "8fc2a3143c0a0a7d7d73a58c8a9e32f5415a6c305166473d369277c1bce72308",
+    "file_key": "muestra/historial/historial_20.pdf",
+    "size_bytes": 11329,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nAndes Hardware SAS\nNIT 900876543-2\nNo. AH-5520\nFecha: 20/08/2026\nVence: 04/09/2026\nFacturar a: Forja Labs Inc.\nEquipos de red y cableado\nSubtotal: 14.285.714,29\nIVA 19 %: 2.714.285,71\nTOTAL: 17.000.000,00\nMoneda: COP\nTitular: Andes Hardware SAS\nCuenta: 60011223344",
+    "page_keys": [
+      "muestra/historial/8fc2a3143c0a0a7d7d73a58c8a9e32f5415a6c305166473d369277c1bce72308/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "900876543-2",
+          "evidence": {
+            "literal": "900876543-2",
+            "quote": "900876543-2",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "AH-5520",
+          "evidence": {
+            "literal": "AH-5520",
+            "quote": "AH-5520",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-08-20",
+          "evidence": {
+            "literal": "20/08/2026",
+            "quote": "20/08/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-04",
+          "evidence": {
+            "literal": "04/09/2026",
+            "quote": "04/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 1428571429,
+          "evidence": {
+            "literal": "14.285.714,29",
+            "quote": "14.285.714,29",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 271428571,
+          "evidence": {
+            "literal": "2.714.285,71",
+            "quote": "2.714.285,71",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 1700000000,
+          "evidence": {
+            "literal": "17.000.000,00",
+            "quote": "17.000.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "60011223344",
+          "evidence": {
+            "literal": "60011223344",
+            "quote": "60011223344",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Equipos de red y cableado",
+          "evidence": {
+            "literal": "Equipos de red y cableado",
+            "quote": "Equipos de red y cableado",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "AH-5530",
+    "document_hash": "90af9ffd6b7634217c1ddf0839217328c513de4e3989c8ef684aaaa9cd000719",
+    "file_key": "muestra/historial/historial_21.pdf",
+    "size_bytes": 11332,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nAndes Hardware SAS\nNIT 900876543-2\nNo. AH-5530\nFecha: 20/09/2026\nVence: 05/10/2026\nFacturar a: Forja Labs Inc.\nEquipos de red y cableado\nSubtotal: 15.966.386,55\nIVA 19 %: 3.033.613,45\nTOTAL: 19.000.000,00\nMoneda: COP\nTitular: Andes Hardware SAS\nCuenta: 60011223344",
+    "page_keys": [
+      "muestra/historial/90af9ffd6b7634217c1ddf0839217328c513de4e3989c8ef684aaaa9cd000719/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "900876543-2",
+          "evidence": {
+            "literal": "900876543-2",
+            "quote": "900876543-2",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "AH-5530",
+          "evidence": {
+            "literal": "AH-5530",
+            "quote": "AH-5530",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-20",
+          "evidence": {
+            "literal": "20/09/2026",
+            "quote": "20/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-05",
+          "evidence": {
+            "literal": "05/10/2026",
+            "quote": "05/10/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 1596638655,
+          "evidence": {
+            "literal": "15.966.386,55",
+            "quote": "15.966.386,55",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 303361345,
+          "evidence": {
+            "literal": "3.033.613,45",
+            "quote": "3.033.613,45",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 1900000000,
+          "evidence": {
+            "literal": "19.000.000,00",
+            "quote": "19.000.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "60011223344",
+          "evidence": {
+            "literal": "60011223344",
+            "quote": "60011223344",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Equipos de red y cableado",
+          "evidence": {
+            "literal": "Equipos de red y cableado",
+            "quote": "Equipos de red y cableado",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "AH-5535",
+    "document_hash": "ef0f6a66c1207e0141a2ba8669bf552fb1a1bc955d14f0c1f8c5407ce0100467",
+    "file_key": "muestra/historial/historial_22.pdf",
+    "size_bytes": 11335,
+    "text": "FACTURA ELECTRÓNICA DE VENTA\nCliente: Forja Labs Inc. · 1209 Orange St, Wilmington, DE\nConcepto Valor\nPago por transferencia Bre-B o cuenta bancaria. Gracias por su pago oportuno.\nAndes Hardware SAS\nNIT 900876543-2\nNo. AH-5535\nFecha: 28/09/2026\nVence: 13/10/2026\nFacturar a: Forja Labs Inc.\nEquipos de red y cableado\nSubtotal: 21.848.739,50\nIVA 19 %: 4.151.260,50\nTOTAL: 26.000.000,00\nMoneda: COP\nTitular: Andes Hardware SAS\nCuenta: 60011223344",
+    "page_keys": [
+      "muestra/historial/ef0f6a66c1207e0141a2ba8669bf552fb1a1bc955d14f0c1f8c5407ce0100467/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "900876543-2",
+          "evidence": {
+            "literal": "900876543-2",
+            "quote": "900876543-2",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "AH-5535",
+          "evidence": {
+            "literal": "AH-5535",
+            "quote": "AH-5535",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-28",
+          "evidence": {
+            "literal": "28/09/2026",
+            "quote": "28/09/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-13",
+          "evidence": {
+            "literal": "13/10/2026",
+            "quote": "13/10/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "COP",
+          "evidence": {
+            "literal": "COP",
+            "quote": "COP",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 2184873950,
+          "evidence": {
+            "literal": "21.848.739,50",
+            "quote": "21.848.739,50",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 415126050,
+          "evidence": {
+            "literal": "4.151.260,50",
+            "quote": "4.151.260,50",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 2600000000,
+          "evidence": {
+            "literal": "26.000.000,00",
+            "quote": "26.000.000,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "60011223344",
+          "evidence": {
+            "literal": "60011223344",
+            "quote": "60011223344",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Andes Hardware SAS",
+          "evidence": {
+            "literal": "Andes Hardware SAS",
+            "quote": "Andes Hardware SAS",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Equipos de red y cableado",
+          "evidence": {
+            "literal": "Equipos de red y cableado",
+            "quote": "Equipos de red y cableado",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "es"
+    }
+  },
+  {
+    "invoice_number": "INV-10369",
+    "document_hash": "a4827c066d36df222f7d57dfab4d4993916bcc42608ee410cbffd6fbce3351f9",
+    "file_key": "muestra/historial/historial_23.pdf",
+    "size_bytes": 10891,
+    "text": "INVOICE\nBill to: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801\nDescription Amount\nPayment details\nThank you for your business.\nStackline Cloud Inc.\nTax ID 84-1234567\nInvoice # INV-10369\nDate: 09/30/2026\nCustomer: Forja Labs Inc. Due: 10/15/2026\nCloud platform, Team plan, September 2026\nSubtotal: 2,490.00\nTax: 0.00\nTOTAL DUE: 2,490.00\nCurrency: USD\nBeneficiary: Stackline Cloud Inc.\nAccount: 000987654471",
+    "page_keys": [
+      "muestra/historial/a4827c066d36df222f7d57dfab4d4993916bcc42608ee410cbffd6fbce3351f9/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "84-1234567",
+          "evidence": {
+            "literal": "84-1234567",
+            "quote": "84-1234567",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "INV-10369",
+          "evidence": {
+            "literal": "INV-10369",
+            "quote": "INV-10369",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-30",
+          "evidence": {
+            "literal": "09/30/2026",
+            "quote": "09/30/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-10-15",
+          "evidence": {
+            "literal": "10/15/2026",
+            "quote": "10/15/2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "USD",
+          "evidence": {
+            "literal": "USD",
+            "quote": "USD",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 0,
+          "evidence": {
+            "literal": "0.00",
+            "quote": "0.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 249000,
+          "evidence": {
+            "literal": "2,490.00",
+            "quote": "2,490.00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "000987654471",
+          "evidence": {
+            "literal": "000987654471",
+            "quote": "000987654471",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Stackline Cloud Inc.",
+          "evidence": {
+            "literal": "Stackline Cloud Inc.",
+            "quote": "Stackline Cloud Inc.",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "description": {
+          "value": "Cloud platform, Team plan, September 2026",
+          "evidence": {
+            "literal": "Cloud platform, Team plan, September 2026",
+            "quote": "Cloud platform, Team plan, September 2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "en"
+    }
+  },
+  {
+    "invoice_number": "RE-2026-097",
+    "document_hash": "e1c8617c1eecef39890d4f30f6b1a13523923c761b8e5a0478d15c3264be5ff1",
+    "file_key": "muestra/historial/historial_24.pdf",
+    "size_bytes": 11450,
+    "text": "RECHNUNG\nAn: Forja Labs Inc., 1209 Orange St, Wilmington, DE 19801, USA\nLeistung Betrag\nZahlbar per SEPA-Überweisung innerhalb von 30 Tagen.\nDatenwerk GmbH\nUSt-IdNr. DE123456789\nRechnungsnr. RE-2026-097\nDatum: 15.09.2026\nFällig: 30.09.2026\nKunde: Forja Labs Inc.\nDatenanalyse und Beratung, Q3\nBestellnummer: PO-2026-031\nNetto: 3.800,00\nUSt. 0 %: 0,00\nGesamtbetrag: 3.800,00\nWährung: EUR\nKontoinhaber: Datenwerk GmbH\nIBAN: DE89370400440532013000",
+    "page_keys": [
+      "muestra/historial/e1c8617c1eecef39890d4f30f6b1a13523923c761b8e5a0478d15c3264be5ff1/pagina-1.png"
+    ],
+    "extraction": {
+      "kind": "invoice",
+      "fields": {
+        "payee_name": {
+          "value": "Datenwerk GmbH",
+          "evidence": {
+            "literal": "Datenwerk GmbH",
+            "quote": "Datenwerk GmbH",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "payee_tax_id": {
+          "value": "DE123456789",
+          "evidence": {
+            "literal": "DE123456789",
+            "quote": "DE123456789",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "invoice_number": {
+          "value": "RE-2026-097",
+          "evidence": {
+            "literal": "RE-2026-097",
+            "quote": "RE-2026-097",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "issue_date": {
+          "value": "2026-09-15",
+          "evidence": {
+            "literal": "15.09.2026",
+            "quote": "15.09.2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "due_date": {
+          "value": "2026-09-30",
+          "evidence": {
+            "literal": "30.09.2026",
+            "quote": "30.09.2026",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "currency": {
+          "value": "EUR",
+          "evidence": {
+            "literal": "EUR",
+            "quote": "EUR",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "subtotal": {
+          "value": 380000,
+          "evidence": {
+            "literal": "3.800,00",
+            "quote": "3.800,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "taxes": {
+          "value": 0,
+          "evidence": {
+            "literal": "0,00",
+            "quote": "0,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "total": {
+          "value": 380000,
+          "evidence": {
+            "literal": "3.800,00",
+            "quote": "3.800,00",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_account": {
+          "value": "DE89370400440532013000",
+          "evidence": {
+            "literal": "DE89370400440532013000",
+            "quote": "DE89370400440532013000",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "bank_holder": {
+          "value": "Datenwerk GmbH",
+          "evidence": {
+            "literal": "Datenwerk GmbH",
+            "quote": "Datenwerk GmbH",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "hours": {
+          "value": null,
+          "reason": "no aparece en el documento"
+        },
+        "purchase_order": {
+          "value": "PO-2026-031",
+          "evidence": {
+            "literal": "PO-2026-031",
+            "quote": "PO-2026-031",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        },
+        "description": {
+          "value": "Datenanalyse und Beratung, Q3",
+          "evidence": {
+            "literal": "Datenanalyse und Beratung, Q3",
+            "quote": "Datenanalyse und Beratung, Q3",
+            "page": 1
+          },
+          "confidence": 0.96,
+          "source": "modelo"
+        }
+      },
+      "ambiguities": [],
+      "suspicions": [],
+      "language": "de"
+    }
+  }
+]

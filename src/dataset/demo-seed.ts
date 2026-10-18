@@ -5,36 +5,53 @@ import { receiptKeyFor, type Channel, type ReceiptKey } from "@/src/domain";
 
 import {
   GroundTruthSchema,
+  HistoryDocumentsSchema,
   HistorySchema,
   ManifestSchema,
   type DatasetCase,
+  type HistoryDocument,
   type HistoryEntry,
 } from "./schema";
 
 /**
  * Lo que necesita la copia de la demo de cada visitante: el historial de meses anteriores,
- * lo ya comprometido del mes y el día del dataset. Liviano a propósito: no carga plantillas
- * ni el generador de PDF, así el servidor web no arrastra esas dependencias.
+ * lo ya comprometido del mes, el día del dataset y el documento y la lectura de cada factura
+ * del historial, ya generados. Liviano a propósito: no carga plantillas ni el generador de
+ * PDF, así el servidor web no arrastra esas dependencias.
  */
 
 export type DemoSeed = {
   readonly today: string;
   readonly committedUsdCents: number;
   readonly history: readonly HistoryEntry[];
+  /** Documento y lectura de cada factura del historial, por número de factura. */
+  readonly historyDocuments: ReadonlyMap<string, HistoryDocument>;
 };
+
+/**
+ * Prefijo de los archivos que vienen con la app, de solo lectura: `muestra/historial/...` se
+ * lee de `generado/historial/...`.
+ */
+export const SAMPLE_PREFIX = "muestra";
+
+/** Índice de los documentos del historial, en `generado/historial/`. */
+export const HISTORY_DOCUMENTS_FILE = "documentos.json";
 
 export async function loadDemoSeed(
   dir: string = path.join(process.cwd(), "data", "dataset"),
 ): Promise<DemoSeed> {
-  const [manifestText, historyText] = await Promise.all([
+  const [manifestText, historyText, documentsText] = await Promise.all([
     readFile(path.join(dir, "manifiesto.json"), "utf8"),
     readFile(path.join(dir, "historial.json"), "utf8"),
+    readFile(path.join(dir, "generado", "historial", HISTORY_DOCUMENTS_FILE), "utf8"),
   ]);
   const manifest = ManifestSchema.parse(JSON.parse(manifestText));
+  const documents = HistoryDocumentsSchema.parse(JSON.parse(documentsText));
   return {
     today: manifest.today,
     committedUsdCents: manifest.october_committed_usd_cents,
     history: HistorySchema.parse(JSON.parse(historyText)),
+    historyDocuments: new Map(documents.map((d) => [d.invoice_number, d])),
   };
 }
 

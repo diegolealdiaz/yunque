@@ -47,6 +47,7 @@ async function visitorOrganization(
       systemHardCapUsdCents: config.systemHardCapUsdCents,
       visitorId,
       history: seed.history,
+      historyDocuments: seed.historyDocuments,
       committedUsdCents: seed.committedUsdCents,
       today: seed.today,
     });

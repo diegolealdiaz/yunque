@@ -1,6 +1,12 @@
 import { z } from "zod";
 
-import { CurrencySchema, RuleCodeSchema, VerdictSchema } from "@/src/domain";
+import {
+  CurrencySchema,
+  ExtractionSchema,
+  RuleCodeSchema,
+  Sha256Schema,
+  VerdictSchema,
+} from "@/src/domain";
 
 /**
  * Esquemas del dataset: plantillas de documento, manifiesto de casos e historial.
@@ -205,13 +211,24 @@ export const HistoryEntrySchema = z.strictObject({
   verdict: VerdictSchema,
   /** Resolución humana si fue escalada. */
   resolution: z.enum(["aprobada", "rechazada"]).nullable(),
+  /**
+   * La regla que la frenó o escaló, si no se pagó. La semilla escribe su hallazgo con los
+   * mismos valores y palabras que el motor; por eso solo se admiten las que sabe escribir.
+   */
+  rule: z.enum(["bank_account_mismatch", "amount_over_approval_threshold"]).nullable(),
+  /** Cuenta que trae el documento, si no es la registrada del beneficiario. */
+  bank_account: z.string().min(4).max(40).nullable(),
 });
 export const HistorySchema = z.array(HistoryEntrySchema).max(500);
 export type HistoryEntry = z.infer<typeof HistoryEntrySchema>;
 
 /** Verdad esperada generada: por caso, archivo, hash, campos con su literal y su posición. */
 export const GroundTruthSchema = z.strictObject({
-  generated_with: z.strictObject({ manifest_hash: z.string(), templates_hash: z.string() }),
+  generated_with: z.strictObject({
+    manifest_hash: z.string(),
+    templates_hash: z.string(),
+    history_hash: z.string(),
+  }),
   today: IsoDate,
   cases: z.array(
     z.strictObject({
@@ -238,5 +255,31 @@ export const GroundTruthSchema = z.strictObject({
       ),
     }),
   ),
+  /** El PDF de cada factura del historial, pintado con la plantilla de su beneficiario. */
+  history: z.array(
+    z.strictObject({
+      id: z.string(),
+      invoice_number: z.string(),
+      file: z.string(),
+      document_hash: z.string().regex(/^[0-9a-f]{64}$/),
+    }),
+  ),
 });
 export type GroundTruth = z.infer<typeof GroundTruthSchema>;
+
+/**
+ * Lo que la semilla necesita de cada factura del historial para mostrarla como las del lote:
+ * su documento ya renderizado (páginas y posiciones del texto, servidos desde el dataset) y
+ * su lectura. Se genera con `npm run dataset`; la semilla solo lo lee.
+ */
+export const HistoryDocumentSchema = z.strictObject({
+  invoice_number: z.string().min(1).max(50),
+  document_hash: Sha256Schema,
+  file_key: z.string().min(1).max(300),
+  size_bytes: z.number().int().positive(),
+  text: z.string(),
+  page_keys: z.array(z.string().min(1).max(300)).min(1).max(20),
+  extraction: ExtractionSchema,
+});
+export const HistoryDocumentsSchema = z.array(HistoryDocumentSchema).max(500);
+export type HistoryDocument = z.infer<typeof HistoryDocumentSchema>;

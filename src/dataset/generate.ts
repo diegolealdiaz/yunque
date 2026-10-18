@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { documentHash, jsonHash } from "@/src/domain";
 
+import { historyCase } from "./history";
 import { renderPdf, renderScan, type PaintedField } from "./render";
 import {
   GroundTruthSchema,
@@ -21,11 +22,14 @@ import {
 /**
  * Generador del dataset. Lee `manifiesto.json` y `plantillas/*.json`, produce los archivos
  * en `generado/` y escribe `verdad.json` con la verdad esperada y las coordenadas por campo.
- * Determinista: el mismo manifiesto produce los mismos bytes.
+ * También pinta cada factura del historial (`generado/historial/`), para que se vea como las
+ * del lote. Determinista: el mismo manifiesto produce los mismos bytes.
  */
 
 export const DATASET_DIR = path.join(process.cwd(), "data", "dataset");
 export const OUTPUT_DIR_NAME = "generado";
+/** Carpeta de las facturas del historial dentro de `generado/`. */
+export const HISTORY_DIR_NAME = "historial";
 
 export type DatasetSources = {
   readonly manifest: Manifest;
@@ -33,6 +37,7 @@ export type DatasetSources = {
   readonly templates: ReadonlyMap<DocumentTemplate["id"], DocumentTemplate>;
   readonly templatesHash: string;
   readonly history: readonly HistoryEntry[];
+  readonly historyHash: string;
 };
 
 /** Lee y valida manifiesto, plantillas e historial. */
@@ -63,6 +68,7 @@ export async function loadDatasetSources(dir: string = DATASET_DIR): Promise<Dat
     templates,
     templatesHash: jsonHash(parsedTemplates),
     history,
+    historyHash: jsonHash(history),
   };
 }
 
@@ -203,10 +209,30 @@ export async function generateDataset(sources: DatasetSources): Promise<Generati
       fields: out.fields,
     });
   }
+  const history: GroundTruth["history"] = [];
+  for (const [index, entry] of sources.history.entries()) {
+    const c = historyCase(entry, index, sources.manifest);
+    const template = sources.templates.get(c.template);
+    if (!template) throw new Error(`Plantilla ${c.template} no cargada`);
+    const { bytes } = await renderPdf(template, c.document);
+    const file = `${HISTORY_DIR_NAME}/${c.id}.pdf`;
+    files.set(file, bytes);
+    history.push({
+      id: c.id,
+      invoice_number: entry.invoice_number,
+      file,
+      document_hash: documentHash(bytes),
+    });
+  }
   const truth = GroundTruthSchema.parse({
-    generated_with: { manifest_hash: sources.manifestHash, templates_hash: sources.templatesHash },
+    generated_with: {
+      manifest_hash: sources.manifestHash,
+      templates_hash: sources.templatesHash,
+      history_hash: sources.historyHash,
+    },
     today: sources.manifest.today,
     cases,
+    history,
   });
   return { truth, files };
 }
@@ -220,6 +246,7 @@ export async function writeDataset(
   await rm(out, { recursive: true, force: true });
   await mkdir(out, { recursive: true });
   for (const [name, bytes] of [...result.files.entries()].sort(([a], [b]) => a.localeCompare(b))) {
+    await mkdir(path.dirname(path.join(out, name)), { recursive: true });
     await writeFile(path.join(out, name), bytes);
   }
   await writeFile(path.join(out, "verdad.json"), `${JSON.stringify(result.truth, null, 2)}\n`);

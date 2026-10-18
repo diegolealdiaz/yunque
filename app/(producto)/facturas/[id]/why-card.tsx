@@ -25,10 +25,13 @@ const WHY_TONE = {
 } as const;
 
 /** Cuántos controles pasaron de los que aplican: "Pasó 18 de 19 controles." */
-function passedText(passed: number, applicable: number): string {
-  if (applicable === 0) {
-    return "Factura del historial de ejemplo: llegó ya decidida, sin el detalle de sus controles.";
+function passedText(passed: number, applicable: number, fromHistory: boolean): string {
+  if (fromHistory) {
+    return applicable === 0
+      ? "Del historial de ejemplo: se decidió antes de la demo y no guarda el detalle de sus controles."
+      : "Del historial de ejemplo: se decidió antes de la demo y solo guarda el control que la decidió.";
   }
+  if (applicable === 0) return "Sin controles registrados.";
   return `Pasó ${String(passed)} de ${String(applicable)} ${applicable === 1 ? "control" : "controles"}.`;
 }
 
@@ -83,7 +86,9 @@ export function WhyCard({
             ))}
           </ul>
         ) : null}
-        <p className="text-[13px] text-ink-3">{passedText(passed, applicable)}</p>
+        <p className="text-[13px] text-ink-3">
+          {passedText(passed, applicable, detail.fromHistory)}
+        </p>
         {decision.amount && decision.amount.currency !== "USD" ? (
           <p className="text-[12px] text-ink-3">
             Para los límites en USD: {formatMoney(decision.amount)} ≈{" "}

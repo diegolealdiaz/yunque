@@ -6,7 +6,9 @@
     "currency": "COP",
     "amount": 480000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "nube_andina",
@@ -15,7 +17,9 @@
     "currency": "COP",
     "amount": 480000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "nube_andina",
@@ -24,7 +28,9 @@
     "currency": "COP",
     "amount": 480000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "camila_rojas",
@@ -33,7 +39,9 @@
     "currency": "COP",
     "amount": 760000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "camila_rojas",
@@ -42,7 +50,9 @@
     "currency": "COP",
     "amount": 741000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "camila_rojas",
@@ -51,7 +61,9 @@
     "currency": "COP",
     "amount": 760000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "mateo_hernandez",
@@ -60,7 +72,9 @@
     "currency": "MXN",
     "amount": 7800000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "mateo_hernandez",
@@ -69,7 +83,9 @@
     "currency": "MXN",
     "amount": 7475000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "mateo_hernandez",
@@ -78,7 +94,9 @@
     "currency": "MXN",
     "amount": 7800000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "lucia_ferreyra",
@@ -87,7 +105,9 @@
     "currency": "ARS",
     "amount": 450000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "lucia_ferreyra",
@@ -96,7 +116,9 @@
     "currency": "ARS",
     "amount": 450000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "lucia_ferreyra",
@@ -105,7 +127,9 @@
     "currency": "ARS",
     "amount": 432000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "joao_lima",
@@ -114,7 +138,9 @@
     "currency": "BRL",
     "amount": 850000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "joao_lima",
@@ -123,7 +149,9 @@
     "currency": "BRL",
     "amount": 850000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "joao_lima",
@@ -132,7 +160,9 @@
     "currency": "BRL",
     "amount": 850000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "stackline",
@@ -141,7 +171,9 @@
     "currency": "USD",
     "amount": 249000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "stackline",
@@ -150,7 +182,9 @@
     "currency": "USD",
     "amount": 249000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "stackline",
@@ -159,7 +193,9 @@
     "currency": "USD",
     "amount": 249000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "andes_hardware",
@@ -168,7 +204,9 @@
     "currency": "COP",
     "amount": 1800000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "andes_hardware",
@@ -177,7 +215,9 @@
     "currency": "COP",
     "amount": 1700000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "andes_hardware",
@@ -186,7 +226,9 @@
     "currency": "COP",
     "amount": 1900000000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   },
   {
     "vendor_key": "andes_hardware",
@@ -195,7 +237,9 @@
     "currency": "COP",
     "amount": 2600000000,
     "verdict": "escalar",
-    "resolution": "aprobada"
+    "resolution": "aprobada",
+    "rule": "amount_over_approval_threshold",
+    "bank_account": null
   },
   {
     "vendor_key": "stackline",
@@ -204,7 +248,9 @@
     "currency": "USD",
     "amount": 249000,
     "verdict": "frenar",
-    "resolution": null
+    "resolution": null,
+    "rule": "bank_account_mismatch",
+    "bank_account": "000987654471"
   },
   {
     "vendor_key": "datenwerk",
@@ -213,6 +259,8 @@
     "currency": "EUR",
     "amount": 380000,
     "verdict": "pagar",
-    "resolution": null
+    "resolution": null,
+    "rule": null,
+    "bank_account": null
   }
 ]

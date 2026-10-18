@@ -6,3 +6,5 @@ package-lock.json
 data/files
 *.db
 *.md
+# Posiciones del texto de cada página: las escribe npm run dataset, no se editan.
+data/dataset/generado/historial/*/texto-*.json

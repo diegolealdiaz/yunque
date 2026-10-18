@@ -1,7 +1,8 @@
 {
   "generated_with": {
     "manifest_hash": "3ba687d28fb8a27176ca3938c0078609f46cdaaad77efcaead4e2af4df8b2121",
-    "templates_hash": "1706dcad4c89b72eeb6078e069609f670e78db8572d3eeaaa55b5969c4194463"
+    "templates_hash": "1706dcad4c89b72eeb6078e069609f670e78db8572d3eeaaa55b5969c4194463",
+    "history_hash": "b88921aa59339e1ae219470c24db0239ce6832f04776111388862daa09fb6c1c"
   },
   "today": "2026-10-17",
   "cases": [
@@ -4369,6 +4370,152 @@
           "height": 6
         }
       ]
+    }
+  ],
+  "history": [
+    {
+      "id": "historial_01",
+      "invoice_number": "F-2270",
+      "file": "historial/historial_01.pdf",
+      "document_hash": "375c46b15150149aa66e29da5947cbe2997e2788d626e711dfbc8779093415b8"
+    },
+    {
+      "id": "historial_02",
+      "invoice_number": "F-2275",
+      "file": "historial/historial_02.pdf",
+      "document_hash": "142af7e156cb5dd5401125b1a6f4d58aa0c0b042f3f483ef0d2336407308b4f9"
+    },
+    {
+      "id": "historial_03",
+      "invoice_number": "F-2280",
+      "file": "historial/historial_03.pdf",
+      "document_hash": "e3424797ff14a8efd5ba9e2d7df70a2412badf634186c65cf0b4e064469ee9b1"
+    },
+    {
+      "id": "historial_04",
+      "invoice_number": "CR-112",
+      "file": "historial/historial_04.pdf",
+      "document_hash": "e572554434cd591f0696146418810d4406c11671c56545fdf71e7d750cebb9d5"
+    },
+    {
+      "id": "historial_05",
+      "invoice_number": "CR-114",
+      "file": "historial/historial_05.pdf",
+      "document_hash": "ce418752aec0149686c4ea09245c9da95b2d1e701f08016e28ca9f0a65477f78"
+    },
+    {
+      "id": "historial_06",
+      "invoice_number": "CR-116",
+      "file": "historial/historial_06.pdf",
+      "document_hash": "819f1ecd0484a008af2fefea47bb9c1818b5c66afb71c861f488f48423523c5e"
+    },
+    {
+      "id": "historial_07",
+      "invoice_number": "0451",
+      "file": "historial/historial_07.pdf",
+      "document_hash": "84ce9a549488dc94cc6196e6d7fe2f32037dbfb690464792eb349e5990a506a7"
+    },
+    {
+      "id": "historial_08",
+      "invoice_number": "0453",
+      "file": "historial/historial_08.pdf",
+      "document_hash": "4aec00f1107d5f02555096cfc924090274f87276fb9e082340f0ecfda054851e"
+    },
+    {
+      "id": "historial_09",
+      "invoice_number": "0455",
+      "file": "historial/historial_09.pdf",
+      "document_hash": "f63c2061b07fcb4ef7dc8e9471c8a35ad86945deb65913ea4b448626f4e73353"
+    },
+    {
+      "id": "historial_10",
+      "invoice_number": "2026-07-A",
+      "file": "historial/historial_10.pdf",
+      "document_hash": "36a38d0739a3fe5998ce7ce04726e783436ac538532f830682b4b0561af1e131"
+    },
+    {
+      "id": "historial_11",
+      "invoice_number": "2026-08-A",
+      "file": "historial/historial_11.pdf",
+      "document_hash": "c358a9b8da1216ae70993de2a6d30ff2f5fc5b9b548a7fe7abb069d250c0a985"
+    },
+    {
+      "id": "historial_12",
+      "invoice_number": "2026-09-A",
+      "file": "historial/historial_12.pdf",
+      "document_hash": "6d5d59945367677e46c2d4a7e40b0bb676c38f6e78051cf13a390690f698e307"
+    },
+    {
+      "id": "historial_13",
+      "invoice_number": "NF-1145",
+      "file": "historial/historial_13.pdf",
+      "document_hash": "e06c02384a80e08c7dfd87f335265d60bdad6fc9b0921581b35b1ef9766db602"
+    },
+    {
+      "id": "historial_14",
+      "invoice_number": "NF-1147",
+      "file": "historial/historial_14.pdf",
+      "document_hash": "6fac93a94029dd61344306651c0655f52a32bf4410d7b0e5804ad4f2d081e537"
+    },
+    {
+      "id": "historial_15",
+      "invoice_number": "NF-1149",
+      "file": "historial/historial_15.pdf",
+      "document_hash": "ad284b9f631b0480101f7843f3ff410d082b34f405d02883593f6f19472f4f4b"
+    },
+    {
+      "id": "historial_16",
+      "invoice_number": "INV-10350",
+      "file": "historial/historial_16.pdf",
+      "document_hash": "5e139878d904049cbaa27ffcfcde7860674b144afa1c99259538a07d61ea7675"
+    },
+    {
+      "id": "historial_17",
+      "invoice_number": "INV-10358",
+      "file": "historial/historial_17.pdf",
+      "document_hash": "d3345e9af2e6f4bbde6dad86224afc5c8730795290b30e94058e55f3387f1f36"
+    },
+    {
+      "id": "historial_18",
+      "invoice_number": "INV-10366",
+      "file": "historial/historial_18.pdf",
+      "document_hash": "4289b24af0cf5db16b9e78b1c6cae3923ad81c2e4414714b82e1fe26f035befe"
+    },
+    {
+      "id": "historial_19",
+      "invoice_number": "AH-5510",
+      "file": "historial/historial_19.pdf",
+      "document_hash": "d63216ed6bc0e15ffd2a32c5b54afd07b6db81a2c5beb30c39e340af6123a594"
+    },
+    {
+      "id": "historial_20",
+      "invoice_number": "AH-5520",
+      "file": "historial/historial_20.pdf",
+      "document_hash": "8fc2a3143c0a0a7d7d73a58c8a9e32f5415a6c305166473d369277c1bce72308"
+    },
+    {
+      "id": "historial_21",
+      "invoice_number": "AH-5530",
+      "file": "historial/historial_21.pdf",
+      "document_hash": "90af9ffd6b7634217c1ddf0839217328c513de4e3989c8ef684aaaa9cd000719"
+    },
+    {
+      "id": "historial_22",
+      "invoice_number": "AH-5535",
+      "file": "historial/historial_22.pdf",
+      "document_hash": "ef0f6a66c1207e0141a2ba8669bf552fb1a1bc955d14f0c1f8c5407ce0100467"
+    },
+    {
+      "id": "historial_23",
+      "invoice_number": "INV-10369",
+      "file": "historial/historial_23.pdf",
+      "document_hash": "a4827c066d36df222f7d57dfab4d4993916bcc42608ee410cbffd6fbce3351f9"
+    },
+    {
+      "id": "historial_24",
+      "invoice_number": "RE-2026-097",
+      "file": "historial/historial_24.pdf",
+      "document_hash": "e1c8617c1eecef39890d4f30f6b1a13523923c761b8e5a0478d15c3264be5ff1"
     }
   ]
 }

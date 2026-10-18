@@ -1,7 +1,7 @@
 import "./env";
 
 import { getConfig } from "@/src/config";
-import { loadDatasetSources } from "@/src/dataset";
+import { loadDatasetSources, loadDemoSeed } from "@/src/dataset";
 import { closeDatabase, createDatabase, runMigrations } from "@/src/db/client";
 import { loadSeedData, seedDatasetOrganization } from "@/src/db/seed";
 import { createUlidGenerator } from "@/src/domain";
@@ -21,7 +21,11 @@ async function main(): Promise<void> {
       console.warn(`La base ya tiene la empresa ${existing.name}; no se siembra de nuevo`);
       return;
     }
-    const [data, dataset] = await Promise.all([loadSeedData(), loadDatasetSources()]);
+    const [data, dataset, demo] = await Promise.all([
+      loadSeedData(),
+      loadDatasetSources(),
+      loadDemoSeed(),
+    ]);
     const result = await seedDatasetOrganization(db, {
       data,
       newId: createUlidGenerator(),
@@ -29,6 +33,7 @@ async function main(): Promise<void> {
       systemHardCapUsdCents: config.systemHardCapUsdCents,
       visitorId: null,
       history: dataset.history,
+      historyDocuments: demo.historyDocuments,
       committedUsdCents: dataset.manifest.october_committed_usd_cents,
       today: dataset.manifest.today,
     });
