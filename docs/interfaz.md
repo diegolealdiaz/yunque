@@ -198,7 +198,13 @@ Reglas                       Demo sin inicio de sesión · Firmas como [ Ana Tor
 
 ### 5.5 Métricas
 
-Seis tarjetas numéricas arriba y dos gráficos abajo. Las tarjetas: autonomía (decisiones correctas sin persona), falsos "pagar" (con el cero en grande), exactitud por campo, costo por factura, tiempo medio de decisión, pendientes más antiguos. Los gráficos: pagado por moneda contra presupuesto en el periodo, y reglas que más dispararon. Nada más. Cada número tiene un enlace a las facturas que lo componen.
+Tres bloques, con el estilo de un tablero: cifras en mono, nombres en mayúsculas pequeñas, filas separadas por líneas.
+
+- **Franja del periodo**, sin tarjeta: lo pagado en el periodo en grande, en el verde de pagar, con cuántas facturas. Al lado, en dos columnas: lo frenado y lo escalado (en USD y cuántas facturas), cuántas esperan a una persona (con la más antigua) y lo que queda del presupuesto.
+- **Cómo decide el agente**, en una tarjeta, medido sobre el lote con veredicto esperado: una píldora con cuántas facturas se midieron y los falsos "pagar" (en verde si son cero); cinco cifras en fila (autonomía, falsos "pagar", exactitud por campo, costo por factura, tiempo medio), y una tabla por tipo de caso: normales, trampas y adversariales, con qué prueba cada uno y cuántas acertó. Sin facturas medidas, la tarjeta lo dice y lleva a Facturas para procesar el lote.
+- **Dos gráficos**: presupuesto del periodo (comprometido contra el límite, por moneda) y reglas que más dispararon.
+
+Nada más. Cada número tiene un enlace a las facturas que lo componen, listadas abajo en la misma pantalla.
 
 ### 5.6 Bitácora
 
