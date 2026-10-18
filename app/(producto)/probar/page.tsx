@@ -97,6 +97,7 @@ export default async function ProbarPage() {
 
       <section
         aria-labelledby="propia"
+        data-tour="subir"
         className="grid gap-5 card p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]"
       >
         <div className="space-y-2">

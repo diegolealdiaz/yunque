@@ -132,7 +132,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             <AgentReview detail={detail} />
           </Column>
 
-          <Column title="Tu decisión" className="lg:col-start-2 lg:row-start-1 xl:col-start-3">
+          <Column
+            title="Tu decisión"
+            tour="decision"
+            className="lg:col-start-2 lg:row-start-1 xl:col-start-3"
+          >
             <DecisionPanel
               detail={detail}
               resolution={resolution}
@@ -290,16 +294,23 @@ function Column({
   title,
   aside = null,
   className = "",
+  tour,
   children,
 }: {
   readonly title: string;
   readonly aside?: string | null;
+  /** Valor de `data-tour`, si el recorrido guiado señala esta columna. */
+  readonly tour?: string;
   /** Posición en la rejilla según el ancho de pantalla. */
   readonly className?: string;
   readonly children: ReactNode;
 }) {
   return (
-    <section aria-label={title} className={`card min-w-0 space-y-4 p-5 ${className}`}>
+    <section
+      aria-label={title}
+      data-tour={tour}
+      className={`card min-w-0 space-y-4 p-5 ${className}`}
+    >
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
         {aside ? <span className="font-mono text-[11px] text-ink-3">{aside}</span> : null}

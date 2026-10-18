@@ -73,6 +73,7 @@ export function WhyCard({
   return (
     <section
       aria-label="Por qué"
+      data-tour="por-que"
       className={`grid gap-x-7 gap-y-5 rounded-[var(--radius-card)] border px-6 py-5.5 md:grid-cols-[minmax(0,1fr)_21rem] ${tone.box}`}
     >
       <div className="min-w-0 space-y-2.5">

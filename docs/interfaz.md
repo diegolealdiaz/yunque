@@ -239,14 +239,19 @@ La primera entrada de la barra lateral, para que un cliente entienda el producto
 
 ### 5.9 Recorrido guiado (solo en la demo)
 
-La primera vez que alguien entra, cuatro pasos sobre pantallas reales; cada uno lleva a su pantalla, enmarca lo que señala y oscurece lo demás:
+La primera vez que alguien entra, nueve pasos sobre pantallas reales explican la plataforma sin que nadie esté al lado. Cada paso lleva a su pantalla, enmarca lo que señala y oscurece lo demás; ninguno cambia datos.
 
-1. **Probar el agente**: "Empieza por aquí", sobre la galería. Va primero porque una empresa recién creada todavía no tiene nada en Pendientes.
-2. **Pendientes**: lo que espera tu decisión, con el porqué.
-3. **Reglas**: tú pones los límites, sobre el resumen de la política.
-4. **Bitácora**: todo queda escrito.
+1. **Bienvenida**, centrada: qué es Yunque, que se trabaja con una empresa de ejemplo sin dinero real, y los tres veredictos con su color (Pagar, Escalar, Frenar).
+2. **Probar el agente**: la galería, cada factura con una situación distinta.
+3. **Tu propia factura**: subirla, o enviarla por correo o Telegram desde "Probar con tu factura".
+4. **Pendientes**: solo lo que necesita a una persona, por vencimiento y con el motivo.
+5. **El porqué**: el detalle de una factura de la empresa (una que espera decisión; si no hay, una frenada), sobre la tarjeta "Por qué".
+6. **Tu decisión**: quién firma, el checklist, aprobar, corregir, rechazar o registrar al proveedor, y la doble firma.
+7. **Reglas**: límites, ver qué cambiaría antes de guardar y los cuatro interruptores.
+8. **Métricas**: autonomía, cero pagos indebidos, costo y tiempo.
+9. **Bitácora**: todo queda escrito; termina con dos acciones, procesar las facturas de ejemplo o probar con una propia.
 
-La tarjeta va debajo de lo señalado, encima o en una esquina, donde quepa; en el teléfono, abajo. "Saltar", Esc o "Listo" lo cierran y no vuelve a salir (se recuerda en el navegador); "Ver el recorrido", en la barra lateral, lo abre de nuevo. Con "reducir movimiento", sin animaciones.
+La tarjeta muestra el avance con una barra de pasos y va debajo de lo señalado, encima o en una esquina, donde quepa; en el teléfono, abajo. Se avanza y retrocede con los botones o las flechas del teclado; "Saltar", Esc o las acciones del final lo cierran y no vuelve a salir (se recuerda en el navegador); "Ver el recorrido", en la barra lateral, lo abre de nuevo. Por su cuenta solo se abre en las pantallas de entrada, nunca sobre un enlace directo. Con "reducir movimiento", sin animaciones.
 
 ## 6. Sistema visual
 
@@ -310,30 +315,27 @@ Cuando aparezca una duda que este documento no cubra, se responde en este orden:
 
 La portada pública vive en `/` y presenta el producto a quien llega por el enlace; el producto empieza en `/pendientes`. La portada no lee ni crea empresas: la empresa de ejemplo nace solo al entrar al producto con "Probar la demo", así un rastreador que abre la portada no llena la base.
 
-Se lee como un relato de venta, de arriba abajo: la promesa, la prueba, el problema, cómo se resuelve, el producto, por qué confiar y el cierre que repite la promesa.
+Es corta y muestra el producto de verdad: la promesa, la prueba con capturas reales, cómo funciona, la seguridad y el cierre. Las capturas (`public/producto`) se generan desde la demo con el lote de ejemplo procesado.
 
 1. **Aviso** sobre la barra: "Demo abierta", con cuántas facturas de ejemplo hay, y enlace a la demo.
-2. **Barra fija** con el nombre, tres anclas (Cómo funciona, Control, Preguntas), el selector de tema y un solo botón: "Probar la demo". Arriba del todo es transparente; al bajar toma fondo y borde.
-3. **Primer bloque, centrado.** Titular de velocidad con control ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Detrás, una rejilla fina y dos luces de marca.
-4. **Portal.** Un marco de anillos con el azul de marca y, al fondo, el agente decidiendo en bucle tres facturas reales del lote: Nube Andina F-2291 se paga, Camila Rojas CR-121 se frena por instrucciones escondidas en el documento y Andes Hardware AH-5560 se escala por superar el umbral. Cada una con sus controles (valor contra umbral, en mono) y su veredicto, que es el que el motor les da.
-5. **Cinta del lote**, de borde a borde: cada caso del lote de ejemplo con su veredicto y su motivo, y los totales por salida. Sale del manifiesto del dataset; si no se puede leer, la cinta no aparece.
-6. **El problema,** en una frase grande y tres dolores cortos: todo pasa por las mismas manos, un PDF basta para desviar un pago, nadie puede mostrar por qué se pagó.
-7. **Cómo funciona,** en tres pasos (llega, el agente la lee y la revisa, tú decides lo que importa), cada uno con su ilustración: los canales, los campos leídos con su confianza y los controles, y las tres salidas con los totales del lote y el checklist para aprobar.
-8. **Dónde trabaja:** tres tarjetas lado a lado, PDF o foto (subida o lote), correo y Telegram, cada una con un ejemplo de su canal. El relato no favorece un canal: cada factura sigue el mismo camino llegue por donde llegue.
-9. **El producto:** la bandeja de Pendientes en una ventana, con tres escaladas del lote.
-10. **Por qué Yunque:** cuatro bloques de solo texto (rápido donde no hace falta criterio, explicable, seguro por diseño, tus reglas y tu firma) y el botón.
-11. **Panel de control,** de borde a borde, con esquinas redondeadas y siempre en los tokens del tema oscuro (`.theme-dark`): las preguntas de quien controla los pagos se turnan en una píldora ("¿Quién aprobó este pago?", "¿Por qué se frenó esta factura?"…), y responde "Cada respuesta ya está escrita" con piezas del producto (bitácora que solo se agrega, ver qué cambiaría antes de guardar, interruptor, checklist, lo que Yunque nunca hace) y los datos: el cero de pagos indebidos en el set de regresión y las cifras que salen del código.
-12. **Preguntas** frecuentes, cortas, que se abren en el sitio.
-13. **Cierre** que repite la promesa del inicio, con el mismo botón, sobre un resplandor de marca.
+2. **Barra fija** con el nombre, cuatro anclas (Cómo funciona, Producto, Seguridad, Preguntas), el selector de tema y un solo botón: "Probar la demo". Arriba del todo es transparente; al bajar toma fondo y borde.
+3. **Primer bloque, centrado.** Titular ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Debajo, una captura real: una factura frenada porque su cuenta bancaria cambió, con el porqué. En el teléfono, solo la tarjeta del porqué.
+4. **Cinta del lote**, de borde a borde: cada caso del lote de ejemplo con su veredicto y su motivo, y los totales por salida. Sale del manifiesto del dataset; si no se puede leer, la cinta no aparece.
+5. **Cifras medidas:** cero pagos indebidos en el set de prueba, los controles de cada factura (del código), el tiempo y el costo por factura medidos.
+6. **Cómo funciona,** en tres tarjetas: recibe, lee y revisa, decide y explica.
+7. **El producto:** seis capturas reales con pestañas (Pendientes, el porqué, tu decisión, Reglas, Métricas y Bitácora), cada una con lo que resuelve.
+8. **Seguridad,** en el panel oscuro de borde a borde (`.theme-dark`): las preguntas de quien controla los pagos se turnan en una píldora y responde "Cada respuesta ya está escrita" con cuatro garantías (nunca paga fuera de tus reglas, doble firma, proveedores verificados, todo queda escrito) y lo que Yunque nunca hace.
+9. **Dónde trabaja:** tres tarjetas, PDF o foto, correo y Telegram, cada una con un ejemplo de su canal.
+10. **Preguntas** frecuentes, cortas, que se abren en el sitio.
+11. **Cierre** que repite la promesa del inicio, con el mismo botón, sobre un resplandor de marca.
 
 **Movimiento** (GSAP, en `app/_landing/motion.tsx`; las secciones solo marcan qué se anima):
 
-- **Entrada**, de unos 3 segundos: la barra baja, el titular sube línea por línea desde una máscara, luego el texto, los botones y el portal. Antes de hidratar, lo que la entrada muestra está oculto para que no parpadee; si la animación no arranca, se muestra solo a los 4 segundos.
-- **Portal**, en escritorio: la sección queda fija y, al bajar, los anillos se abren hacia afuera mientras la escena crece desde el fondo del túnel hasta llenar la pantalla. El agente decide en bucle solo mientras se ve: una franja lee la factura, los controles aparecen uno tras otro, luego el veredicto, y una barra por factura marca el avance.
-- **Al bajar**: el primer bloque se aleja; el problema se ilumina palabra por palabra; en "Cómo funciona" la ilustración queda fija y cambia con el paso que cruza el centro de la pantalla, unas pestañas fijas marcan ese paso y llevan a cualquiera, y una línea de avance se llena; el producto crece de 0,84 a 1; cada sección entra una vez con su titular por líneas y sus tarjetas escalonadas; las cifras cuentan hasta su valor y terminan en el texto exacto del servidor.
+- **Entrada**, de unos 3 segundos: la barra baja, el titular sube línea por línea desde una máscara, luego el texto, los botones y la captura. Lo que la entrada muestra está oculto desde la primera pintura (un script en línea en `<head>`, con el nonce, pone el velo antes de pintar) para que no aparezca, se oculte y vuelva a aparecer; si la animación no arranca, se muestra solo a los 4 segundos.
+- **Al bajar**: el primer bloque se aleja; cada sección entra una vez con su titular por líneas y sus tarjetas escalonadas.
 - **Cinta**: corre sola con CSS y se detiene bajo el puntero.
 - **Bajo el puntero**: botones y enlaces crecen un poco con un resorte corto y vuelven más rápido y sin rebote; las tarjetas se levantan 4 px y una luz de marca sigue al puntero.
 - **Menú del teléfono**: dos barras que se cruzan en una X moviendo sus puntas, un panel que entra desde la derecha con un resorte corto y filas escalonadas; sale hacia la derecha sin adornos. Esc cierra y devuelve el foco, Tab no sale del menú, la página no se desplaza detrás y al pasar a escritorio se cierra.
-- Con "reducir movimiento" no se anima nada y todo está en su estado final, que es el mismo con o sin animación: el portal muestra la escena completa, el agente la primera factura decidida, la cinta queda quieta y se desplaza a mano, y "Cómo funciona" cambia de ilustración sin transición. En el teléfono no hay secciones fijas: cada paso trae su ilustración debajo. Se animan transform, opacidad y el recorte del portal.
+- Con "reducir movimiento" no se anima nada y todo está en su estado final, que es el mismo con o sin animación; la cinta queda quieta y se desplaza a mano. Se animan transform y opacidad.
 
 Reglas de la portada: un solo botón primario, que siempre lleva al producto; ningún logo de clientes, testimonio ni cifra inventada; los casos que muestra son del lote de ejemplo y deciden como el motor los decide; nada que el código no haga hoy. Usa los mismos tokens, fuentes y componentes que el producto, en los dos temas.

@@ -184,7 +184,7 @@ function AgentCard({
   };
   const falsePay = metrics.false_pay.length;
   return (
-    <section aria-labelledby="agente-titulo" className="card p-5 sm:p-6">
+    <section aria-labelledby="agente-titulo" data-tour="metricas" className="card p-5 sm:p-6">
       <div className="flex flex-wrap items-center gap-3">
         <h2 id="agente-titulo" className="text-[19px] font-semibold text-ink">
           Cómo decide el agente

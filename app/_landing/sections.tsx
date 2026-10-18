@@ -106,7 +106,8 @@ export function Announcement({ sampleCount }: { readonly sampleCount: number }) 
 
 const NAV_LINKS = [
   { href: "#como-funciona", label: "Cómo funciona" },
-  { href: "#control", label: "Control" },
+  { href: "#producto", label: "Producto" },
+  { href: "#control", label: "Seguridad" },
   { href: "#preguntas", label: "Preguntas" },
 ] as const;
 
@@ -237,11 +238,151 @@ export function Hero() {
   );
 }
 
+/**
+ * Bajo el titular, el producto de verdad: una captura de la demo con una factura frenada
+ * porque su cuenta bancaria cambió, y el porqué en palabras. Entra con la animación de
+ * apertura.
+ */
+export function HeroShot() {
+  return (
+    <figure
+      data-intro="frame"
+      className="relative mx-auto -mt-2 max-w-5xl overflow-hidden rounded-[18px] border border-line bg-surface shadow-2xl shadow-black/15"
+    >
+      <div
+        aria-hidden="true"
+        className="flex items-center gap-1.5 border-b border-line bg-surface-sunken px-4 py-2.5"
+      >
+        <span className="size-2.5 rounded-full bg-line-strong" />
+        <span className="size-2.5 rounded-full bg-line-strong" />
+        <span className="size-2.5 rounded-full bg-line-strong" />
+        <span className="ml-3 font-mono text-[11px] text-ink-3">
+          yunque · factura YQ-2026-10-0020
+        </span>
+      </div>
+      {/* En el teléfono, solo la tarjeta del porqué: la pantalla entera no se leería. */}
+      <Image
+        src="/producto/por-que-movil.webp"
+        alt="Una factura frenada por Yunque: la cuenta bancaria cambió, con la explicación en palabras simples"
+        width={1200}
+        height={481}
+        priority
+        sizes="100vw"
+        className="block h-auto w-full sm:hidden"
+      />
+      <Image
+        src="/producto/por-que.webp"
+        alt="Una factura frenada por Yunque: la cuenta bancaria cambió, con la explicación en palabras simples y los datos leídos del documento"
+        width={1600}
+        height={1000}
+        priority
+        sizes="(min-width: 1024px) 1024px, 100vw"
+        className="hidden h-auto w-full sm:block"
+      />
+    </figure>
+  );
+}
+
+/**
+ * Las cifras que venden, medidas: cero pagos indebidos (la integración continua falla si
+ * aparece uno), los controles de cada factura y lo que cuesta y tarda cada decisión.
+ */
+export function Numbers({ ruleCount }: { readonly ruleCount: number }) {
+  const stats = [
+    {
+      value: "0",
+      label: "pagos indebidos",
+      detail: "en el set de prueba; si aparece uno, el cambio no entra",
+      hero: true,
+    },
+    {
+      value: String(ruleCount),
+      label: "controles",
+      detail: "revisan cada factura antes de decidir",
+      hero: false,
+    },
+    {
+      value: "5 s",
+      label: "por factura",
+      detail: "en promedio, de la llegada a la decisión",
+      hero: false,
+    },
+    {
+      value: "0,002",
+      label: "USD por factura",
+      detail: "lo que cuesta la lectura con IA, medido",
+      hero: false,
+    },
+  ];
+  return (
+    <section aria-label="Cifras medidas" data-reveal className="py-4">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[18px] border border-line bg-line lg:grid-cols-4">
+        {stats.map((stat) => (
+          <div key={stat.label} data-reveal-item className="bg-surface px-4 py-6 sm:px-6 sm:py-7">
+            <dt className="sr-only">{stat.label}</dt>
+            <dd>
+              <p
+                className={`num font-mono text-[34px] leading-none font-bold tracking-tight sm:text-[44px] ${stat.hero ? "hero-figure" : "text-ink"}`}
+              >
+                {stat.value}
+              </p>
+              <p className="mt-3 text-[15px] font-semibold text-ink">{stat.label}</p>
+              <p className="mt-1 text-[13px] leading-snug text-ink-3">{stat.detail}</p>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+const STEPS = [
+  {
+    n: "01",
+    title: "Recibe",
+    body: "Por PDF, foto, correo o Telegram, sin portales nuevos para tus proveedores. Una misma factura nunca se procesa dos veces.",
+  },
+  {
+    n: "02",
+    title: "Lee y revisa",
+    body: "La IA solo lee: cada dato con su cita en el documento. Después, controles fijos revisan proveedor, cuenta, monto, presupuesto, duplicados e instrucciones ocultas.",
+  },
+  {
+    n: "03",
+    title: "Decide y explica",
+    body: "Paga lo que cumple, frena lo sospechoso y te pasa lo que necesita criterio, con el porqué en palabras simples.",
+  },
+] as const;
+
+/** Cómo funciona, en tres pasos; el último muestra los tres veredictos. */
+export function Steps() {
+  return (
+    <ol className="grid gap-4 lg:grid-cols-3">
+      {STEPS.map((step, i) => (
+        <li key={step.n} data-reveal-item className="card card-lift spotlight p-7">
+          <p className="font-mono text-[13px] text-brand">{step.n}</p>
+          <h3 className="mt-3 text-[22px] font-bold tracking-tight text-ink">{step.title}</h3>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{step.body}</p>
+          {i === STEPS.length - 1 ? (
+            <p className="mt-5 flex flex-wrap gap-2 text-[12px] font-semibold">
+              <span className="rounded-full bg-pay-tint px-2.5 py-1 text-pay">Pagar</span>
+              <span className="rounded-full bg-escalate-tint px-2.5 py-1 text-escalate">
+                Escalar
+              </span>
+              <span className="rounded-full bg-hold-tint px-2.5 py-1 text-hold">Frenar</span>
+            </p>
+          ) : null}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 const CHANNELS = [
   {
     name: "PDF o foto",
     title: "Súbela desde la pantalla.",
-    body: "Arrastra el PDF o la foto de la factura, o procesa de una vez el lote del periodo. El agente lee la página aunque no tenga capa de texto.",
+    body: "Arrastra el PDF o la foto, o procesa de una vez el lote del periodo. Lee también escaneos sin texto.",
     sample: [
       ["Archivo", "AH-5560.pdf"],
       ["Lectura", "cada campo con su cita"],
@@ -251,7 +392,7 @@ const CHANNELS = [
   {
     name: "Correo",
     title: "Reenvía la factura y listo.",
-    body: "Cada empresa tiene su dirección. El agente lee el adjunto o el cuerpo del correo, y una misma entrega nunca se procesa dos veces.",
+    body: "Cada empresa tiene su dirección: el agente lee el adjunto o el cuerpo del correo.",
     sample: [
       ["De", "facturacion@nubeandina.example"],
       ["Asunto", "Factura F-2291 · octubre"],
@@ -261,7 +402,7 @@ const CHANNELS = [
   {
     name: "Telegram",
     title: "Una foto desde el teléfono.",
-    body: "Manda la factura al bot de tu empresa y recibe en el mismo chat el aviso de cada decisión importante, con su motivo.",
+    body: "Manda la factura al bot y recibe en el mismo chat el aviso de cada decisión, con su motivo.",
     sample: [
       ["Tú", "foto · factura-andes.jpg"],
       ["Yunque", "Escalada: supera el umbral"],
@@ -270,7 +411,7 @@ const CHANNELS = [
   },
 ] as const;
 
-/** Dónde vive el agente: dos tarjetas lado a lado, cada una con un ejemplo de su canal. */
+/** Dónde vive el agente: tres tarjetas lado a lado, cada una con un ejemplo de su canal. */
 export function Channels() {
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -293,147 +434,51 @@ export function Channels() {
   );
 }
 
-const WHY = [
+const GUARANTEES = [
   {
-    title: "Rápido donde no hace falta criterio",
-    body: "Lo que cumple se paga sin esperar a nadie. Tu equipo mira solo las facturas que de verdad lo necesitan.",
+    title: "Nunca paga fuera de tus reglas",
+    body: "La IA solo lee; las reglas deciden. Lo que diga una factura puede endurecer una decisión, nunca ablandarla. Por encima del umbral, siempre decide una persona.",
   },
   {
-    title: "Explicable de punta a punta",
-    body: "Cada decisión dice qué regla aplicó, con qué valor y contra qué umbral, en palabras que entiende cualquiera.",
+    title: "Doble firma",
+    body: "Aflojar una regla, volver a encender los pagos o registrar un proveedor nuevo lo confirma otra persona. Cada empresa decide si la usa.",
   },
   {
-    title: "Seguro por diseño",
-    body: "El modelo solo lee; las reglas deciden. Lo que diga el documento puede endurecer un veredicto, nunca ablandarlo.",
+    title: "Proveedores verificados",
+    body: "Una cuenta distinta de la registrada se frena. Un proveedor nuevo se registra desde su factura, y una cuenta conocida con otro nombre se bloquea.",
   },
   {
-    title: "Tus reglas, tu firma",
-    body: "La política es tuya, por versiones y firmada. Antes de guardar un cambio ves qué facturas cambiarían.",
+    title: "Todo queda escrito",
+    body: "Cada decisión con su regla, su valor y su umbral, y quién aprobó. Antes de guardar un cambio ves qué facturas cambiarían. Nada se edita ni se borra.",
   },
-] as const;
-
-/** Por qué Yunque: cuatro bloques de solo texto, como un cierre de argumento. */
-export function Why() {
-  return (
-    <div>
-      <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
-        {WHY.map((item) => (
-          <div key={item.title} data-reveal-item className="border-t border-line-strong pt-5">
-            <h3 className="text-[18px] font-bold tracking-tight text-ink">{item.title}</h3>
-            <p className="mt-3 text-[14px] leading-relaxed text-ink-2">{item.body}</p>
-          </div>
-        ))}
-      </div>
-      <div data-reveal-item className="mt-12 flex justify-center">
-        <DemoButton size="lg" />
-      </div>
-    </div>
-  );
-}
-
-const AUDIT = [
-  { at: "09:12:04", what: "Recibida", detail: "correo" },
-  { at: "09:12:06", what: "Leída", detail: "con cita y confianza" },
-  { at: "09:12:06", what: "Escalada", detail: "payee_not_allowed" },
-  { at: "09:31:40", what: "Aprobada", detail: "Ana Torres" },
 ] as const;
 
 const NEVER = [
   "Pagar por encima del tope absoluto del sistema, ni aunque la política lo permita.",
-  "Pagar a una cuenta distinta de la registrada: esa factura se frena.",
-  "Seguir instrucciones escritas dentro de una factura.",
-  "Ejecutar el pago: deja la orden preparada en el formato de tu plataforma.",
+  "Seguir instrucciones escritas dentro de una factura o de su correo.",
+  "Ejecutar el pago: deja la orden preparada para tu plataforma de pagos.",
 ] as const;
 
-export function Control() {
+/** Seguridad: cuatro garantías y lo que Yunque nunca hace, dentro del panel oscuro. */
+export function Guarantees() {
   return (
-    <div className="grid gap-4 lg:grid-cols-6">
-      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-3">
-        <h3 className="text-[18px] font-bold tracking-tight text-ink">
-          Cada decisión, con su regla
-        </h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-          Qué leyó, qué control falló, con qué valor y contra qué umbral. La bitácora solo se
-          agrega: nada se edita ni se borra.
-        </p>
-        <ul className="mt-5 divide-y divide-line rounded-[12px] border border-line bg-surface-sunken font-mono text-[12px]">
-          {AUDIT.map((row) => (
-            <li key={`${row.at}-${row.what}`} className="flex items-center gap-4 px-4 py-2.5">
-              <span className="text-ink-3">{row.at}</span>
-              <span className="w-20 font-semibold text-ink">{row.what}</span>
-              <span className="truncate text-ink-2">{row.detail}</span>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 flex items-center gap-1.5 text-[12px] text-ink-3">
-          <LockIcon /> Solo se agrega
-        </p>
-      </article>
-
-      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-3">
-        <h3 className="text-[18px] font-bold tracking-tight text-ink">
-          Ve qué cambiaría antes de guardar
-        </h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-          Cambiar una regla reevalúa las facturas que ya pasaron. Ves el efecto, y una persona
-          aprobadora firma la versión nueva.
-        </p>
-        <div className="mt-5 rounded-[12px] border border-line bg-surface-sunken p-4">
-          <p className="flex items-center justify-between text-[13px]">
-            <span className="text-ink-2">Umbral de aprobación</span>
-            <span className="num font-mono text-ink">
-              <span className="text-ink-3 line-through">5,000.00</span> → 2,000.00 USD
+    <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {GUARANTEES.map((item) => (
+          <article key={item.title} data-reveal-item className="card card-lift spotlight p-6">
+            <span className="inline-flex size-8 items-center justify-center rounded-full bg-brand-tint text-brand">
+              <CheckIcon className="size-4" />
             </span>
-          </p>
-          <div className="mt-4 space-y-2 text-[13px]">
-            <p className="flex items-center justify-between rounded-[8px] bg-escalate-tint px-3 py-2">
-              <span className="text-ink">3 facturas</span>
-              <span className="font-semibold text-escalate">Pagar → Escalar</span>
-            </p>
-            <p className="flex items-center justify-between rounded-[8px] bg-surface px-3 py-2">
-              <span className="text-ink">26 facturas</span>
-              <span className="text-ink-3">sin cambio</span>
-            </p>
-          </div>
-        </div>
-      </article>
-
-      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-2">
-        <h3 className="text-[18px] font-bold tracking-tight text-ink">Interruptor de emergencia</h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-          Un clic apaga los pagos. El agente sigue leyendo y avisando, pero nada se paga.
-        </p>
-        <div className="mt-5 flex items-center justify-between rounded-[12px] border border-line bg-surface-sunken px-4 py-3 text-[13px]">
-          <span className="text-ink">Pagos</span>
-          <span className="inline-flex items-center gap-2 rounded-full border border-line-strong px-2 py-1">
-            <span className="size-4 rounded-full bg-ink" />
-            <span className="pr-1 font-medium text-ink">Encendidos</span>
-          </span>
-        </div>
-      </article>
-
-      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-2">
-        <h3 className="text-[18px] font-bold tracking-tight text-ink">Aprobar es un acto</h3>
-        <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
-          El botón se habilita cuando marcas lo que verificaste. Lo que firmas queda escrito.
-        </p>
-        <ul className="mt-5 space-y-2 text-[13px]">
-          <li className="flex gap-2.5">
-            <span className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-[4px] bg-brand text-on-brand">
-              <CheckIcon className="size-3" />
-            </span>
-            <span className="text-ink">Confirmé la cuenta con el beneficiario</span>
-          </li>
-          <li className="flex gap-2.5">
-            <span className="mt-0.5 size-4 shrink-0 rounded-[4px] border border-control" />
-            <span className="text-ink-2">Revisé el monto en el documento</span>
-          </li>
-        </ul>
-      </article>
-
-      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-2">
-        <h3 className="text-[18px] font-bold tracking-tight text-ink">Lo que Yunque nunca hace</h3>
-        <ul className="mt-4 space-y-3 text-[13px] leading-relaxed">
+            <h3 className="mt-4 text-[17px] font-bold tracking-tight text-ink">{item.title}</h3>
+            <p className="mt-2 text-[14px] leading-relaxed text-ink-2">{item.body}</p>
+          </article>
+        ))}
+      </div>
+      <article data-reveal-item className="card p-6">
+        <h3 className="flex items-center gap-2 text-[15px] font-bold text-ink">
+          <LockIcon /> Lo que Yunque nunca hace
+        </h3>
+        <ul className="mt-3 grid gap-3 text-[13px] leading-relaxed md:grid-cols-3">
           {NEVER.map((line) => (
             <li key={line} className="flex gap-2.5 text-ink-2">
               <span className="mt-0.5 shrink-0 text-hold-solid">
@@ -506,47 +551,6 @@ export function ControlPanel({ children }: { readonly children: ReactNode }) {
   );
 }
 
-export function Proof({
-  ruleCount,
-  sampleCount,
-}: {
-  readonly ruleCount: number;
-  readonly sampleCount: number;
-}) {
-  const stats = [
-    { value: String(ruleCount), label: "controles por factura" },
-    { value: String(sampleCount), label: "casos de ejemplo para probarlo" },
-    { value: "4", label: "canales de entrada: PDF, foto, correo y Telegram" },
-  ];
-  return (
-    <div
-      data-reveal-item
-      className="card grid gap-8 p-8 md:grid-cols-[1.3fr_1fr_1fr_1fr] md:items-end"
-    >
-      <div>
-        <p className="hero-figure num font-mono text-[72px] leading-none font-bold tracking-tight">
-          0
-        </p>
-        <p className="mt-3 text-[14px] leading-relaxed text-ink-2">
-          pagos indebidos en el set de regresión. Si aparece uno, la integración continua falla y el
-          cambio no entra.
-        </p>
-      </div>
-      {stats.map((stat) => (
-        <div key={stat.label}>
-          <p
-            data-count-to={stat.value}
-            className="num font-mono text-[40px] leading-none font-semibold tracking-tight text-ink"
-          >
-            {stat.value}
-          </p>
-          <p className="mt-3 text-[13px] leading-relaxed text-ink-3">{stat.label}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 const FAQ = [
   {
     q: "¿La demo paga de verdad?",
@@ -558,7 +562,11 @@ const FAQ = [
   },
   {
     q: "¿Quién puede cambiar las reglas?",
-    a: "Solo las personas aprobadoras de la política. Cada cambio es una versión firmada y, antes de guardarla, se ve qué facturas cambiarían de veredicto.",
+    a: "Solo las personas aprobadoras de la política. Cada cambio es una versión firmada y, antes de guardarla, se ve qué facturas cambiarían. Con la doble firma, un cambio que afloja una regla lo confirma otra persona.",
+  },
+  {
+    q: "¿Y si la factura es de un proveedor nuevo?",
+    a: "No se paga sola: llega a Pendientes con el motivo. Ahí mismo una persona registra al proveedor con los datos de la factura, y con la doble firma otra lo verifica. Desde entonces, sus facturas se pagan solas dentro de las reglas.",
   },
   {
     q: "¿Puedo probar con mi propia factura?",

@@ -6,23 +6,22 @@ import { RULES } from "@/src/domain/rules";
 
 import { loadSampleBatch } from "./_landing/cases";
 import { LandingMotion } from "./_landing/motion";
-import { Portal } from "./_landing/portal";
-import { ProductFrame } from "./_landing/product-frame";
 import {
   Announcement,
   Channels,
-  Control,
   ControlPanel,
   Faq,
   FinalCall,
+  Guarantees,
   Hero,
+  HeroShot,
   LandingFooter,
   LandingNav,
-  Proof,
+  Numbers,
   Section,
-  Why,
+  Steps,
 } from "./_landing/sections";
-import { HowItWorks, Problem } from "./_landing/story";
+import { ProductShowcase } from "./_landing/showcase";
 import { Ticker } from "./_landing/ticker";
 
 export const metadata: Metadata = {
@@ -32,12 +31,12 @@ export const metadata: Metadata = {
 };
 
 /**
- * Portada pública (docs/interfaz.md §11). Presenta el producto como un relato y lleva a
- * probarlo: la promesa, el agente decidiendo, lo que decidió con el lote de ejemplo, el
- * problema, cómo funciona, el producto, el control y el cierre. No lee ni crea empresas: la
- * empresa de ejemplo nace al entrar al producto con "Probar la demo". Las cifras salen del
- * código y del manifiesto del dataset. El movimiento vive en `LandingMotion`; las secciones
- * solo lo marcan.
+ * Portada pública (docs/interfaz.md §11). Corta y con el producto de verdad: la promesa con
+ * una captura real, lo que decidió el lote de ejemplo, las cifras medidas, cómo funciona en
+ * tres pasos, el producto en capturas, la seguridad, los canales y el cierre. No lee ni crea
+ * empresas: la empresa de ejemplo nace al entrar al producto con "Probar la demo". Las cifras
+ * salen del código y del manifiesto del dataset. El movimiento vive en `LandingMotion`; las
+ * secciones solo lo marcan.
  */
 export default async function Home() {
   // Por petición, no prerenderizada: la política de seguridad exige el nonce de cada respuesta
@@ -55,40 +54,43 @@ export default async function Home() {
       <LandingNav />
       <main id="contenido" className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
         <Hero />
-        <Portal />
+        <HeroShot />
         {batch ? <Ticker batch={batch} /> : null}
-        <div className="space-y-32 py-32">
-          <Problem />
+        <div className="space-y-28 py-24">
+          <Numbers ruleCount={ruleCount} />
           <Section
             id="como-funciona"
             eyebrow="Cómo funciona"
             title="De la factura a la decisión, en segundos."
-            lead="Llegue por correo, por Telegram, en PDF o en foto, cada factura sigue el mismo camino. Tu equipo deja de revisar las que cumplen y dedica su tiempo a las que necesitan criterio."
+            lead="Tu equipo deja de revisar las facturas que cumplen y dedica su tiempo a las que necesitan criterio."
           >
-            <HowItWorks ruleCount={ruleCount} counts={batch?.counts ?? null} />
+            <Steps />
           </Section>
           <Section
-            eyebrow="Dónde trabaja"
-            title="Tu agente, en los canales que ya usas."
-            lead="Sin portales nuevos para tus proveedores: la factura llega como hoy y el agente la toma de ahí."
+            id="producto"
+            eyebrow="El producto"
+            title="Así se ve por dentro."
+            lead="Capturas reales de la demo, con las 33 facturas de ejemplo ya decididas."
           >
-            <Channels />
-          </Section>
-          <ProductFrame />
-          <Section eyebrow="Por qué Yunque" title="Automatizar pagos sin perder el control.">
-            <Why />
+            <ProductShowcase />
           </Section>
         </div>
         <ControlPanel>
-          <Control />
-          <Proof ruleCount={ruleCount} sampleCount={sampleCount} />
+          <Guarantees />
         </ControlPanel>
-        <div className="pt-32">
+        <div className="space-y-28 pt-28">
+          <Section
+            eyebrow="Dónde trabaja"
+            title="En los canales que ya usas."
+            lead="La factura llega como hoy y el agente la toma de ahí."
+          >
+            <Channels />
+          </Section>
           <Section id="preguntas" eyebrow="Preguntas" title="Lo que suelen preguntar.">
             <Faq />
           </Section>
-          {sampleCount > 0 ? <FinalCall sampleCount={sampleCount} /> : null}
         </div>
+        {sampleCount > 0 ? <FinalCall sampleCount={sampleCount} /> : null}
       </main>
       <LandingFooter />
     </LandingMotion>
