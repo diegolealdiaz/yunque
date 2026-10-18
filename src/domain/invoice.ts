@@ -77,6 +77,20 @@ export function receiptKeyFor(channel: Channel, id: string): ReceiptKey {
   return ReceiptKeySchema.parse(`${channel}:${safe}`);
 }
 
+/**
+ * Patrones (SQL LIKE) de llaves de recepción que NO cuestan una lectura del modelo y por eso
+ * no cuentan contra el tope global de facturas de la demo, que existe para acotar ese costo:
+ * - `batch:%` y `seed:%`: las facturas de ejemplo del lote y el historial sembrado.
+ * - `inbox:h-%`: la bandeja de ejemplo. Su Message-ID (`<id@bandeja.yunque.example>`) trae
+ *   caracteres no seguros y `receiptKeyFor` lo hashea con prefijo `h-`. El correo real nunca
+ *   cae aquí: su Message-ID solo admite `[A-Za-z0-9-]`, así que su llave es siempre `inbox:pm-`.
+ *
+ * Todos se leen de una caché persistente o ya están en base, así que nadie puede agotar con
+ * ellos el cupo de los canales que sí cuestan (subida, API, correo y Telegram reales). El tope
+ * por visitante sí los cuenta, para que nadie llene su propia empresa.
+ */
+export const UNCOUNTED_RECEIPT_KEY_PATTERNS = ["batch:%", "seed:%", "inbox:h-%"] as const;
+
 export const FileStateSchema = z.enum(["pendiente", "subida"]);
 
 const MAX_CHANNEL_META_KEYS = 50;
