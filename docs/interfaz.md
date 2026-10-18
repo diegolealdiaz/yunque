@@ -228,6 +228,15 @@ Con el estilo de tablero de Métricas: arriba, una tarjeta con cuántos eventos 
 
 Página mínima: base, política cargada, proveedor del modelo, antigüedad del pendiente más viejo, escaladas abiertas, notificaciones fallidas. Verde o rojo por fila. Es lo que responde `/api/health`, en pantalla.
 
+### 5.8 Probar el agente (solo en la demo)
+
+La primera entrada de la barra lateral, para que un cliente entienda el producto eligiendo qué probar en vez de procesar 33 facturas de golpe.
+
+- **Galería de seis facturas del lote**, cada una en una tarjeta con su miniatura (la primera página, generada con el dataset en `public/muestras/`), una frase de qué trae y de quién es: una normal, otra cuenta bancaria, un correo que dice que el CFO ya la aprobó, más de lo que el agente paga solo, texto oculto y un nombre casi igual al de un proveedor. La tarjeta dice qué trae, nunca el resultado.
+- **"Ver qué decide"** la procesa por el mismo camino que el lote (`/api/lote`, misma llave) y abre su detalle, donde está el porqué. La que ya se probó, aquí o con el lote completo, muestra su veredicto y "Ver por qué".
+- Son casos cuyo veredicto no depende del orden: cualquiera, primero o último, decide lo mismo que en el lote (P-146).
+- **"O sube la tuya"**, abajo: la misma subida de Facturas, con una advertencia antes de subir: el proveedor de una factura propia no está registrado en la empresa de ejemplo, así que el agente la pasa a una persona en vez de pagarla.
+
 ## 6. Sistema visual
 
 | Elemento | Decisión |
