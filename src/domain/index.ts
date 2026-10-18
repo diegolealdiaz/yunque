@@ -24,6 +24,7 @@ export * from "./invoice";
 export * from "./llm-call";
 export * from "./money";
 export * from "./notification";
+export * from "./payment-request";
 export * from "./policy";
 export * from "./rules";
 export * from "./telegram";

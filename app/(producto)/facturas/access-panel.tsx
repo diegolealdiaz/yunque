@@ -2,14 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { z } from "zod";
 
 import { errorMessage } from "./api-responses";
 
 /**
- * Probar con tu factura (D23, D24): los canales reales de la demo para los clientes. Sin
- * acceso, pide el código que recibieron; con él, muestra la dirección de correo personal y
- * el botón para conectar Telegram. Las facturas que lleguen aparecen en la lista como
- * cualquier otra, por su canal.
+ * Probar con tu factura (D23, D24, D32): los canales reales de la demo para los clientes. Sin
+ * acceso, pide el código que recibieron; con él, muestra la dirección de correo personal, el
+ * botón para conectar Telegram y la llave para que su propio agente consulte la API de
+ * decisión. Las facturas que lleguen aparecen en la lista como cualquier otra, por su canal.
  */
 
 export type ClientAccess = {
@@ -19,7 +20,28 @@ export type ClientAccess = {
   readonly email: { readonly address: string | null; readonly maxPerDay: number } | null;
   /** Telegram encendido: cuántos chats tiene conectados la empresa. */
   readonly telegram: { readonly chats: number; readonly maxPerDay: number } | null;
+  /** URL pública de la app para el ejemplo de la API; null usa la de la pestaña. */
+  readonly apiUrl: string | null;
 };
+
+/** La llave recién generada: se muestra esta única vez. */
+const IssuedKeySchema = z.object({ key: z.string(), expiresAt: z.string() });
+type IssuedKey = z.infer<typeof IssuedKeySchema> & {
+  /** Llave de idempotencia del ejemplo, nueva cada vez: reusar una con otros datos da error. */
+  readonly sampleKey: string;
+};
+
+/** Una solicitud de ejemplo, lista para pegar en una terminal. */
+function curlExample(baseUrl: string, issued: IssuedKey): string {
+  return [
+    `curl ${baseUrl}/api/decide \\`,
+    `  -H "Authorization: Bearer ${issued.key}" \\`,
+    `  -H "Content-Type: application/json" \\`,
+    `  -d '{"idempotency_key":"${issued.sampleKey}","payee_name":"Proveedor S.A.S.",`,
+    `       "invoice_number":"F-001","currency":"USD","total":"1200.00",`,
+    `       "bank_account":"0012-3456-7890","due_date":"2026-11-15"}'`,
+  ].join("\n");
+}
 
 async function post(url: string, body: unknown): Promise<{ ok: boolean; json: unknown }> {
   const response = await fetch(url, {
@@ -45,8 +67,9 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const [issued, setIssued] = useState<IssuedKey | null>(null);
 
   async function run(action: () => Promise<{ ok: boolean; json: unknown }>, fallback: string) {
     setBusy(true);
@@ -93,13 +116,20 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
     }
   }
 
-  async function copy(address: string) {
+  async function issueKey() {
+    const json = await run(() => post("/api/acceso/llave", {}), "No se pudo generar la llave.");
+    const parsed = IssuedKeySchema.safeParse(json);
+    if (parsed.success) setIssued({ ...parsed.data, sampleKey: `prueba-${String(Date.now())}` });
+  }
+
+  /** Copia un texto y marca qué se copió, para que solo ese botón diga «Copiada». */
+  async function copy(what: string, value: string) {
     try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(value);
+      setCopied(what);
+      setTimeout(() => setCopied(null), 2000);
     } catch {
-      setCopied(false);
+      setCopied(null);
     }
   }
 
@@ -114,8 +144,8 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
       <form onSubmit={unlock} className="space-y-3 text-[13px]">
         <p className="text-ink-2">
           Envía una factura real desde tu correo
-          {access.telegram ? " o por Telegram" : ""} y mira cómo la decide el agente. Esta opción es
-          para los clientes: escribe el código de acceso que recibiste.
+          {access.telegram ? ", por Telegram" : ""} o desde tu propio agente, y mira cómo la decide
+          Yunque. Esta opción es para los clientes: escribe el código de acceso que recibiste.
         </p>
         <label htmlFor={codeId} className="block text-[12px] text-ink-3">
           Código de acceso
@@ -161,10 +191,10 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
                 </code>
                 <button
                   type="button"
-                  onClick={() => void copy(access.email?.address ?? "")}
+                  onClick={() => void copy("email", access.email?.address ?? "")}
                   className="h-8 shrink-0 rounded-[var(--radius-control)] border border-control px-3 font-medium"
                 >
-                  {copied ? "Copiada" : "Copiar"}
+                  {copied === "email" ? "Copiada" : "Copiar"}
                 </button>
               </div>
               <p className="text-[12px] text-ink-3">
@@ -220,6 +250,44 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
           </p>
         </Section>
       ) : null}
+      <Section title="Conectar tu agente">
+        <p className="text-ink-2">
+          Tu propio agente le pregunta a Yunque antes de pagar y recibe pagar, frenar o escalar, con
+          su porqué. Lo que escala te espera aquí, como cualquier factura.
+        </p>
+        {issued ? (
+          <>
+            <div className="flex items-center gap-2">
+              <code className="min-w-0 flex-1 truncate rounded-[var(--radius-control)] border border-line bg-surface-sunken px-2.5 py-1.5 font-mono text-[12px] text-ink select-all">
+                {issued.key}
+              </code>
+              <button
+                type="button"
+                onClick={() => void copy("key", issued.key)}
+                className="h-8 shrink-0 rounded-[var(--radius-control)] border border-control px-3 font-medium"
+              >
+                {copied === "key" ? "Copiada" : "Copiar"}
+              </button>
+            </div>
+            <p className="text-[12px] text-ink-3">
+              Guárdala ahora: no se vuelve a mostrar. Vence con tu acceso, y generar otra anula
+              esta.
+            </p>
+            <pre className="overflow-x-auto rounded-[var(--radius-control)] border border-line bg-surface-sunken px-2.5 py-2 font-mono text-[11px] leading-relaxed text-ink">
+              {curlExample(access.apiUrl ?? window.location.origin, issued)}
+            </pre>
+          </>
+        ) : (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void issueKey()}
+            className="h-8 rounded-[var(--radius-control)] border border-control px-3 font-medium"
+          >
+            Generar llave
+          </button>
+        )}
+      </Section>
       {failure}
     </div>
   );

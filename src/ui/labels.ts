@@ -4,6 +4,7 @@ import type {
   Channel,
   EventType,
   ExtractedFieldName,
+  FieldSource,
   FindingCode,
   InvoiceStatus,
   Rail,
@@ -107,6 +108,12 @@ export const ARRIVAL_LABEL: Readonly<Record<Channel, string>> = {
   inbox: "Llegó por correo",
   telegram: "Llegó por Telegram",
   api: "Llegó por la API",
+};
+
+/** Marca junto a un campo que no leyó el modelo: lo escribió una persona o lo mandó un agente. */
+export const FIELD_SOURCE_CHIP: Readonly<Record<Exclude<FieldSource, "modelo">, string>> = {
+  humano: "a mano",
+  api: "por API",
 };
 
 /** Título de los hallazgos de sistema, que no son reglas del catálogo. */

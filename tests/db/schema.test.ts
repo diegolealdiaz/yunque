@@ -18,7 +18,7 @@ const tableNames = Object.values(schema)
   .filter((v) => is(v, SQLiteTable))
   .map((t) => getTableName(t));
 
-const MIGRATIONS = 11;
+const MIGRATIONS = 12;
 
 /** Única tabla sin organization_id (D14): la caché por contenido lleva `scope` en su lugar. */
 const SCOPED_BY_CONTENT = "extraction_cache";
@@ -76,6 +76,8 @@ describe("migraciones y esquema (P-40, P-41)", () => {
       "consumeTelegramLink",
       "findTelegramChat",
       "findTelegramUpdate",
+      // API de decisión (D32): la llave llega sin empresa y su huella la encuentra.
+      "findApiKeyByHash",
       // Despliegue: el cron recorre las empresas con avisos atrasados y el tope de visitantes
       // cuenta las empresas de ejemplo del día. Solo devuelven ids o un número.
       "listOrganizationsWithDueNotifications",

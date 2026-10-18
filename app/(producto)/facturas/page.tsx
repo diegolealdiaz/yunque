@@ -145,6 +145,7 @@ export default async function FacturasPage({
       telegram && telegramStatus
         ? { chats: telegramStatus.chats, maxPerDay: telegram.maxPerChatPerDay }
         : null,
+    apiUrl: config.publicAppUrl,
   };
   const counts = countByVerdict(all);
   const rows = narrowByVerdict(all, filters.veredicto ?? null);
@@ -167,7 +168,8 @@ export default async function FacturasPage({
         }
         actions={
           <>
-            {accessEnabled && (inbound || telegram) ? (
+            {/* Con el acceso configurado siempre está la API de decisión (D32). */}
+            {accessEnabled ? (
               <ActionDialog label="Probar con tu factura">
                 <AccessPanel access={clientAccess} />
               </ActionDialog>
