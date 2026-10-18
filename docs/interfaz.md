@@ -237,6 +237,17 @@ La primera entrada de la barra lateral, para que un cliente entienda el producto
 - Son casos cuyo veredicto no depende del orden: cualquiera, primero o último, decide lo mismo que en el lote (P-146).
 - **"O sube la tuya"**, abajo: la misma subida de Facturas, con una advertencia antes de subir: el proveedor de una factura propia no está registrado en la empresa de ejemplo, así que el agente la pasa a una persona en vez de pagarla.
 
+### 5.9 Recorrido guiado (solo en la demo)
+
+La primera vez que alguien entra, cuatro pasos sobre pantallas reales; cada uno lleva a su pantalla, enmarca lo que señala y oscurece lo demás:
+
+1. **Probar el agente**: "Empieza por aquí", sobre la galería. Va primero porque una empresa recién creada todavía no tiene nada en Pendientes.
+2. **Pendientes**: lo que espera tu decisión, con el porqué.
+3. **Reglas**: tú pones los límites, sobre el resumen de la política.
+4. **Bitácora**: todo queda escrito.
+
+La tarjeta va debajo de lo señalado, encima o en una esquina, donde quepa; en el teléfono, abajo. "Saltar", Esc o "Listo" lo cierran y no vuelve a salir (se recuerda en el navegador); "Ver el recorrido", en la barra lateral, lo abre de nuevo. Con "reducir movimiento", sin animaciones.
+
 ## 6. Sistema visual
 
 | Elemento | Decisión |
