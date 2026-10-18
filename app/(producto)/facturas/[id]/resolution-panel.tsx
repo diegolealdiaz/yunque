@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import type { ChecklistItem } from "@/src/domain";
+import type { PendingVendor, VendorDraft } from "@/src/usecases";
 
 import { ActionDialog } from "../../../_components/action-dialog";
 import { ActionOutcome } from "../../../_components/action-outcome";
@@ -11,6 +12,7 @@ import { ApproverPicker } from "../../../_components/approver-picker";
 
 import { approveAction, rejectAction } from "./actions";
 import { CorrectionForm, ReevaluateButton, type EditableField } from "./correction-form";
+import { OnboardingForm } from "./onboarding-form";
 
 /**
  * Columna "Tu decisión" de una escalada: quién resuelve, el checklist para aprobar y el
@@ -28,6 +30,8 @@ export function ResolutionPanel({
   approver,
   editable,
   canReevaluate,
+  onboarding,
+  pendingVendor,
 }: {
   readonly invoiceId: string;
   /** Contenido firmado por el servidor, en JSON. */
@@ -43,6 +47,10 @@ export function ResolutionPanel({
   readonly editable: readonly EditableField[];
   /** Hay una política más nueva o la espera venció: se ofrece reevaluar. */
   readonly canReevaluate: boolean;
+  /** El beneficiario no está registrado: el alta prellenada, o null. */
+  readonly onboarding: VendorDraft | null;
+  /** El proveedor ya está registrado pero falta verificarlo, o null. */
+  readonly pendingVendor: PendingVendor | null;
 }) {
   const [approved, approve, approving] = useActionState(approveAction, null);
   const [rejected, reject, rejecting] = useActionState(rejectAction, null);
@@ -51,6 +59,34 @@ export function ResolutionPanel({
   return (
     <div className="space-y-4">
       <ApproverPicker approvers={approvers} approver={approver} path={`/facturas/${invoiceId}`} />
+
+      {pendingVendor ? (
+        <p className="rounded-[var(--radius-control)] border border-line bg-surface-sunken p-3 text-[13px] text-ink">
+          <strong>{pendingVendor.name}</strong>{" "}
+          {pendingVendor.registeredBy
+            ? `fue registrado por ${pendingVendor.registeredBy} y falta verificarlo.`
+            : "está registrado y falta verificarlo."}{" "}
+          {pendingVendor.fourEyes
+            ? "Lo verifica otra persona de la lista al aprobar esta factura."
+            : "Se verifica al aprobar esta factura."}
+        </p>
+      ) : null}
+
+      {onboarding ? (
+        <div className="space-y-2 rounded-[var(--radius-control)] border border-line bg-surface-sunken p-3">
+          <p className="text-[13px] text-ink">
+            <strong>{onboarding.name}</strong> no está registrado como proveedor. Si es legítimo,
+            regístralo con los datos de esta factura para poder pagarle.
+          </p>
+          <ActionDialog label="Registrar proveedor" block primary>
+            <OnboardingForm
+              invoiceId={invoiceId}
+              draft={onboarding}
+              disabledReason={approver === null ? "Elige arriba quién resuelve." : null}
+            />
+          </ActionDialog>
+        </div>
+      ) : null}
 
       <ApprovalChecklist
         items={checklist}

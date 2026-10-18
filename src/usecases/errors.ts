@@ -38,7 +38,13 @@ export type UseCaseErrorCode =
   /** Ya hay un cambio que afloja la política esperando la segunda firma. */
   | "proposal_pending"
   /** La propuesta ya no está pendiente, o la política cambió desde que se propuso. */
-  | "proposal_closed";
+  | "proposal_closed"
+  /** Los datos del beneficiario nuevo no son válidos o falta una confirmación. */
+  | "invalid_vendor"
+  /** Ya hay un beneficiario registrado con esa identificación, cuenta o nombre. */
+  | "vendor_exists"
+  /** La factura ya no admite registrar a su proveedor. */
+  | "not_onboardable";
 
 export type Severity = "error" | "warning";
 

@@ -1,6 +1,6 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
-import { VendorSchema, type Ulid, type Vendor } from "@/src/domain";
+import { VendorSchema, type Ulid, type Vendor, type Verification } from "@/src/domain";
 
 import type { Executor } from "../client";
 import { DbError } from "../errors";
@@ -12,7 +12,7 @@ import { vendors } from "../schema";
  * pago de una orden: la cuenta sale de aquí, nunca del texto de la factura.
  */
 
-/** Da de alta un vendor. */
+/** Registra un vendor. */
 export async function insertVendor(exec: Executor, vendor: Vendor): Promise<void> {
   const v = VendorSchema.parse(vendor);
   await exec.insert(vendors).values({
@@ -68,4 +68,28 @@ export async function getVendor(
   });
   if (!row) throw new DbError("not_found", `Vendor ${vendorId} no existe`);
   return toVendor(row);
+}
+
+/**
+ * Marca un vendor como verificado. Solo pasa de pendiente a verificado (compare-and-swap):
+ * una verificación no se repite ni se deshace desde aquí. Devuelve si cambió.
+ */
+export async function markVendorVerified(
+  exec: Executor,
+  organizationId: Ulid,
+  vendorId: Ulid,
+  verification: { readonly by: string; readonly at: string },
+): Promise<boolean> {
+  const verified: Verification = { status: "verificado", by: verification.by, at: verification.at };
+  const result = await exec
+    .update(vendors)
+    .set({ verification: verified })
+    .where(
+      and(
+        eq(vendors.organizationId, organizationId),
+        eq(vendors.id, vendorId),
+        sql`json_extract(${vendors.verification}, '$.status') = 'pendiente'`,
+      ),
+    );
+  return result.rowsAffected > 0;
 }

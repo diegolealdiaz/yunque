@@ -15,7 +15,7 @@ import { auditInstant, calendarDate } from "@/src/ui/format";
 /**
  * Orden de pago en PDF (docs/plan.md paso 27): una página con beneficiario, cuenta, monto,
  * riel, referencia, versión de política, hashes y un código QR. Se arma solo con lo que la
- * decisión registró, que sale del vendor dado de alta y nunca del texto leído de la factura.
+ * decisión registró, que sale del proveedor registrado y nunca del texto leído de la factura.
  * No necesita el PDF original ni ejecuta nada: es el papel que acompaña una orden preparada.
  *
  * El PDF es determinista: los metadatos usan la fecha de la decisión, así la misma orden

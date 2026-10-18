@@ -17,6 +17,7 @@ import {
   listEvents,
   listPriorInvoices,
   listTelegramChats,
+  markVendorVerified,
   reserveBudget,
   transitionInvoice,
 } from "@/src/db/repositories";
@@ -176,7 +177,7 @@ async function approvalBlocker(
   if (!vendor) {
     return {
       message:
-        "El beneficiario no está en la lista de beneficiarios aprobados: primero hay que darlo de alta. Mientras tanto, solo se puede rechazar.",
+        "El proveedor no está registrado. Regístralo con «Registrar proveedor» o rechaza la factura.",
       reevaluate: false,
     };
   }
@@ -347,12 +348,38 @@ export async function approveEscalation(
       "Marca cada punto después de verificarlo",
     );
   }
-  if ((await correctorsOf(deps.db, invoice.organization_id, invoice.id)).has(approver)) {
+  // Con la doble firma encendida, quien corrigió no aprueba lo que corrigió.
+  const fourEyes = (await getCurrentPolicy(deps.db, invoice.organization_id))?.content.controls
+    .four_eyes;
+  if (
+    fourEyes !== false &&
+    (await correctorsOf(deps.db, invoice.organization_id, invoice.id)).has(approver)
+  ) {
     throw new ApprovalError(
       "self_approval",
       "No puedes aprobar una factura en la que tú corregiste campos",
       "Pide a otra persona de la lista de aprobadores que la revise",
     );
+  }
+
+  // Aprobar con el beneficiario sin verificar es verificarlo: el checklist lo pide. Con la
+  // doble firma, no lo verifica quien lo registró.
+  const verifiesVendor =
+    vendor.verification.status === "pendiente" &&
+    decision.findings.some((f) => f.code === "vendor_not_verified");
+  if (verifiesVendor && fourEyes !== false) {
+    const created = await listEvents(deps.db, invoice.organization_id, {
+      type: "vendor.created",
+      limit: 500,
+    });
+    const creator = created.find((e) => e.data["vendor_id"] === vendor.id)?.actor;
+    if (creator?.kind === "humano" && creator.name === approver) {
+      throw new ApprovalError(
+        "self_approval",
+        "Quien registró al proveedor no puede verificarlo",
+        "Pide a otra persona de la lista de aprobadores que lo revise y apruebe",
+      );
+    }
   }
 
   const organization = await getOrganization(deps.db, input.organizationId);
@@ -487,6 +514,22 @@ export async function approveEscalation(
         await debitBalance(tx, invoice.organization_id, amount.currency, amount.amount, at);
       }
       await insertDecision(tx, approved);
+      if (
+        verifiesVendor &&
+        (await markVendorVerified(tx, invoice.organization_id, vendor.id, { by: approver, at }))
+      ) {
+        await appendEvent(tx, {
+          id: deps.newId(),
+          organization_id: invoice.organization_id,
+          type: "vendor.verified",
+          actor: { kind: "humano", name: approver },
+          invoice_id: invoice.id,
+          decision_id: approved.id,
+          data: { vendor_id: vendor.id, name: vendor.name },
+          trace_id: traceId,
+          occurred_at: at,
+        });
+      }
       await appendEvent(tx, {
         id: deps.newId(),
         organization_id: invoice.organization_id,

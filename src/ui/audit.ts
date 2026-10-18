@@ -73,6 +73,9 @@ function controlChange(from: Controls, to: Controls): string {
       ? "Dejó que el agente decida"
       : "Pasó el agente a solo recomendar";
   }
+  if (from.four_eyes !== to.four_eyes) {
+    return to.four_eyes ? "Encendió la doble firma" : "Apagó la doble firma";
+  }
   return "Cambió los interruptores";
 }
 
@@ -257,10 +260,26 @@ export function describeEvent(type: EventType, d: Readonly<Record<string, unknow
         detail: str(d["comment"]),
         tone: "neutral",
       };
-    case "vendor.created":
-      return { title: "Registró un beneficiario", detail: null, tone: "brand" };
-    case "vendor.verified":
-      return { title: "Verificó un beneficiario", detail: null, tone: "brand" };
+    case "vendor.created": {
+      const name = str(d["name"]);
+      const account = str(d["account"]);
+      return {
+        title: name ? `Registró al proveedor ${name}` : "Registró un proveedor",
+        detail:
+          account === null
+            ? null
+            : `Cuenta ${account} · ${d["verified"] === true ? "verificado" : "falta que otra persona lo verifique"}`,
+        tone: "brand",
+      };
+    }
+    case "vendor.verified": {
+      const name = str(d["name"]);
+      return {
+        title: name ? `Verificó al proveedor ${name}` : "Verificó un proveedor",
+        detail: null,
+        tone: "brand",
+      };
+    }
     case "vendor.account_changed":
       return { title: "Cambió la cuenta de un beneficiario", detail: null, tone: "escalate" };
   }

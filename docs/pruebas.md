@@ -200,6 +200,7 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-154 | Cuatro ojos: un cambio que afloja (también encender un interruptor) queda propuesto sin tocar la política ni las facturas; apagar es inmediato; ni quien lo propuso ni una firma única lo aplican; otra persona lo aprueba y se reevalúan las abiertas; endurecer se guarda directo; una propuesta se descarta y una vencida ya no se aprueba | integración |
 | P-155 | Desacuerdo entre las dos pasadas: si las dos citan el mismo texto y solo un valor sale de esa cita, es un error de conversión y no ambigüedad; con citas distintas, o sin ningún valor que salga de la cita, se escala como ambigüedad | unidad |
 | P-156 | Caminos a "pagar" (D30): un dato leído no se vacía al corregir; tras una reevaluación fallida la instrucción del correo sigue frenando; el modelo no puede marcar campos como humanos; los desacuerdos entre pasadas quedan en la lectura guardada | integración |
+| P-157 | Registrar proveedor desde su factura (D31): el formulario viene prellenado; con doble firma queda sin verificar y lo verifica al aprobar otra persona, no quien lo registró; sin doble firma basta una persona; no se registra un proveedor con la cuenta de otro, un nombre parecido sin confirmar, sin confirmar los datos por otro canal ni con una forma de pago que no sirve para la moneda | integración |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

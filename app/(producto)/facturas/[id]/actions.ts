@@ -18,6 +18,7 @@ import {
   approveEscalation,
   correctAndReevaluate,
   currentBusinessDate,
+  onboardVendor,
   rateExplanation,
   decidingFinding,
   reevaluateWithCurrentPolicy,
@@ -235,6 +236,41 @@ export async function rateExplanationAction(
     });
     revalidatePath(`/facturas/${invoiceId}`);
     return { ok: true, message: "Gracias. Tu opinión quedó en la bitácora.", action: null };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/** Registra al proveedor de la factura y la reevalúa con él. */
+export async function onboardAction(
+  _previous: ResolutionState,
+  form: FormData,
+): Promise<ResolutionState> {
+  const { deps, organizationId, approver } = await resolutionDeps();
+  const invoiceId = field(form, "invoiceId");
+  try {
+    const { vendor, decision } = await onboardVendor(deps, {
+      organizationId,
+      invoiceId,
+      actor: approver,
+      name: field(form, "nombre"),
+      taxId: field(form, "identificacion") || null,
+      rail: field(form, "ruta"),
+      accountNumber: field(form, "cuenta"),
+      holderName: field(form, "titular"),
+      confirmedOutOfBand: form.get("confirmado") === "on",
+      notTheLookalike: form.get("otra_empresa") === "on",
+    });
+    afterDecision(organizationId, invoiceId);
+    revalidatePath("/reglas");
+    return {
+      ok: true,
+      message: `${vendor.name} quedó registrado como proveedor. ${outcome(decision)}`,
+      action:
+        vendor.verification.status === "pendiente"
+          ? "Para pagarla, otra persona de la lista la aprueba: al hacerlo verifica al proveedor."
+          : "Revisa el checklist y apruébala.",
+    };
   } catch (error) {
     return failure(error);
   }

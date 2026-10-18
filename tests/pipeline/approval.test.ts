@@ -245,11 +245,11 @@ describe("lo que el servidor rechaza (P-45)", () => {
     ).toBeNull();
   });
 
-  it("un beneficiario desconocido no se puede aprobar, solo rechazar con motivo; el rechazo es final", async () => {
+  it("un beneficiario desconocido no se aprueba hasta darlo de alta; se puede rechazar con motivo y es final", async () => {
     p = await openPipeline();
     const id = await process("beneficiario_nuevo");
     const offer = await offerFor(id);
-    expect(offer.blocked).toMatch(/no está en la lista de beneficiarios aprobados/);
+    expect(offer.blocked).toMatch(/El proveedor no está registrado/);
     expect(offer.payload.vendor_id).toBeNull();
     expect(await approve(id).catch(codeOf)).toBe("not_approvable");
 

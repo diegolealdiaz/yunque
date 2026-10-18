@@ -10,7 +10,7 @@ import { ControlSwitch } from "../../_components/control-switch";
 import { controlsAction } from "./actions";
 
 /**
- * Los tres interruptores de control (docs/interfaz.md §5.4): no son política sino control,
+ * Los cuatro interruptores de control (docs/interfaz.md §5.4): no son política sino control,
  * van separados del formulario y piden confirmación. Cada cambio queda como versión firmada
  * y en la bitácora; el servidor rechaza a quien no está en la lista de aprobadores.
  */
@@ -24,15 +24,16 @@ export function ControlsPanel({
   const [state, run] = useActionState(controlsAction, null);
   const [pending, startTransition] = useTransition();
   const disabled = !canSign || pending;
-  const change = (control: "payments_enabled" | "dry_run" | "autonomy") => (next: boolean) => {
-    const form = new FormData();
-    form.set("control", control);
-    form.set("value", next ? "on" : "off");
-    startTransition(() => run(form));
-  };
+  const change =
+    (control: "payments_enabled" | "dry_run" | "autonomy" | "four_eyes") => (next: boolean) => {
+      const form = new FormData();
+      form.set("control", control);
+      form.set("value", next ? "on" : "off");
+      startTransition(() => run(form));
+    };
   return (
     <section aria-label="Interruptores de control" className="space-y-2">
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <ControlSwitch
           key={`pagos-${String(controls.payments_enabled)}`}
           label="Pagos"
@@ -66,6 +67,17 @@ export function ControlsPanel({
           confirmOn="El agente paga y frena solo dentro de las reglas y escala lo demás."
           confirmOff="Toda decisión pasa por una persona; el agente solo recomienda."
           onChange={change("autonomy")}
+          onTone="brand"
+          disabled={disabled}
+        />
+        <ControlSwitch
+          key={`doble-firma-${String(controls.four_eyes)}`}
+          label="Doble firma"
+          description="Otra persona confirma lo que afloja"
+          checked={controls.four_eyes}
+          confirmOn="Aflojar reglas, encender interruptores, registrar proveedores y aprobar lo que uno corrigió pedirán a otra persona de la lista."
+          confirmOff="Una sola persona podrá hacer todo eso. Apagarla afloja el control: la confirma otra persona de la lista."
+          onChange={change("four_eyes")}
           onTone="brand"
           disabled={disabled}
         />

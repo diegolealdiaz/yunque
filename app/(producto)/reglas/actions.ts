@@ -176,7 +176,7 @@ export async function discardProposalAction(
   }
 }
 
-const CONTROL_NAMES = ["payments_enabled", "dry_run", "autonomy"] as const;
+const CONTROL_NAMES = ["payments_enabled", "dry_run", "autonomy", "four_eyes"] as const;
 
 export async function controlsAction(_previous: SaveState, form: FormData): Promise<SaveState> {
   const { deps, organization, approver } = await context();

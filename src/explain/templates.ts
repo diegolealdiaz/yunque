@@ -34,7 +34,7 @@ function fieldName(f: Finding, fallback: string): string {
 export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
   payee_not_allowed: {
     explain: (f) => `El beneficiario ${quote(f.observed)} no está en la ${s(f.threshold)}.`,
-    check: (f) => `Confirmo que ${quote(f.observed)} es un proveedor legítimo y lo doy de alta`,
+    check: (f) => `Confirmo que ${quote(f.observed)} es un proveedor legítimo y autorizo este pago`,
   },
   bank_account_mismatch: {
     explain: (f) =>

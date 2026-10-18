@@ -116,6 +116,12 @@ export const ControlsSchema = z.strictObject({
   payments_enabled: z.boolean(),
   dry_run: z.boolean(),
   autonomy: AutonomySchema,
+  /**
+   * Doble firma: aflojar la política, encender un interruptor, registrar un proveedor o
+   * aprobar lo que uno corrigió pide a otra persona de la lista. Las políticas guardadas antes
+   * de existir el interruptor la traen encendida.
+   */
+  four_eyes: z.boolean().default(true),
 });
 export type Controls = z.infer<typeof ControlsSchema>;
 
@@ -339,8 +345,9 @@ export function policyLoosenings(current: Policy, candidate: Policy): string[] {
 }
 
 /**
- * Lo que un cambio de interruptores afloja: encender los pagos, apagar el modo de prueba o
- * dejar que el agente decida. Apagar es la emergencia y nunca afloja: va con una firma.
+ * Lo que un cambio de interruptores afloja: encender los pagos, apagar el modo de prueba,
+ * dejar que el agente decida o apagar la doble firma. Lo contrario nunca afloja: va con una
+ * firma, y apagar los pagos es la emergencia.
  */
 export function controlsLoosenings(from: Controls, to: Controls): string[] {
   const out: string[] = [];
@@ -352,6 +359,11 @@ export function controlsLoosenings(from: Controls, to: Controls): string[] {
   }
   if (from.autonomy === "recomendar" && to.autonomy === "decidir") {
     out.push("El agente pasa de recomendar a decidir: paga solo lo que cumple las reglas");
+  }
+  if (from.four_eyes && !to.four_eyes) {
+    out.push(
+      "Apaga la doble firma: una sola persona podrá aflojar las reglas, registrar proveedores y aprobar lo que corrigió",
+    );
   }
   return out;
 }

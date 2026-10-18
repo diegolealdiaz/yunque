@@ -15,7 +15,11 @@ import {
   isNotFound,
   loadExplanationRating,
   loadInvoiceDetail,
+  pendingVendorFor,
+  vendorDraftFor,
   type InvoiceDetail,
+  type PendingVendor,
+  type VendorDraft,
 } from "@/src/usecases";
 
 import { DocumentViewer, EvidenceProvider } from "../../../_components/document-viewer";
@@ -63,7 +67,15 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     (await cookies()).get(APPROVER_COOKIE)?.value,
     config.secrets.session,
   );
-  const resolution = offer ? resolutionFor(detail, offer, approver) : null;
+  const [onboarding, pendingVendor] = offer
+    ? await Promise.all([
+        vendorDraftFor({ db }, organization.id, invoice.id),
+        pendingVendorFor({ db }, organization.id, invoice.id),
+      ])
+    : [null, null];
+  const resolution = offer
+    ? resolutionFor(detail, offer, approver, onboarding, pendingVendor)
+    : null;
   const now = new Date();
   const today = currentBusinessDate(
     { demo: config.demo.enabled, timeZone: config.displayTimeZone },
@@ -152,7 +164,18 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
 type Offer = NonNullable<Awaited<ReturnType<typeof approvalOffer>>>;
 
 /** Lo que necesita el panel de aprobación: la oferta firmada y los campos editables. */
-function resolutionFor(detail: InvoiceDetail, offer: Offer, approver: string | null): Resolution {
+function resolutionFor(
+  detail: InvoiceDetail,
+  offer: Offer,
+  approver: string | null,
+  onboarding: VendorDraft | null,
+  pendingVendor: PendingVendor | null,
+): Resolution {
+  // Con la doble firma, quien registró al proveedor no lo verifica: se avisa antes de intentar.
+  const ownRegistration =
+    pendingVendor?.fourEyes === true &&
+    pendingVendor.registeredBy !== null &&
+    pendingVendor.registeredBy === approver;
   const readFields =
     detail.extraction?.extraction.kind === "invoice" ? detail.extraction.extraction.fields : null;
   return {
@@ -161,7 +184,11 @@ function resolutionFor(detail: InvoiceDetail, offer: Offer, approver: string | n
     signature: offer.signature,
     signatureSummary: detail.signatureSummary ?? "sin contenido para firmar",
     checklist: offer.checklist,
-    blocked: offer.blocked,
+    blocked:
+      offer.blocked ??
+      (ownRegistration
+        ? "Registraste a este proveedor: otra persona de la lista lo verifica y aprueba la factura. Cambia «Resuelves como»."
+        : null),
     approvers: detail.approvers,
     approver,
     editable: EXTRACTED_FIELD_NAMES.map((name) => ({
@@ -171,6 +198,8 @@ function resolutionFor(detail: InvoiceDetail, offer: Offer, approver: string | n
       hint: MONEY_FIELDS.has(name) ? "1234.56" : DATE_FIELDS.has(name) ? "AAAA-MM-DD" : null,
     })),
     canReevaluate: detail.newerPolicy || offer.needsReevaluation,
+    onboarding,
+    pendingVendor,
   };
 }
 

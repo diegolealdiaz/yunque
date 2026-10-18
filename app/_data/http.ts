@@ -23,6 +23,9 @@ const STATUS: Readonly<Record<UseCaseErrorCode, number>> = {
   second_signature_required: 409,
   proposal_pending: 409,
   proposal_closed: 409,
+  invalid_vendor: 400,
+  vendor_exists: 409,
+  not_onboardable: 409,
 };
 
 export type ApiError = {

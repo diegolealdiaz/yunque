@@ -27,3 +27,4 @@ export * from "./telegram";
 export { APPROVAL_TTL_DAYS } from "./record-decision";
 // La regla que decidió una decisión: la pantalla la nombra al contar cómo quedó.
 export { decidingFinding } from "@/src/engine";
+export * from "./onboard-vendor";

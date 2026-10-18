@@ -23,6 +23,7 @@ const arbControls = fc.record({
   payments_enabled: fc.boolean(),
   dry_run: fc.boolean(),
   autonomy: fc.constantFrom("recomendar" as const, "decidir" as const),
+  four_eyes: fc.boolean(),
 });
 
 /** Contextos aleatorios alrededor de la factura base: montos, política, saldos, historial. */
@@ -194,7 +195,12 @@ describe("Juez: invariantes (P-22 a P-33)", () => {
     const ctx = baseContext({
       policy: {
         ...basePolicy(),
-        controls: { payments_enabled: true, dry_run: false, autonomy: "recomendar" },
+        controls: {
+          payments_enabled: true,
+          dry_run: false,
+          autonomy: "recomendar",
+          four_eyes: true,
+        },
       },
     });
     const result = evaluate(ctx);
@@ -271,9 +277,13 @@ describe("Juez: corrección humana (cuatro ojos)", () => {
           expect(human.verdict).toBe("escalar");
           expect(human.findings.map((f) => f.code)).toContain("human_correction");
         } else {
-          // Si ya no pagaba, la corrección no cambia el motivo ni ablanda.
+          // Si ya no pagaba, la corrección no ablanda. Solo puede cambiar el motivo cuando el
+          // motivo era el propio total (confianza baja, cita ausente, dos valores): la persona
+          // lo resolvió, y lo que escala ahora es su corrección.
           expect(rank[human.verdict]).toBeGreaterThanOrEqual(rank[machine.verdict]);
-          expect(human.findings.some((f) => f.code === "human_correction")).toBe(false);
+          if (human.findings.some((f) => f.code === "human_correction")) {
+            expect(machine.findings.some((f) => f.field === "total")).toBe(true);
+          }
         }
       }),
       { numRuns: 1000 },

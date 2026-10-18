@@ -300,3 +300,20 @@ Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verifica
 **Consecuencia.** Quedan dos límites conocidos y aceptados:
 - **Un solo visitante cumple los cuatro ojos** eligiendo los dos nombres de la lista. En producción eso exige inicio de sesión.
 - **Un documento sin capa de texto (foto o escaneo) no se contrasta con nada determinista.** Lo cubren la segunda pasada, los desacuerdos entre pasadas y el umbral de aprobación.
+
+## D31. Registrar un proveedor desde su factura, y la doble firma como interruptor
+
+**Contexto.** Proveedor nuevo es la escalada más común en cuentas por pagar, y también el caso de cualquier factura real que un cliente prueba en la demo. El agente la escalaba con el porqué, pero no había forma de registrar al proveedor: lo único posible era rechazar. Además, la doble firma (D29) era fija, y no toda empresa trabaja con dos aprobadores.
+
+**Decisión.**
+- **Registrar proveedor desde la factura.** El detalle de una factura escalada cuyo proveedor no está registrado ofrece "Registrar proveedor". El formulario viene prellenado con lo que leyó el agente (nombre, identificación, cuenta, titular y la forma de pago que sirve para la moneda). La persona lo revisa contra el documento y confirma que verificó los datos con el proveedor por un canal distinto a la factura.
+- **Lo que se guarda.** El proveedor entra a la lista de permitidos en una versión nueva de la política y la factura se reevalúa con él.
+- **Con la doble firma:** el proveedor queda sin verificar y la regla fija "beneficiario sin verificar" escala. Otra persona lo verifica al aprobar la factura, porque el checklist lo pide. Quien lo registró no puede verificarlo.
+- **Sin la doble firma:** queda verificado por quien lo registra, y esa misma persona aprueba.
+- **Desde ahí,** las facturas siguientes del proveedor se pagan solas dentro de las reglas.
+- **Lo que no se registra:**
+  - un proveedor con el nombre, la identificación o **la cuenta** de uno registrado. Una cuenta conocida con otro nombre es una forma común de fraude;
+  - un nombre parecido a uno registrado, salvo que la persona confirme expresamente que es otra empresa.
+- **La doble firma es un interruptor de Reglas, encendido por defecto.** Encenderla es inmediato. Apagarla afloja el control, así que la confirma otra persona de la lista una vez. Con ella apagada, una sola persona puede aflojar reglas, encender interruptores, registrar proveedores y aprobar lo que corrigió.
+
+**Consecuencia.** Registrar un proveedor sin verificar no puede llevar a un pago automático: la regla de beneficiario sin verificar escala siempre. Por eso agregarlo a la lista de permitidos no pasa por la propuesta de política de D29. En la bitácora queda quién registró al proveedor, con qué cuenta, y quién lo verificó.

@@ -65,6 +65,7 @@ export const shellState = cache(async (): Promise<ShellState> => {
       payments_enabled: false,
       dry_run: false,
       autonomy: "recomendar",
+      four_eyes: true,
     },
     health: HEALTH_LEVEL[health.status],
     demo: config.demo.enabled,

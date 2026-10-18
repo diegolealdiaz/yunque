@@ -255,7 +255,8 @@ export async function savePolicy(
       controls: current.content.controls,
     });
     const second = input.secondSignature;
-    if (policyLoosenings(current.content, content).length > 0) {
+    const fourEyes = current.content.controls.four_eyes;
+    if (fourEyes && policyLoosenings(current.content, content).length > 0) {
       if (!second) {
         throw new UseCaseError(
           "second_signature_required",
@@ -380,7 +381,10 @@ export async function changeControls(
     const controls = { ...current.content.controls, ...input.controls };
     const content = parsePolicy({ ...current.content, controls });
     const second = input.secondSignature;
-    if (controlsLoosenings(current.content.controls, controls).length > 0) {
+    if (
+      current.content.controls.four_eyes &&
+      controlsLoosenings(current.content.controls, controls).length > 0
+    ) {
       if (!second) {
         throw new UseCaseError(
           "second_signature_required",
@@ -580,7 +584,8 @@ export async function submitPolicy(
       controls: current.content.controls,
     });
     const loosenings = policyLoosenings(current.content, content);
-    if (loosenings.length === 0) return null;
+    // Sin doble firma, aflojar se guarda directo como cualquier otro cambio.
+    if (loosenings.length === 0 || !current.content.controls.four_eyes) return null;
     const open = await openProposal(tx, input.organizationId, current);
     if (open && !open.stale) {
       throw new UseCaseError(
@@ -745,7 +750,7 @@ export async function submitControls(
     const { current, signer } = await authorize(tx, input.organizationId, input.signedBy);
     const controls = ControlsSchema.parse({ ...current.content.controls, ...input.controls });
     const loosenings = controlsLoosenings(current.content.controls, controls);
-    if (loosenings.length === 0) return null;
+    if (loosenings.length === 0 || !current.content.controls.four_eyes) return null;
     const open = await openProposal(tx, input.organizationId, current);
     if (open && !open.stale) {
       throw new UseCaseError(
