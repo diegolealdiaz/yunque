@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Decision, PaymentOrderDraft } from "@/src/domain";
 import { formatMoney } from "@/src/domain";
 import { calendarDate, instant } from "@/src/ui/format";
+import { RAIL_LABEL } from "@/src/ui/labels";
 import type { InvoiceDetail } from "@/src/usecases";
 
 import { ReevaluateButton } from "./correction-form";
@@ -113,7 +114,7 @@ function PaymentOrder({
         </OrderRow>
         <OrderRow label="A">{order.beneficiary_name}</OrderRow>
         <OrderRow label="Cuenta" mono>
-          {order.account_masked} · {order.rail}
+          {order.account_masked} · {RAIL_LABEL[order.rail]}
         </OrderRow>
         <OrderRow label="Monto" mono>
           {formatMoney(order.amount)}

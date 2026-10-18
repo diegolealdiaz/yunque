@@ -78,9 +78,15 @@ function verdictHref(filters: Filters, verdict: ListVerdict | null): string {
   return query ? `/facturas?${query}` : "/facturas";
 }
 
-/** Por qué terminó así, en pocas palabras; las pagadas cumplen todo. */
+/**
+ * Por qué terminó así, en pocas palabras. Lo que resolvió una persona lo dice primero: una
+ * aprobada no la pagó el agente dentro de las reglas, y una rechazada no sigue escalada.
+ */
 function Reason({ row }: { readonly row: InvoiceListRow }) {
   const decided = row.decided;
+  if (row.status === "aprobada") return <span className="text-pay">Aprobada por una persona</span>;
+  if (row.status === "rechazada")
+    return <span className="text-hold">Rechazada por una persona</span>;
   if (!decided) return <span className="text-ink-3">Leyendo el documento</span>;
   if (!decided.rule) return <span className="text-ink-3">Dentro de tus reglas</span>;
   const short = RULE_SHORT_LABEL[decided.rule.code];

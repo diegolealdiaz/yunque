@@ -8,7 +8,8 @@ import { TOUR_OPEN_EVENT, TOUR_SEEN_KEY, TOUR_STEPS } from "@/src/ui/tour";
 /**
  * Recorrido guiado (docs/interfaz.md §5.9): la primera vez que alguien entra, cuatro pasos
  * sobre pantallas reales. Cada paso lleva a su pantalla, enmarca lo que señala y oscurece lo
- * demás; la tarjeta se pone debajo, encima o en una esquina, donde quepa. Se salta con
+ * demás; la tarjeta se pone debajo, encima o en una esquina, donde quepa. Por su cuenta se
+ * abre solo en las pantallas de entrada. Se salta con
  * "Saltar" o Esc y no vuelve a salir; "Ver el recorrido" en la barra lo abre de nuevo.
  */
 
@@ -21,6 +22,19 @@ type Box = {
 
 /** Espera antes de abrir el recorrido la primera vez. */
 const FIRST_DELAY_MS = 600;
+
+/**
+ * Pantallas donde se abre solo: las de entrada. Quien llega por un enlace directo (una
+ * factura desde un aviso) ve lo que pidió; el recorrido queda en "Ver el recorrido".
+ */
+const AUTO_OPEN_ROUTES: ReadonlySet<string> = new Set(["/probar", "/pendientes"]);
+
+/**
+ * Cuánto se espera a que aparezca lo que señala un paso. La primera visita crea la empresa de
+ * ejemplo y la pantalla tarda en llegar: mientras tanto la tarjeta no se muestra sobre el
+ * esqueleto de carga. Pasado este tiempo sale igual, en una esquina.
+ */
+const ANCHOR_WAIT_MS = 10_000;
 
 /** Lo que mide la tarjeta, para decidir dónde cabe. */
 const CARD = { width: 352, height: 230, gap: 12, margin: 16 } as const;
@@ -63,19 +77,22 @@ export function GuidedTour() {
   const card = useRef<HTMLDivElement>(null);
   const [step, setStep] = useState<number | null>(null);
   const [box, setBox] = useState<Box | null>(null);
+  // El paso cuya búsqueda ya terminó (encontró lo que señala o se agotó la espera).
+  const [located, setLocated] = useState<string | null>(null);
   const current = step === null ? null : (TOUR_STEPS[step] ?? null);
 
   const close = useCallback(() => {
     markSeen();
     setStep(null);
     setBox(null);
+    setLocated(null);
   }, []);
 
   // La primera vez, y cada vez que se pide desde la barra.
   // La primera vez se espera un momento, para que la pantalla se vea antes que el recorrido.
   useEffect(() => {
     const first = window.setTimeout(() => {
-      if (!seen()) setStep(0);
+      if (!seen() && AUTO_OPEN_ROUTES.has(window.location.pathname)) setStep(0);
     }, FIRST_DELAY_MS);
     const open = () => setStep(0);
     window.addEventListener(TOUR_OPEN_EVENT, open);
@@ -94,7 +111,7 @@ export function GuidedTour() {
   useEffect(() => {
     if (!current || pathname !== current.route) return;
     let frame = 0;
-    let tries = 0;
+    const started = performance.now();
     let target: Element | null = null;
     const measure = () => {
       if (!target) return;
@@ -105,16 +122,16 @@ export function GuidedTour() {
     };
     const find = () => {
       target = document.querySelector(`[data-tour="${current.anchor}"]`);
-      if (!target && tries++ < 120) {
+      if (!target && performance.now() - started < ANCHOR_WAIT_MS) {
         frame = requestAnimationFrame(find);
         return;
       }
+      setLocated(current.route);
       const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       // Margen arriba, para que el marco no quede pegado al borde de la pantalla.
       if (target instanceof HTMLElement) target.style.scrollMarginTop = "24px";
       target?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
       measure();
-      card.current?.focus();
     };
     find();
     // El contenido se desplaza dentro de `main`: se escucha en captura para enterarse.
@@ -127,6 +144,11 @@ export function GuidedTour() {
     };
   }, [current, pathname]);
 
+  // La tarjeta toma el foco cuando aparece, para seguir con el teclado y que se lea.
+  useEffect(() => {
+    if (current && located === current.route) card.current?.focus();
+  }, [current, located]);
+
   useEffect(() => {
     if (step === null) return;
     const onKey = (e: KeyboardEvent) => {
@@ -136,7 +158,7 @@ export function GuidedTour() {
     return () => window.removeEventListener("keydown", onKey);
   }, [step, close]);
 
-  if (step === null || !current) return null;
+  if (step === null || !current || located !== current.route) return null;
   const last = step === TOUR_STEPS.length - 1;
 
   return (

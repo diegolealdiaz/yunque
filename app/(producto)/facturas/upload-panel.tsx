@@ -29,6 +29,11 @@ type Upload = {
   readonly retryable?: boolean;
 };
 
+/** Tamaño en megas para la persona: "4 MB", "4,6 MB". */
+function megabytes(bytes: number): string {
+  return `${(bytes / 1_000_000).toLocaleString("es-CO", { maximumFractionDigits: 1 })} MB`;
+}
+
 export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
   const router = useRouter();
   const inputId = useId();
@@ -52,7 +57,7 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
     if (file.size > maxBytes) {
       update(key, {
         state: "error",
-        message: "El archivo supera el tamaño máximo. Sube uno más liviano.",
+        message: `Pesa ${megabytes(file.size)} y el máximo es ${megabytes(maxBytes)}. Sube uno más liviano.`,
       });
       return;
     }
@@ -106,7 +111,7 @@ export function UploadPanel({ maxBytes }: { readonly maxBytes: number }) {
       >
         <span className="block font-medium text-ink">Arrastra facturas aquí o elige archivos</span>
         <span className="mt-1 block text-ink-2">
-          PDF, PNG, JPG o correo en JSON · hasta {Math.round(maxBytes / 1024 / 1024)} MB
+          PDF, PNG, JPG o correo en JSON · hasta {megabytes(maxBytes)}
         </span>
         <input
           id={inputId}

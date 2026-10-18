@@ -210,9 +210,9 @@ const REASONS: Readonly<Record<FindingCode, (f: Finding, ctx: ReasonContext) => 
     title: "Una persona corrigió datos a mano",
     detail: "Otra persona confirma los datos corregidos antes de pagar.",
   }),
-  processing_error: () => ({
-    title: "Hubo un error al procesarla",
-    detail: "El proceso se interrumpió a mitad de camino. Una persona debe revisarla.",
+  processing_error: (f) => ({
+    title: "No se pudo procesar",
+    detail: `Falló la etapa de ${s(f.observed)}. Una persona debe revisarla.`,
   }),
 };
 
@@ -240,11 +240,13 @@ export function decisionSummary(
   if (status === "rechazada") {
     return { headline: "Una persona la rechazó.", next: "El rechazo es final: no se pagará." };
   }
-  if (status === "aprobada" || (verdict === "pagar" && status === "decidida")) {
-    return {
-      headline: verdict === "pagar" ? "Se pagó dentro de tus reglas." : "Una persona la aprobó.",
-      next: "No tienes que hacer nada.",
-    };
+  // Aprobada por una persona: tras aprobarla el veredicto vigente es "pagar", pero no la pagó
+  // el agente dentro de las reglas.
+  if (status === "aprobada") {
+    return { headline: "Una persona la aprobó.", next: "No tienes que hacer nada." };
+  }
+  if (verdict === "pagar" && status === "decidida") {
+    return { headline: "Se pagó dentro de tus reglas.", next: "No tienes que hacer nada." };
   }
   // Todavía sin decisión final: en curso, o el proceso falló y se reintenta.
   if (status === "recibida" || status === "procesando") {

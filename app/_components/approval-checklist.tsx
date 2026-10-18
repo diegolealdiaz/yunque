@@ -50,7 +50,7 @@ export function ApprovalChecklist({
       {Object.entries(hiddenFields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <fieldset className="space-y-2">
+      <fieldset className="min-w-0 space-y-2">
         <legend className="mb-2 text-[13px] text-ink-3">
           Para aprobar, marca lo que verificaste:
         </legend>

@@ -118,7 +118,7 @@ function Group({
   readonly children: ReactNode;
 }) {
   return (
-    <fieldset className="card px-5 pt-4 pb-2">
+    <fieldset className="card min-w-0 px-5 pt-4 pb-2">
       <legend className="sr-only">{title}</legend>
       <p aria-hidden="true" className="flex flex-wrap items-center gap-2.5">
         <span className="text-[16px] font-semibold text-ink">{title}</span>
@@ -440,7 +440,7 @@ export function PolicyWorkbench({
       {parsed.ok ? (
         <PolicySummary get={parsed.get} allowed={allowedKnown} payees={payees.length} />
       ) : null}
-      <div className="grid items-start gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-2">
         <div className="space-y-3">
           <Group
             title="Límites"
@@ -542,7 +542,11 @@ export function PolicyWorkbench({
   const actions = (
     <>
       <p className="mr-auto text-[12px] text-ink-2">
-        {!canSign ? "Elige arriba quién firma para poder guardar." : "Cambios sin guardar."}
+        {!canSign
+          ? "Elige arriba quién firma para poder guardar."
+          : saving
+            ? "Guardando la versión y reevaluando las facturas abiertas…"
+            : "Cambios sin guardar."}
       </p>
       <button
         type="button"
@@ -567,7 +571,7 @@ export function PolicyWorkbench({
         onClick={openSave}
         className="h-8 btn-primary px-3 text-[13px]"
       >
-        Guardar como v{version + 1}
+        {saving ? "Guardando y reevaluando…" : `Guardar como v${String(version + 1)}`}
       </button>
     </>
   );

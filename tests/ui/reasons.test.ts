@@ -91,6 +91,7 @@ describe("razones para el cliente", () => {
     expect(decisionSummary("frenar", "decidida").headline).toBe("No se pagó.");
     expect(decisionSummary("pagar", "decidida").headline).toBe("Se pagó dentro de tus reglas.");
     expect(decisionSummary("escalar", "aprobada").headline).toBe("Una persona la aprobó.");
+    expect(decisionSummary("pagar", "aprobada").headline).toBe("Una persona la aprobó.");
     expect(decisionSummary("escalar", "rechazada").headline).toBe("Una persona la rechazó.");
     expect(decisionSummary("escalar", "procesando").headline).toBe("El agente la está revisando.");
     expect(decisionSummary("escalar", "fallida").headline).toBe("No se terminó de procesar.");
