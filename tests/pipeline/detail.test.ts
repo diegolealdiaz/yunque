@@ -2,7 +2,16 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { DbError } from "@/src/db/errors";
 import { timelineLines } from "@/src/ui/timeline";
-import { invoicePageKey, loadInvoiceDetail, pngSize, processInvoice } from "@/src/usecases";
+import {
+  approvalOffer,
+  correctAndReevaluate,
+  invoicePageKey,
+  loadInvoiceDetail,
+  pngSize,
+  processInvoice,
+  rateExplanation,
+  rejectEscalation,
+} from "@/src/usecases";
 
 import { datasetCase, openPipeline, type Pipeline } from "./helpers";
 
@@ -16,7 +25,13 @@ describe("detalle de una decisión (P-102)", () => {
 
   beforeAll(async () => {
     p = await openPipeline();
-    for (const id of ["nube_oct", "cuenta_distinta", "sobre_umbral", "joao_png"]) {
+    for (const id of [
+      "nube_oct",
+      "cuenta_distinta",
+      "sobre_umbral",
+      "joao_png",
+      "adv_dos_totales",
+    ]) {
       const f = await datasetCase(id);
       p.client.next = f.modelOutput;
       const result = await processInvoice(p.deps, p.input(f.bytes, `batch:${id}`, f.fileName));
@@ -75,6 +90,48 @@ describe("detalle de una decisión (P-102)", () => {
     expect(detail.signatureSummary).toMatch(/^doc [0-9a-f]{6}…, política v1, .+ COP a \*{4}\d{4}$/);
   });
 
+  it("tras corregir un campo, la traza es la de la reevaluación, y un rechazo posterior se ve", async () => {
+    const before = await load("adv_dos_totales");
+    expect(before.rules.some((r) => r.finding?.code === "field_ambiguous")).toBe(true);
+    const f = await datasetCase("adv_dos_totales");
+    const invoiceId = ids.get("adv_dos_totales") ?? "";
+    const decide = {
+      db: p.t.db,
+      newId: p.t.newId,
+      now: p.t.now,
+      timeZone: "America/Bogota",
+      businessDate: "2026-10-17",
+    };
+    await correctAndReevaluate(decide, {
+      organizationId: p.organizationId,
+      invoiceId,
+      actor: "Diego Leal",
+      submitted: { total: (f.case.document.total / 100).toFixed(2) },
+      confirmed: ["total"],
+    });
+    const after = await load("adv_dos_totales");
+    expect(after.decision?.actor.kind).toBe("humano");
+    expect(after.rulesFromEscalation).toBe(false);
+    expect(after.rules.some((r) => r.finding?.code === "field_ambiguous")).toBe(false);
+
+    // El rechazo queda sobre la decisión de la corrección: el detalle debe encontrarlo.
+    expect(after.decision?.verdict).toBe("escalar");
+    const resolution = { ...decide, signingSecret: "secreto-de-firma-de-prueba-0000000000000000" };
+    const offer = await approvalOffer(resolution, p.organizationId, invoiceId);
+    if (!offer) throw new Error("sin oferta");
+    await rejectEscalation(resolution, {
+      organizationId: p.organizationId,
+      invoiceId,
+      payload: offer.payload,
+      signature: offer.signature,
+      approver: "Ana Torres",
+      reason: "No corresponde a un servicio recibido",
+    });
+    const rejected = await load("adv_dos_totales");
+    expect(rejected.invoice.status).toBe("rechazada");
+    expect(rejected.approval?.reason).toBe("No corresponde a un servicio recibido");
+  });
+
   it("la línea de tiempo cuenta la historia en orden, sin eventos internos", async () => {
     const detail = await load("nube_oct");
     expect(timelineLines(detail.timeline).map((l) => l.label)).toEqual([
@@ -105,5 +162,24 @@ describe("detalle de una decisión (P-102)", () => {
 
   it("pngSize lee el tamaño de la cabecera y rechaza lo que no es PNG", () => {
     expect(pngSize(new TextEncoder().encode("no es una imagen"))).toBeNull();
+  });
+
+  it("una pagada por el agente trae todos sus controles, aunque haya eventos más nuevos", async () => {
+    const before = await load("nube_oct");
+    if (!before.decision) throw new Error("sin decisión");
+    // Un evento posterior de la misma decisión (aviso, opinión) no trae el registro del motor.
+    await rateExplanation(p.t.db, {
+      organizationId: p.organizationId,
+      invoiceId: ids.get("nube_oct") ?? "",
+      decisionId: before.decision.id,
+      rating: { clear: true },
+      actor: { kind: "humano", name: "Diego Leal" },
+      newId: p.t.newId,
+      now: new Date("2026-10-17T15:00:00.000Z"),
+    });
+    const detail = await load("nube_oct");
+    expect(detail.decision?.verdict).toBe("pagar");
+    expect(detail.rules.length).toBeGreaterThan(15);
+    expect(detail.rules.every((r) => r.outcome !== "fail")).toBe(true);
   });
 });

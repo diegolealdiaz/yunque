@@ -12,9 +12,11 @@ import {
 } from "@/src/db/repositories";
 import {
   EXTRACTED_FIELD_NAMES,
+  ExtractedFieldNameSchema,
   ExtractionSchema,
   isPresent,
   jsonHash,
+  type Ambiguity,
   type Decision,
   type ExtractedFieldName,
   type ExtractedFields,
@@ -229,7 +231,9 @@ export function correctedExtraction(
 /**
  * La lectura que se vuelve a evaluar: la extracción guardada, verificada otra vez contra el
  * texto del documento, más las señales de instrucciones sospechosas del Detector y de la
- * decisión anterior. La usan la reevaluación y la vista previa de un cambio de política.
+ * decisión anterior, y las ambigüedades que la verificación no puede recalcular (dos pasadas
+ * del modelo que leyeron distinto). La usan la reevaluación y la vista previa de un cambio de
+ * política.
  */
 export function readingFor(
   invoice: Invoice,
@@ -241,6 +245,10 @@ export function readingFor(
     record,
     verification: {
       ...verified.report,
+      ambiguities: [
+        ...verified.report.ambiguities,
+        ...carriedAmbiguities(previous, record.extraction),
+      ],
       suspicions: [
         ...verified.report.suspicions,
         ...detectAll({
@@ -253,6 +261,34 @@ export function readingFor(
     cost_usd_micros: 0,
     latency_ms: 0,
   };
+}
+
+/**
+ * Ambigüedades de la decisión anterior. Algunas no salen de verificar la lectura guardada
+ * (las dos pasadas del modelo leyeron montos distintos), y un cambio de política no las
+ * resuelve: sin esto, subir el umbral pagaría un monto que nadie confirmó. Solo deja de
+ * contar la de un campo que una persona ya corrigió o confirmó.
+ */
+function carriedAmbiguities(previous: Decision, extraction: Extraction): Ambiguity[] {
+  const fields = extraction.kind === "invoice" ? extraction.fields : null;
+  const out: Ambiguity[] = [];
+  for (const finding of previous.findings) {
+    if (finding.code !== "field_ambiguous") continue;
+    const field = ExtractedFieldNameSchema.safeParse(finding.field);
+    if (!field.success) continue;
+    const current = fields?.[field.data];
+    if (current && isPresent(current) && current.source === "humano") continue;
+    const candidates = finding.observed
+      .split(" | ")
+      .filter((c) => c.length > 0)
+      .slice(0, 10)
+      .map((c) => c.slice(0, 500));
+    out.push({
+      field: field.data,
+      candidates: candidates.length >= 2 ? candidates : [finding.observed, "otro valor"],
+    });
+  }
+  return out;
 }
 
 /** Señales de inyección de la decisión anterior, para que ninguna reevaluación las pierda. */

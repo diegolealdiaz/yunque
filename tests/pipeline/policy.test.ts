@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import * as repos from "@/src/db/repositories";
-import { PolicyError, policyEditToYaml, type Policy } from "@/src/domain";
+import { PolicyError, policyEditToYaml, type Finding, type Policy } from "@/src/domain";
 import { decidingFinding } from "@/src/engine";
 import {
   candidateFromYaml,
@@ -9,6 +9,7 @@ import {
   loadPolicyHistory,
   previewPolicyChange,
   processInvoice,
+  readingFor,
   savePolicy,
   type DecideDeps,
 } from "@/src/usecases";
@@ -274,5 +275,44 @@ describe("guardar y reproducir (P-106, P-29)", () => {
     const events = await repos.listEvents(p.t.db, p.organizationId, { limit: 5 });
     expect(events[0]?.type).toBe("controls.changed");
     expect(events[0]?.actor).toEqual({ kind: "humano", name: SIGNER });
+  });
+});
+
+describe("una reevaluación no ablanda lo que no cambió", () => {
+  it("conserva la ambigüedad de dos lecturas distintas, salvo si una persona fijó el campo", async () => {
+    const id = ids.get("sobre_umbral") ?? "";
+    const invoice = await repos.getInvoice(p.t.db, p.organizationId, id);
+    const decision = await repos.getLatestDecision(p.t.db, p.organizationId, id);
+    const stored = await repos.getLatestExtraction(p.t.db, p.organizationId, id);
+    if (!decision || stored?.record.extraction.kind !== "invoice") throw new Error("sin lectura");
+    // La primera pasada leyó 845,00 y la segunda 8.500,00: la verificación de la lectura
+    // guardada no puede volver a ver ese desacuerdo.
+    const ambiguous: Finding = {
+      code: "field_ambiguous",
+      severity: "block",
+      action: "escalar",
+      observed: "845,00 BRL | 8.500,00 BRL",
+      threshold: "un solo valor",
+      evidence: null,
+      field: "total",
+      message: "El campo total tiene más de un valor posible en el documento",
+    };
+    const previous = { ...decision, findings: [...decision.findings, ambiguous] };
+    const reading = readingFor(invoice, previous, stored.record);
+    expect(reading.verification.ambiguities).toContainEqual({
+      field: "total",
+      candidates: ["845,00 BRL", "8.500,00 BRL"],
+    });
+
+    const { fields } = stored.record.extraction;
+    const confirmed = {
+      ...stored.record,
+      extraction: {
+        ...stored.record.extraction,
+        fields: { ...fields, total: { ...fields.total, source: "humano" as const } },
+      },
+    };
+    const resolved = readingFor(invoice, previous, confirmed);
+    expect(resolved.verification.ambiguities.some((a) => a.field === "total")).toBe(false);
   });
 });

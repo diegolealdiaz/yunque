@@ -153,9 +153,22 @@ const ORDER: Readonly<Record<RuleTrace["outcome"], number>> = {
   skipped: 2,
 };
 
+/**
+ * La aprobación o el rechazo de la factura. Se registra sobre la escalada que resuelve: un
+ * rechazo, sobre la vigente (que puede venir de una corrección); una aprobación, sobre la
+ * escalada anterior, porque al aprobar la vigente pasa a ser la decisión que la sigue.
+ */
+async function resolutionOf(db: Database, organizationId: Ulid, decision: Decision) {
+  const own = await findApprovalByDecision(db, organizationId, decision.id);
+  if (own || !decision.previous_decision_id) return own;
+  return findApprovalByDecision(db, organizationId, decision.previous_decision_id);
+}
+
 /** Traza regla por regla: la del registro del motor, completada con los hallazgos. */
 export function ruleTrace(decision: Decision, events: readonly AuditEvent[]): RuleTrace[] {
-  const decided = events.find((e) => e.decision_id === decision.id);
+  // El evento de la decisión, no otro de la misma decisión (aviso, orden de pago): solo ese
+  // trae el registro del motor.
+  const decided = events.find((e) => e.decision_id === decision.id && "rule_log" in e.data);
   const parsed = RuleLogSchema.safeParse(decided?.data["rule_log"]);
   const log = parsed.success ? parsed.data : [];
   const findingByCode = new Map(decision.findings.map((f) => [f.code, f]));
@@ -234,15 +247,14 @@ export async function loadInvoiceDetail(
     decision?.vendor_id ? getVendor(db, organizationId, decision.vendor_id) : null,
     fieldsWithBoxes(storage, invoice, stored?.record ?? null),
     pageSizes(storage, invoice),
-    // La aprobación se registra sobre la escalada; tras aprobar, la vigente es la que la sigue.
-    decision
-      ? findApprovalByDecision(db, organizationId, decision.previous_decision_id ?? decision.id)
-      : null,
+    decision ? resolutionOf(db, organizationId, decision) : null,
   ]);
   const extraction = stored?.record ?? null;
-  // Una decisión humana (aprobación) no tiene traza propia: se muestra la de la escalada.
+  // Una aprobación no corre el motor ni tiene traza propia: se muestra la de la escalada. Una
+  // corrección también es de una persona, pero reevalúa con el motor y trae su propia traza.
+  const ownTrace = events.some((e) => e.decision_id === decision?.id && "rule_log" in e.data);
   const traced =
-    decision?.actor.kind === "humano" && decision.previous_decision_id
+    decision?.actor.kind === "humano" && decision.previous_decision_id && !ownTrace
       ? await getDecision(db, organizationId, decision.previous_decision_id)
       : decision;
   const readName =
