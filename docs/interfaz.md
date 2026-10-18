@@ -72,7 +72,7 @@ Barra lateral fija, cinco destinos, en este orden de uso:
 ```
 
 - **Pendientes** es el inicio. Muestra un contador cuando hay trabajo.
-- **Facturas** es el archivo completo, con filtros por veredicto, canal, beneficiario y periodo, y el botón "Procesar facturas de ejemplo".
+- **Facturas** es el archivo completo, con filtros por veredicto y búsqueda por beneficiario o referencia, y los botones "Procesar facturas de ejemplo" y "Subir factura".
 - **Reglas** es la política vigente: formulario, YAML plegado, versiones.
 - **Métricas** es para el gerente.
 - **Bitácora** es el registro de eventos de todo el sistema, filtrable.
@@ -115,9 +115,11 @@ PAGADAS POR EL AGENTE HOY (14)                                   dentro de las r
 
 ### 5.2 Detalle de decisión
 
-Arriba de todo, la tarjeta **Por qué**: la decisión explicada para el cliente, sin códigos ni jerga. Un titular ("No se pagó.", "Necesita tu decisión.", "Se pagó dentro de tus reglas."), una frase por cada control que no pasó con los valores de esta factura ("Cobra distinto a lo acordado. La factura cobra 10.000.000 COP. Lo acordado con el beneficiario es 80 h × 95.000 COP."), cuántos controles pasó y **qué puedes hacer**. Lleva el color del veredicto. Sale de los mismos hallazgos registrados, de forma determinista; no cambia la decisión ni reemplaza el registro técnico. Al pie, "¿Fue clara la explicación?" con Sí y No; con No se abre un comentario opcional. La opinión queda en la bitácora y en la línea de tiempo, no cambia la decisión, y la más reciente es la que cuenta.
+El encabezado dice quién cobra; debajo, en una línea tenue, la referencia, cómo y hace cuánto llegó ("Llegó por correo hace 3 h") y cuándo vence. A la derecha, el monto en mono y el veredicto con su regla.
 
-Debajo, tres columnas con una pregunta cada una.
+Después, la tarjeta **Por qué**: la decisión explicada para el cliente, sin códigos ni jerga. Un titular ("No se pagó.", "Necesita tu decisión.", "Se pagó dentro de tus reglas."), una frase por cada control que no pasó con los valores de esta factura ("Cobra distinto a lo acordado. La factura cobra 10.000.000 COP. Lo acordado con el beneficiario es 80 h × 95.000 COP."), cuántos controles pasó de los que aplican ("Pasó 13 de 14 controles.") y, en una columna a la derecha separada por una línea, **qué puedes hacer**. Lleva el color del veredicto en un tinte suave y en su borde. Sale de los mismos hallazgos registrados, de forma determinista; no cambia la decisión ni reemplaza el registro técnico. Al pie, "¿Fue clara la explicación?" con Sí y No; con No se abre un comentario opcional. La opinión queda en la bitácora y en la línea de tiempo, no cambia la decisión, y la más reciente es la que cuenta.
+
+Debajo, tres tarjetas con una pregunta cada una, cada una con su título arriba.
 
 ```
 ← Pendientes      DEC-2026-10-0007 · Nube Andina SAS · 4.800.000 COP        ESCALAR
@@ -152,18 +154,18 @@ Debajo, tres columnas con una pregunta cada una.
 ```
 
 - **Columna 1, Documento.** Imagen de cada página, renderizada en el servidor al ingerir, con las citas resaltadas encima cuando se conoce su posición. Debajo, el texto leído con las mismas citas resaltadas. Seleccionar un campo en la columna 2 desplaza y resalta su cita. El navegador nunca abre el PDF original ni renderiza contenido del documento como HTML.
-- **Columna 2, Lo que leyó y revisó el agente.** Campos con confianza en punto de color más valor numérico al pasar el ratón, origen (modelo o persona, con quién y cuándo si fue corregido). Controles: primero los que no pasaron, con su nombre en palabras y debajo, tenue, valor observado, umbral y código; luego los que pasaron, colapsados. Al final, plegado, el **registro técnico** tal como quedó guardado, para auditoría.
-- **Columna 3, Tu decisión.** Checklist específico para esta factura: las frases salen de las reglas que dispararon más las de severidad `warn`. Aprobar inactivo hasta completar. Rechazar pide motivo. Corregir campo abre el campo en edición con origen "persona" y reevalúa. Debajo, lo que se firma, en claro. Y la línea de tiempo con tiempos y canal.
+- **Columna 2, Lo que leyó y revisó el agente.** Campos en filas con divisor: nombre, valor (en mono salvo el beneficiario) y confianza con un punto verde o, si está bajo el mínimo, un anillo ámbar; origen (modelo o persona). La fila del campo que hizo fallar un control lleva el tinte de lo que hace ese control. Controles: primero los que no pasaron, con su nombre en palabras y debajo, en mono tenue, valor observado, umbral y código; luego una línea "20 controles más: 13 pasaron, 7 no aplicaron" con "Ver todos", que los despliega. Al final, plegado, el **registro técnico** tal como quedó guardado, para auditoría.
+- **Columna 3, Tu decisión.** Quién resuelve y el checklist específico para esta factura: las frases salen de las reglas que dispararon más las de severidad `warn`. Aprobar inactivo hasta completar; debajo, lo que se firma, en claro. "Rechazar" y "Corregir campo", lado a lado, abren cada uno su formulario en un diálogo: rechazar pide motivo; corregir abre los campos en edición con origen "persona" y reevalúa. Bajo una línea, la línea de tiempo con horas en mono.
 - Si la decisión fue "pagar" o "frenar", la columna 3 muestra el estado, la orden preparada o el motivo del freno, y la opción "Reevaluar con la política actual" cuando hay una versión más nueva.
 - En reevaluación, se muestra la decisión anterior en un bloque colapsado con la diferencia.
 
 ### 5.3 Facturas
 
-Tabla densa con los botones de acción en el encabezado y, arriba de la tabla, los veredictos en píldoras (Todas, Pagadas, Escaladas, Frenadas) y el formulario de búsqueda, estado y canal. Si se llega desde Pendientes, una píldora "Decididas hoy" muestra el filtro del día y lo quita con un clic. Botones del encabezado: "Subir factura" (abre un diálogo) y, en la demo, "Procesar facturas de ejemplo (33)" y "Revisar correo de ejemplo (5)", con el número de casos y una línea que dice qué simulan.
+Encabezado con el título y, debajo, cuántas facturas hay ("57 facturas · todas las decisiones del agente y de tu equipo"). A la derecha los botones: en la demo, "Revisar correo de ejemplo (5)" y "Procesar facturas de ejemplo (33)", y "Subir factura", el primario, con su icono, que abre un diálogo. Arriba de la tabla, los veredictos en píldoras con cuántas hay en cada una (Todas, Pagadas, Escaladas, Frenadas, En proceso) y, a la derecha, la búsqueda por beneficiario o referencia (atajo `/`). Si se llega desde Pendientes, una píldora "Decididas hoy" muestra el filtro del día y lo quita con un clic. Estado y canal se aceptan en la dirección aunque la pantalla no los ofrezca.
 
 "Probar con tu factura" (D23, D24) aparece solo si el correo real o Telegram están encendidos. Abre un diálogo: sin acceso, pide el código que tienen los clientes; con él, dice cuándo vence el acceso y muestra una sección por canal. "Por correo": la dirección personal con un botón "Copiar" y cuántos correos admite por día. "Por Telegram": el botón "Conectar Telegram", que abre el bot con un enlace de un solo uso, si el chat ya está conectado y cuántas facturas admite por día. Con un chat conectado, las facturas de ejemplo no se avisan una por una: al terminar el lote, el progreso dice "resumen enviado a Telegram". Yunque nunca responde ni reenvía correos. La factura que llega aparece en la lista por el canal Correo, y un correo que no se procesó (dirección vencida o tope alcanzado) queda en la Bitácora como "Correo no procesado", con el motivo.
 
-Columnas: estado (punto de color y texto en tinta: ámbar espera a una persona, rojo falló o se rechazó, verde aprobada, gris en curso), referencia, beneficiario, monto con moneda, vence, canal, veredicto con regla, actualizada ("hace 12 min", con la fecha exacta al pasar el ratón). Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
+Columnas, en una tarjeta con filas de 48 px: beneficiario con la referencia debajo en mono, monto con moneda, veredicto en una píldora pequeña (punto y palabra), motivo en pocas palabras (las pagadas dicen "Dentro de tus reglas"; el valor y el umbral, al pasar el ratón), canal en una palabra y actualizada ("hace 12 min", con la fecha exacta al pasar el ratón). Clic abre el detalle. Al procesar un periodo, las filas cambian de estado en vivo: "en cola", "leyendo", "decidida", y el chip de veredicto aparece una por una. Esta animación es la demostración de que el agente trabaja, y no necesita más adorno que eso.
 
 ### 5.4 Reglas
 
@@ -180,13 +182,14 @@ Reglas                       Demo sin inicio de sesión · Firmas como [ Ana Tor
 ├─ Parámetros ──────────────────────┤ └────────────────────────────────────────────┘
 │ Tolerancia [5] % · Ventana [90] días…│
 └───────────────────────────────────┘
-┌ Cambios sin guardar.        Descartar  [ Ver qué cambiaría ]  [ Guardar como v5 ] ┐ (fija)
+┌ Cambios sin guardar.        Descartar  [ Ver qué cambiaría ]  [ Guardar como v5 ] ┐ (fija, con cambios)
 ```
 
-- La pantalla cabe entera sin desplazarse, con el patrón de las páginas de configuración: pestañas en vez de una página larga, grupos en tarjetas con una frase de qué controlan y la barra de acciones fija abajo.
+- La pantalla cabe entera sin desplazarse, con el patrón de las páginas de configuración: pestañas en vez de una página larga, grupos en tarjetas con una frase de qué controlan y la barra de acciones fija abajo. La barra aparece solo cuando hay cambios sin guardar; sin cambios no tapa nada.
 - El formulario habla en palabras de producto: sin códigos de regla (quedan en el YAML y al pasar el ratón) ni montos en centavos. Cada regla muestra sus dos salidas a la vista, Escalar o Frenar, con el color del veredicto.
 - "Como código" es la misma política en YAML para auditarla o editarla entera; editar uno actualiza el otro. Una línea explica que ahí los montos van en centavos y las tolerancias en puntos básicos.
 - "A quién se puede pagar" lista los beneficiarios registrados con una casilla cada uno, si están verificados y cuántos están permitidos. Es la lista `allowed_payees` de la política: marcar o desmarcar cambia el YAML como cualquier otro campo, y uno fuera de la lista sigue la regla «Beneficiario fuera de la lista».
+- Debajo de las reglas configurables, "Siempre se aplican" lista las reglas con salida fija (cuenta o titular distinto, beneficiario sin verificar, límite por pago, umbral, saldo, moneda, las de lectura e instrucciones sospechosas), cada una con su frase y su salida con candado, sin control. Están para que se vea que existen frenos que ninguna política ablanda.
 - Las claves protegidas van en una línea con candado y sin edición.
 - La pestaña "Tasas de cambio" muestra, de solo lectura, cuánto vale 1 USD en cada moneda y desde qué fecha (D22). No se editan aquí porque cambiarlas cambiaría qué se paga. El detalle de una factura en otra moneda dice con qué tasa se convirtió a USD para los límites.
 - "Ver qué cambiaría" ejecuta el replay sobre el histórico y abre el resultado en un diálogo, desde el que se puede guardar. Es la pantalla que más convence a un cliente y vale la pena pulirla.
@@ -267,25 +270,30 @@ Cuando aparezca una duda que este documento no cubra, se responde en este orden:
 
 La portada pública vive en `/` y presenta el producto a quien llega por el enlace; el producto empieza en `/pendientes`. La portada no lee ni crea empresas: la empresa de ejemplo nace solo al entrar al producto con "Probar la demo", así un rastreador que abre la portada no llena la base.
 
-Orden, de arriba abajo:
+Se lee como un relato de venta, de arriba abajo: la promesa, la prueba, el problema, cómo se resuelve, el producto, por qué confiar y el cierre que repite la promesa.
 
-1. **Barra fija** con el nombre, tres anclas (Cómo funciona, Control, Preguntas), el selector de tema y un solo botón: "Probar la demo".
-2. **Primer bloque.** Titular de velocidad con control ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Al lado, una tarjeta de decisión de ejemplo: la factura, sus controles con valor contra umbral en mono y el veredicto, más una pagada y una frenada debajo.
-3. **Tres salidas.** Pagar, Frenar y Escalar, cada una con su color, qué significa y casos típicos. Fija el vocabulario de toda la página.
-4. **Cómo funciona,** en tres pasos numerados: llega la factura (PDF, foto, correo, Telegram), el agente la revisa contra los controles, la persona decide lo que importa.
-5. **Control,** el centro de la página, con piezas del producto en lugar de promesas: un fragmento de bitácora en mono que solo se agrega, "ver qué cambiaría" antes de guardar, el interruptor de emergencia, el checklist para aprobar y "lo que Yunque nunca hace".
-6. **Datos.** El cero de pagos indebidos en el set de regresión, con el degradado de marca, y las cifras que salen del código: cuántos controles tiene el motor y cuántos casos el lote de ejemplo.
-7. **Preguntas** frecuentes, cortas, que se abren en el sitio.
-8. **Cierre** con el mismo botón del inicio y la misma línea de tranquilidad.
-
-Entre el primer bloque y las tres salidas va **El producto**: la bandeja de Pendientes en una ventana. En escritorio la sección es más alta que la pantalla y la ventana queda fija: al bajar crece de 0,84 a 1 y sus filas aparecen una por una. En el teléfono es una imagen quieta.
+1. **Aviso** sobre la barra: "Demo abierta", con cuántas facturas de ejemplo hay, y enlace a la demo.
+2. **Barra fija** con el nombre, tres anclas (Cómo funciona, Control, Preguntas), el selector de tema y un solo botón: "Probar la demo". Arriba del todo es transparente; al bajar toma fondo y borde.
+3. **Primer bloque, centrado.** Titular de velocidad con control ("Paga tus facturas sin salirte de tus reglas"), con el degradado de marca en la segunda mitad; una frase con las tres salidas; "Probar la demo" y "Ver cómo decide"; y la línea "Sin registro · datos de ejemplo · ningún pago real". Detrás, una rejilla fina y dos luces de marca.
+4. **Portal.** Un marco de anillos con el azul de marca y, al fondo, el agente decidiendo en bucle tres facturas reales del lote: Nube Andina F-2291 se paga, Camila Rojas CR-121 se frena por instrucciones escondidas en el documento y Andes Hardware AH-5560 se escala por superar el umbral. Cada una con sus controles (valor contra umbral, en mono) y su veredicto, que es el que el motor les da.
+5. **Cinta del lote**, de borde a borde: cada caso del lote de ejemplo con su veredicto y su motivo, y los totales por salida. Sale del manifiesto del dataset; si no se puede leer, la cinta no aparece.
+6. **El problema,** en una frase grande y tres dolores cortos: todo pasa por las mismas manos, un PDF basta para desviar un pago, nadie puede mostrar por qué se pagó.
+7. **Cómo funciona,** en tres pasos (llega, el agente la lee y la revisa, tú decides lo que importa), cada uno con su ilustración: los canales, los campos leídos con su confianza y los controles, y las tres salidas con los totales del lote y el checklist para aprobar.
+8. **Dónde trabaja:** tres tarjetas lado a lado, PDF o foto (subida o lote), correo y Telegram, cada una con un ejemplo de su canal. El relato no favorece un canal: cada factura sigue el mismo camino llegue por donde llegue.
+9. **El producto:** la bandeja de Pendientes en una ventana, con tres escaladas del lote.
+10. **Por qué Yunque:** cuatro bloques de solo texto (rápido donde no hace falta criterio, explicable, seguro por diseño, tus reglas y tu firma) y el botón.
+11. **Panel de control,** de borde a borde, con esquinas redondeadas y siempre en los tokens del tema oscuro (`.theme-dark`): las preguntas de quien controla los pagos se turnan en una píldora ("¿Quién aprobó este pago?", "¿Por qué se frenó esta factura?"…), y responde "Cada respuesta ya está escrita" con piezas del producto (bitácora que solo se agrega, ver qué cambiaría antes de guardar, interruptor, checklist, lo que Yunque nunca hace) y los datos: el cero de pagos indebidos en el set de regresión y las cifras que salen del código.
+12. **Preguntas** frecuentes, cortas, que se abren en el sitio.
+13. **Cierre** que repite la promesa del inicio, con el mismo botón, sobre un resplandor de marca.
 
 **Movimiento** (GSAP, en `app/_landing/motion.tsx`; las secciones solo marcan qué se anima):
 
-- **Entrada**, de unos 3 segundos: la barra baja, el titular sube línea por línea desde una máscara, luego el texto y los botones; la tarjeta de ejemplo entra, sus controles aparecen uno tras otro como los revisa el agente, después el veredicto, y un brillo la cruza una vez. Antes de hidratar, lo que la entrada muestra está oculto para que no parpadee; si la animación no arranca, se muestra solo a los 4 segundos.
-- **Al bajar**: el primer bloque se aleja y la tarjeta va más rápido que el texto. Cada sección entra una vez al cruzar el 85 % de la pantalla: titular por líneas con máscara, texto y tarjetas escalonadas. Los conectores entre los tres pasos se dibujan, y las cifras cuentan hasta su valor y terminan en el texto exacto del servidor.
-- **Bajo el puntero**: botones y enlaces crecen un poco con un resorte corto y vuelven más rápido y sin rebote; las tarjetas se levantan 4 px.
+- **Entrada**, de unos 3 segundos: la barra baja, el titular sube línea por línea desde una máscara, luego el texto, los botones y el portal. Antes de hidratar, lo que la entrada muestra está oculto para que no parpadee; si la animación no arranca, se muestra solo a los 4 segundos.
+- **Portal**, en escritorio: la sección queda fija y, al bajar, los anillos se abren hacia afuera mientras la escena crece desde el fondo del túnel hasta llenar la pantalla. El agente decide en bucle solo mientras se ve: una franja lee la factura, los controles aparecen uno tras otro, luego el veredicto, y una barra por factura marca el avance.
+- **Al bajar**: el primer bloque se aleja; el problema se ilumina palabra por palabra; en "Cómo funciona" la ilustración queda fija y cambia con el paso que cruza el centro de la pantalla, unas pestañas fijas marcan ese paso y llevan a cualquiera, y una línea de avance se llena; el producto crece de 0,84 a 1; cada sección entra una vez con su titular por líneas y sus tarjetas escalonadas; las cifras cuentan hasta su valor y terminan en el texto exacto del servidor.
+- **Cinta**: corre sola con CSS y se detiene bajo el puntero.
+- **Bajo el puntero**: botones y enlaces crecen un poco con un resorte corto y vuelven más rápido y sin rebote; las tarjetas se levantan 4 px y una luz de marca sigue al puntero.
 - **Menú del teléfono**: dos barras que se cruzan en una X moviendo sus puntas, un panel que entra desde la derecha con un resorte corto y filas escalonadas; sale hacia la derecha sin adornos. Esc cierra y devuelve el foco, Tab no sale del menú, la página no se desplaza detrás y al pasar a escritorio se cierra.
-- Con "reducir movimiento" no se anima nada y todo está en su estado final, que es el mismo con o sin animación. Solo se animan transform y opacidad.
+- Con "reducir movimiento" no se anima nada y todo está en su estado final, que es el mismo con o sin animación: el portal muestra la escena completa, el agente la primera factura decidida, la cinta queda quieta y se desplaza a mano, y "Cómo funciona" cambia de ilustración sin transición. En el teléfono no hay secciones fijas: cada paso trae su ilustración debajo. Se animan transform, opacidad y el recorte del portal.
 
-Reglas de la portada: un solo botón primario, que siempre lleva al producto; ningún logo de clientes, testimonio ni cifra inventada; nada que el código no haga hoy. Usa los mismos tokens, fuentes y componentes que el producto, en los dos temas.
+Reglas de la portada: un solo botón primario, que siempre lleva al producto; ningún logo de clientes, testimonio ni cifra inventada; los casos que muestra son del lote de ejemplo y deciden como el motor los decide; nada que el código no haga hoy. Usa los mismos tokens, fuentes y componentes que el producto, en los dos temas.
