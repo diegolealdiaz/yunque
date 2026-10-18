@@ -1,4 +1,10 @@
-import type { ChecklistItem, Finding, FindingCode } from "@/src/domain";
+import {
+  ExtractedFieldNameSchema,
+  type ChecklistItem,
+  type ExtractedFieldName,
+  type Finding,
+  type FindingCode,
+} from "@/src/domain";
 
 import { quote, sanitizeDocumentText } from "./sanitize";
 
@@ -18,6 +24,30 @@ type Template = {
 };
 
 const s = sanitizeDocumentText;
+
+/** Cada campo leído, como lo nombra una persona: nunca el nombre interno. */
+const FIELD_NAME: Readonly<Record<ExtractedFieldName, string>> = {
+  payee_name: "el beneficiario",
+  payee_tax_id: "la identificación",
+  invoice_number: "el número de factura",
+  issue_date: "la fecha de emisión",
+  due_date: "la fecha de vencimiento",
+  currency: "la moneda",
+  subtotal: "el subtotal",
+  taxes: "los impuestos",
+  total: "el monto",
+  bank_account: "la cuenta",
+  bank_holder: "el titular",
+  hours: "las horas",
+  purchase_order: "la orden de compra",
+  description: "el concepto",
+};
+
+/** El campo de un hallazgo en palabras, o `fallback` si no es un campo conocido. */
+function fieldName(f: Finding, fallback: string): string {
+  const parsed = ExtractedFieldNameSchema.safeParse(f.field);
+  return parsed.success ? FIELD_NAME[parsed.data] : fallback;
+}
 
 export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
   payee_not_allowed: {
@@ -85,18 +115,18 @@ export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
   },
   field_low_confidence: {
     explain: (f) =>
-      `La lectura del campo ${s(f.field ?? "indicado")} tiene confianza ${s(f.observed)}; el mínimo es ${s(f.threshold)}.`,
-    check: (f) => `Revisé el campo ${s(f.field ?? "indicado")} contra el documento`,
+      `La lectura de ${fieldName(f, "un campo")} tiene confianza ${s(f.observed)}; el mínimo es ${s(f.threshold)}.`,
+    check: (f) => `Revisé ${fieldName(f, "el campo indicado")} contra el documento`,
   },
   field_ambiguous: {
     explain: (f) =>
-      `El campo ${s(f.field ?? "indicado")} muestra ${s(f.observed)}; se espera ${s(f.threshold)}.`,
-    check: (f) => `Elegí el valor correcto para ${s(f.field ?? "el campo ambiguo")}`,
+      `Para ${fieldName(f, "un campo")} el documento muestra ${s(f.observed)}; se espera ${s(f.threshold)}.`,
+    check: (f) => `Elegí el valor correcto para ${fieldName(f, "el campo ambiguo")}`,
   },
   evidence_missing: {
     explain: (f) =>
       `La cita de ${s(f.observed)} no aparece en el documento o no respalda el valor leído; se exige ${s(f.threshold)}.`,
-    check: (f) => `Verifiqué el campo ${s(f.field ?? "indicado")} directamente en el documento`,
+    check: (f) => `Verifiqué ${fieldName(f, "el campo indicado")} directamente en el documento`,
   },
   totals_mismatch: {
     explain: (f) => `El desglose suma ${s(f.observed)}, pero el total es ${s(f.threshold)}.`,

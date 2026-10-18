@@ -137,6 +137,7 @@ export function balances(cop = 2_500_000_000, usd = 12_000_000): Balance[] {
 export function priorPaid(daysAgo: number, amount = 480_000_000): PriorInvoice {
   return {
     invoice_id: `prev-${String(daysAgo)}`,
+    reference: null,
     vendor_id: VENDOR_ID,
     document_hash: "e".repeat(64),
     semantic_key: `NUBE ANDINA SAS|F${String(2000 + daysAgo)}|${String(amount)}|COP`,

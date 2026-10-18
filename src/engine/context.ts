@@ -46,6 +46,8 @@ export type VerificationReport = {
 /** Lo que se sabe de una factura anterior de la misma empresa, para duplicados e historial. */
 export type PriorInvoice = {
   readonly invoice_id: string;
+  /** Referencia legible (YQ-2026-10-0001), para nombrarla ante una persona. */
+  readonly reference: string | null;
   readonly vendor_id: string | null;
   readonly document_hash: Sha256;
   readonly semantic_key: string | null;

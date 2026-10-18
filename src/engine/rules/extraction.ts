@@ -100,6 +100,15 @@ export const fieldLowConfidence: Rule = {
   },
 };
 
+/** Campos de dinero: sus candidatos llegan en unidad mínima ("850000") y se muestran con moneda. */
+const MONEY_FIELDS: ReadonlySet<string> = new Set(["subtotal", "taxes", "total"]);
+
+/** Un candidato como lo lee una persona: "8.500,00 BRL" en vez de "850000". */
+function candidateText(field: string, candidate: string, currency: Currency | null): string {
+  if (!currency || !MONEY_FIELDS.has(field) || !/^-?\d{1,15}$/.test(candidate)) return candidate;
+  return formatMoney(money(Number(candidate), currency));
+}
+
 export const fieldAmbiguous: Rule = {
   code: "field_ambiguous",
   evaluate: (ctx) => {
@@ -110,7 +119,9 @@ export const fieldAmbiguous: Rule = {
     return fail({
       code: "field_ambiguous",
       action: "escalar",
-      observed: first.candidates.join(" | "),
+      observed: first.candidates
+        .map((c) => candidateText(first.field, c, currencyOf(ctx)))
+        .join(" | "),
       threshold: "un solo valor",
       field: first.field,
       message: `El campo ${first.field} tiene más de un valor posible en el documento`,

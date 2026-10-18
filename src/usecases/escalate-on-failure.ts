@@ -91,7 +91,10 @@ export async function escalateOnFailure(
   return { invoice: savedInvoice(record), decision };
 }
 
-/** El hallazgo que explica el escalado: qué etapa falló y con qué código. */
+/**
+ * El hallazgo que explica el escalado: qué etapa falló y por qué, en palabras ("El PDF tiene
+ * 12 páginas y el máximo es 10"). El código del error queda en el mensaje técnico.
+ */
 function processingErrorFinding(
   failure: StageFailure,
   error: { readonly code: string; readonly message: string },
@@ -100,11 +103,11 @@ function processingErrorFinding(
     code: "processing_error",
     severity: "block",
     action: "escalar",
-    observed: `${STAGE_LABELS[failure.stage]} (${error.code})`,
+    observed: `${STAGE_LABELS[failure.stage]}: ${error.message}`,
     threshold: "un procesamiento completo",
     evidence: null,
     field: null,
-    message: `La factura no se pudo procesar por completo: ${error.message}`,
+    message: `La factura no se pudo procesar por completo (${error.code}): ${error.message}`,
   };
 }
 

@@ -21,7 +21,7 @@ export const duplicateInvoice: Rule = {
       return fail({
         code: "duplicate_invoice",
         action,
-        observed: `el mismo archivo que ${sameDocument.invoice_id}`,
+        observed: `el mismo archivo que ${sameDocument.reference ?? sameDocument.invoice_id}`,
         threshold: "un documento no recibido antes",
         field: "invoice_number",
         evidence: evidenceOf(ctx, "invoice_number"),
@@ -41,7 +41,7 @@ export const duplicateInvoice: Rule = {
     return fail({
       code: "duplicate_invoice",
       action,
-      observed: `la misma factura que ${semantic.invoice_id}`,
+      observed: `la misma factura que ${semantic.reference ?? semantic.invoice_id}`,
       threshold: `una sola vez en ${String(window_days)} días`,
       field: "invoice_number",
       evidence: evidenceOf(ctx, "invoice_number"),

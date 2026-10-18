@@ -82,6 +82,7 @@ export async function simulateDataset(): Promise<{
     if (!vendor) throw new Error(`vendor ${h.vendor_key} ausente`);
     return {
       invoice_id: `historial-${String(i)}`,
+      reference: null,
       vendor_id: vendor.id,
       document_hash: documentHash(new TextEncoder().encode(`historial-${String(i)}`)),
       semantic_key: semanticKey({
@@ -162,6 +163,7 @@ export async function simulateDataset(): Promise<{
     }
     prior.push({
       invoice_id: c.id,
+      reference: null,
       vendor_id: payee.kind === "matched" ? payee.vendor.id : null,
       document_hash: hash,
       semantic_key: key,

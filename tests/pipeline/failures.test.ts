@@ -47,7 +47,9 @@ describe("errores por etapa (P-82)", () => {
     const corrupt = new TextEncoder().encode("%PDF-1.7\nesto no es un pdf");
     const result = await processInvoice(p.deps, p.input(corrupt, "upload:roto"));
     await expectEscalatedAt(p, result, "normalización");
-    expect(decided(result).findings[0]?.observed).toContain("corrupt_document");
+    // En palabras para la persona; el código queda en el mensaje técnico.
+    expect(decided(result).findings[0]?.observed).toContain("El PDF no se pudo abrir");
+    expect(decided(result).findings[0]?.message).toContain("corrupt_document");
     expect(p.storage.files.has(result.invoice.file_key)).toBe(true);
     expect(p.client.requests).toHaveLength(0);
   });

@@ -290,6 +290,11 @@ describe("matriz de fronteras (P-20)", () => {
       expect(result.findings.map((f) => f.code)).toEqual(["duplicate_invoice"]);
       expect(result.verdict).toBe("frenar");
     });
+    it("nombra la factura anterior por su referencia, no por su identificador interno", () => {
+      const sameFile = { ...priorPaid(5), document_hash: DOC_HASH, reference: "YQ-2026-10-0001" };
+      const finding = evaluate(baseContext({ prior: [sameFile] })).findings[0];
+      expect(finding?.observed).toBe("el mismo archivo que YQ-2026-10-0001");
+    });
     it("la propia factura en el historial no es duplicado", () => {
       const self = {
         ...priorPaid(0),
@@ -548,6 +553,18 @@ describe("matriz de fronteras (P-20)", () => {
         ambiguities: [{ field: "total" as const, candidates: ["a", "b"] }],
       };
       expect(codes(baseContext({ verification: verified }))).toEqual(["field_ambiguous"]);
+    });
+    it("los candidatos de un monto en unidad mínima se muestran con su moneda", () => {
+      const ambiguous = {
+        ...baseExtraction(),
+        ambiguities: [
+          { field: "total" as const, candidates: ["480000000", "530000000 (con mora)"] },
+        ],
+      };
+      const finding = evaluate(baseContext({ extraction: ambiguous })).findings.find(
+        (f) => f.code === "field_ambiguous",
+      );
+      expect(finding?.observed).toBe("4.800.000 COP | 530000000 (con mora)");
     });
     it("cita ausente escala", () => {
       const verification = { ...baseContext().verification, evidence_missing: ["total" as const] };

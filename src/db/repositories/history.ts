@@ -25,6 +25,7 @@ import { decisions, invoices } from "../schema";
 
 export type PriorInvoiceRow = {
   readonly invoice_id: Ulid;
+  readonly reference: string;
   readonly vendor_id: Ulid | null;
   readonly document_hash: Sha256;
   readonly semantic_key: string | null;
@@ -120,6 +121,7 @@ export async function listPriorInvoices(
   const rows = await exec
     .select({
       id: invoices.id,
+      reference: invoices.reference,
       status: invoices.status,
       documentHash: invoices.documentHash,
       semanticKey: invoices.semanticKey,
@@ -155,6 +157,7 @@ export async function listPriorInvoices(
     const currency = d?.amountCurrency ?? null;
     return {
       invoice_id: row.id,
+      reference: row.reference,
       vendor_id: d?.vendorId ?? null,
       document_hash: row.documentHash,
       semantic_key: row.semanticKey,
