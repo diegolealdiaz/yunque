@@ -495,3 +495,13 @@ select:not([multiple]) {
     animation: none;
   }
 }
+
+/* Los pasos del agente (app/_components/agent-progress.tsx) aparecen sobre la tarjeta. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

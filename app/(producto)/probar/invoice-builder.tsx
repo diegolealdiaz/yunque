@@ -6,6 +6,7 @@ import { useId, useState, type FormEvent } from "react";
 import type { Currency } from "@/src/domain/currency";
 import type { BuilderVendor } from "@/src/usecases";
 
+import { AgentProgress, useAgentProgress } from "../../_components/agent-progress";
 import { ProcessResponseSchema, errorMessage } from "../facturas/api-responses";
 
 /**
@@ -57,7 +58,8 @@ export function InvoiceBuilder({ vendors }: { readonly vendors: readonly Builder
   const [description, setDescription] = useState(DEFAULT_DESCRIPTION);
   const [note, setNote] = useState("");
   const [hiddenNote, setHiddenNote] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const progress = useAgentProgress();
+  const busy = progress.step !== null;
   const [error, setError] = useState<string | null>(null);
 
   const vendor = vendors.find((v) => v.id === vendorId) ?? null;
@@ -108,38 +110,40 @@ export function InvoiceBuilder({ vendors }: { readonly vendors: readonly Builder
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
     setError(null);
     try {
-      const response = await fetch("/api/armar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          llave: `upload:armada-${crypto.randomUUID()}`,
-          factura: {
-            vendor: vendor
-              ? { kind: "registrado", id: vendor.id }
-              : { kind: "nuevo", name: newName.trim(), currency: newCurrency },
-            total: total.trim(),
-            hours,
-            account,
-            description: description.trim(),
-            note: note.trim() === "" ? null : note.trim(),
-            hiddenNote,
-          },
-        }),
+      const outcome = await progress.run(async () => {
+        const response = await fetch("/api/armar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            llave: `upload:armada-${crypto.randomUUID()}`,
+            factura: {
+              vendor: vendor
+                ? { kind: "registrado", id: vendor.id }
+                : { kind: "nuevo", name: newName.trim(), currency: newCurrency },
+              total: total.trim(),
+              hours,
+              account,
+              description: description.trim(),
+              note: note.trim() === "" ? null : note.trim(),
+              hiddenNote,
+            },
+          }),
+        });
+        const body: unknown = await response.json().catch(() => null);
+        return { ok: response.ok, body };
       });
-      const body: unknown = await response.json().catch(() => null);
-      const parsed = ProcessResponseSchema.safeParse(body);
-      if (!response.ok || !parsed.success) {
-        setError(errorMessage(body, "No se pudo armar la factura. Intenta de nuevo."));
-        setBusy(false);
+      const parsed = ProcessResponseSchema.safeParse(outcome.body);
+      if (!outcome.ok || !parsed.success) {
+        setError(errorMessage(outcome.body, "No se pudo armar la factura. Intenta de nuevo."));
+        progress.reset();
         return;
       }
       router.push(`/facturas/${parsed.data.invoiceId}`);
     } catch {
       setError("Se cortó la conexión. Intenta de nuevo.");
-      setBusy(false);
+      progress.reset();
     }
   }
 
@@ -303,8 +307,9 @@ export function InvoiceBuilder({ vendors }: { readonly vendors: readonly Builder
         disabled={busy}
         className="h-9 w-full btn-primary px-3 text-[13px] sm:w-auto"
       >
-        {busy ? "Armando la factura y leyéndola…" : "Armar y ver qué decide"}
+        {busy ? "El agente está decidiendo…" : "Armar y ver qué decide"}
       </button>
+      {progress.step !== null ? <AgentProgress step={progress.step} /> : null}
       {error ? (
         <p role="alert" className="text-[12px] text-hold">
           {error}

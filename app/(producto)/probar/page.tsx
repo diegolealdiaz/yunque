@@ -57,7 +57,7 @@ export default async function ProbarPage() {
         {cases.map((c) => {
           const invoice = done.get(c.receiptKey);
           return (
-            <li key={c.id} className="flex flex-col overflow-hidden card">
+            <li key={c.id} className="relative flex flex-col overflow-hidden card">
               <div className="relative h-48 overflow-hidden border-b border-line bg-white">
                 <Image
                   src={`/${GALLERY_PREVIEW_DIR}/${c.id}.png`}
