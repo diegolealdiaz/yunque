@@ -7,7 +7,7 @@ Qué hace Yunque hoy, hacia dónde va y qué se dejó fuera a propósito. Lo de 
 - **Recibe facturas** por subida en pantalla (PDF o foto), por lote del periodo, por correo real y por Telegram. Una misma entrega nunca se procesa dos veces.
 - **Deja armar una factura de prueba** con proveedor, monto, cuenta y una nota: el cliente ve pagar, escalar y frenar con datos que eligió.
 - **Lee con IA y verifica con código:** cada dato con su cita en el documento y su confianza; una segunda pasada con otro modelo cuando la verificación falla; detección de instrucciones ocultas.
-- **Decide con 21 controles deterministas:** pagar, frenar o escalar a una persona. El modelo nunca decide, y lo que diga una factura solo endurece el veredicto.
+- **Decide con 22 controles deterministas:** pagar, frenar o escalar a una persona. El modelo nunca decide, y lo que diga una factura solo endurece el veredicto.
 - **Explica cada decisión** en palabras simples, con la regla, el valor y el umbral, y el dato señalado en el documento.
 - **Una persona resuelve lo que escala:** aprueba con checklist y firma del contenido exacto, corrige un dato, rechaza o registra al proveedor nuevo desde su factura.
 - **La empresa pone las reglas:** límites, presupuesto en USD sobre varias monedas, beneficiarios y qué hacer en cada caso, en versiones firmadas, con la vista de qué facturas cambiarían antes de guardar.

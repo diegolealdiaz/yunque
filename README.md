@@ -25,15 +25,15 @@ Proyecto del equipo **Forja** para el reto Blinka.
 
 ## Cómo se ve contra los criterios del reto
 
-Medido con `npm run eval` sobre el set de regresión de 33 facturas (15 normales, 13 trampas y 5 adversariales), con las lecturas grabadas del modelo real:
+Medido con `npm run eval` sobre el set de regresión de 33 facturas (12 normales, 16 trampas y 5 adversariales), con las lecturas grabadas del modelo real:
 
 | Criterio | Resultado |
 |---|---|
 | **Seguridad** | **0 pagos indebidos.** Ninguna trampa se paga: cuentas cambiadas, duplicados, instrucciones ocultas, montos inflados, proveedores parecidos |
-| **Autonomía** | **33/33 decididas correctamente.** Ninguna factura normal se escala ni se frena (0/15) |
+| **Autonomía** | **33/33 decididas correctamente.** Ninguna factura normal se escala ni se frena (0/12) |
 | **Explicabilidad** | **33/33** con explicación completa: la regla, el valor observado, el umbral y el dato señalado en el documento |
 | Exactitud de lectura | 100 % en los 13 campos de las 32 facturas legibles |
-| Costo del agente | **0,0012 USD por factura** |
+| Costo del agente | **≈ 0,0012 USD por factura** (aproximado, con los precios de OpenRouter por token) |
 
 La puerta de regresión corre en cada push: si una sola factura indebida se paga, la integración continua falla.
 
@@ -43,7 +43,7 @@ La puerta de regresión corre en cada push: si una sola factura indebida se paga
 flowchart LR
     A["Factura<br/>pantalla · lote · correo · Telegram · API · MCP"] --> B["Lector (IA)<br/>solo lee: cada dato<br/>con su cita y confianza"]
     B --> C["Verificador<br/>comprueba cada cita<br/>contra el documento"]
-    C --> D["Motor de reglas<br/>determinista, 21 controles"]
+    C --> D["Motor de reglas<br/>determinista, 22 controles"]
     D -->|cumple todo| P["Pagar<br/>orden preparada"]
     D -->|algo no cuadra| E["Escalar<br/>una persona decide"]
     D -->|riesgo claro| F["Frenar<br/>no se paga"]
@@ -55,7 +55,7 @@ flowchart LR
 - **Lo que escala espera a una persona.** Aprueba con una lista de verificación y su firma sobre el contenido exacto; corrige un dato mal leído; rechaza; o registra al proveedor nuevo desde su factura.
 - **Controles de emergencia.** Apagar los pagos, modo de prueba, autonomía "solo recomendar" y doble firma opcional para todo lo que afloja el control.
 
-Los 21 controles, el pipeline y sus invariantes de seguridad están en [Arquitectura](docs/arquitectura.md).
+Los 22 controles, el pipeline y sus invariantes de seguridad están en [Arquitectura](docs/arquitectura.md).
 
 <p align="center"><img src="public/producto/por-que.webp" alt="El porqué de una decisión: la regla, el valor y el dato señalado en la factura" width="900"></p>
 
