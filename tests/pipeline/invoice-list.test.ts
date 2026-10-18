@@ -9,7 +9,9 @@ import {
   READ_DEADLINE_MS,
   UseCaseError,
   assertWithinDailyLimits,
+  countByVerdict,
   loadInvoiceList,
+  narrowByVerdict,
   processInvoice,
 } from "@/src/usecases";
 
@@ -67,6 +69,19 @@ describe("lista de facturas (P-104)", () => {
     );
     expect(search.every((r) => r.decided?.payeeName === "Andes Hardware SAS")).toBe(true);
     expect(search.length).toBeGreaterThan(0);
+  });
+
+  it("cuenta cuántas hay en cada píldora y la píldora deja solo las suyas", async () => {
+    const rows = await loadInvoiceList(p.t.db, p.organizationId, {}, NOW);
+    const counts = countByVerdict(rows);
+    expect(counts.todas).toBe(rows.length);
+    expect(counts.pagar + counts.escalar + counts.frenar + counts.en_proceso).toBe(rows.length);
+    for (const verdict of ["pagar", "escalar", "frenar", "en_proceso"] as const) {
+      const narrowed = narrowByVerdict(rows, verdict);
+      expect(narrowed).toHaveLength(counts[verdict]);
+      for (const row of narrowed) expect(row.decided?.verdict ?? "en_proceso").toBe(verdict);
+    }
+    expect(narrowByVerdict(rows, null)).toHaveLength(rows.length);
   });
 
   it("filtra por decididas desde un instante, como «pagadas hoy» de Pendientes", async () => {

@@ -37,9 +37,9 @@ export const NAV_ITEMS = [
 ] as const;
 
 const HEALTH: Readonly<Record<HealthLevel, { label: string; dot: string }>> = {
-  ok: { label: "Salud: en orden", dot: "bg-pay-solid" },
-  degradada: { label: "Salud: degradada", dot: "bg-escalate-solid" },
-  caida: { label: "Salud: con fallas", dot: "bg-hold-solid" },
+  ok: { label: "En orden", dot: "bg-pay-solid" },
+  degradada: { label: "Degradada", dot: "bg-escalate-solid" },
+  caida: { label: "Con fallas", dot: "bg-hold-solid" },
 };
 
 function Brand() {
@@ -186,35 +186,39 @@ export function Sidebar({ state }: { readonly state: ShellState }) {
         </nav>
         <div className="mx-3 border-t border-line px-2 pt-4 pb-4">
           <p className="caps mb-2.5">Controles</p>
-          <dl className="space-y-2 text-[13px]">
-            <div className="flex justify-between">
-              <dt className="text-ink-3">Pagos</dt>
+          <dl className="space-y-3 text-[13px]">
+            <div className="flex items-center justify-between">
+              <dt className="text-ink-2">Pagos</dt>
               <dd
-                className={`font-medium ${state.controls.payments_enabled ? "text-ink" : "text-hold"}`}
+                className={`inline-flex items-center gap-1.5 font-semibold ${state.controls.payments_enabled ? "text-ink" : "text-hold"}`}
               >
+                <span
+                  aria-hidden="true"
+                  className={`size-1.5 rounded-full ${state.controls.payments_enabled ? "bg-pay-solid" : "bg-hold-solid"}`}
+                />
                 {state.controls.payments_enabled ? "Encendidos" : "Apagados"}
               </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-ink-3">Agente</dt>
-              <dd className="font-medium text-ink">
+            <div className="flex items-center justify-between">
+              <dt className="text-ink-2">Agente</dt>
+              <dd className="font-semibold text-ink">
                 {state.controls.autonomy === "decidir" ? "Decide" : "Solo recomienda"}
               </dd>
             </div>
             {state.controls.dry_run ? (
-              <div className="flex justify-between">
-                <dt className="text-ink-3">Prueba</dt>
-                <dd className="font-medium text-ink">Sin órdenes reales</dd>
+              <div className="flex items-center justify-between">
+                <dt className="text-ink-2">Prueba</dt>
+                <dd className="font-semibold text-ink">Sin órdenes reales</dd>
               </div>
             ) : null}
-            <div className="pt-1">
-              <dt className="sr-only">Salud</dt>
+            <div className="flex items-center justify-between">
+              <dt className="text-ink-2">Salud</dt>
               <dd>
                 <Link
                   href="/salud"
-                  className="inline-flex items-center gap-1.5 text-ink-2 hover:text-ink"
+                  className="inline-flex items-center gap-1.5 font-semibold text-ink hover:underline"
                 >
-                  <span aria-hidden="true" className={`size-2 rounded-full ${health.dot}`} />
+                  <span aria-hidden="true" className={`size-1.5 rounded-full ${health.dot}`} />
                   {health.label}
                 </Link>
               </dd>

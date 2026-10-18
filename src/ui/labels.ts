@@ -89,6 +89,24 @@ export const CHANNEL_LABEL: Readonly<Record<Channel, string>> = {
   api: "API de decisión",
 };
 
+/** Canal en una palabra, para la columna de las tablas. */
+export const CHANNEL_SHORT_LABEL: Readonly<Record<Channel, string>> = {
+  upload: "Subida",
+  batch: "Lote",
+  inbox: "Correo",
+  telegram: "Telegram",
+  api: "API",
+};
+
+/** Cómo llegó la factura, como frase del encabezado del detalle: «Llegó por correo». */
+export const ARRIVAL_LABEL: Readonly<Record<Channel, string>> = {
+  upload: "Subida en pantalla",
+  batch: "Llegó en el lote",
+  inbox: "Llegó por correo",
+  telegram: "Llegó por Telegram",
+  api: "Llegó por la API",
+};
+
 /** Título de los hallazgos de sistema, que no son reglas del catálogo. */
 const SYSTEM_TITLE: Readonly<Record<string, string>> = {
   payments_disabled: "Pagos apagados",

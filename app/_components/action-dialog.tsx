@@ -10,12 +10,18 @@ export function ActionDialog({
   children,
   label,
   primary = false,
+  icon = null,
+  block = false,
 }: {
   readonly children: ReactNode;
   /** Texto del botón y título del diálogo. */
   readonly label: string;
   /** La acción principal de la pantalla: una sola por pantalla. */
   readonly primary?: boolean;
+  /** Icono antes del texto del botón. */
+  readonly icon?: ReactNode;
+  /** El botón ocupa todo el ancho que tiene (paneles laterales). */
+  readonly block?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -24,12 +30,15 @@ export function ActionDialog({
       <button
         type="button"
         onClick={() => dialog.current?.showModal()}
-        className={`h-9 px-4 text-[13px] ${
+        className={`inline-flex items-center justify-center gap-2 px-4 text-[13px] ${
+          block ? "h-10 w-full" : "h-9"
+        } ${
           primary
             ? "btn-primary"
             : "rounded-[var(--radius-control)] border border-control font-medium text-ink hover:bg-surface-hover"
         }`}
       >
+        {icon}
         {label}
       </button>
       <dialog

@@ -1,3 +1,4 @@
+import type { Verdict } from "@/src/domain";
 import { usdMicros } from "@/src/ui/format";
 import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
 import { reasonFor } from "@/src/ui/reasons";
@@ -11,8 +12,8 @@ import { SubTitle, displayValue } from "./parts";
 
 /**
  * La columna "Lo que leyó y revisó el agente": los campos con su confianza (cada uno señala
- * su evidencia en el documento), los controles con los que fallaron primero, y el registro
- * técnico para auditoría.
+ * su evidencia en el documento, y el que hizo fallar un control va resaltado), los controles
+ * que fallaron a la vista y los demás plegados, y el registro técnico para auditoría.
  */
 export function AgentReview({ detail }: { readonly detail: InvoiceDetail }) {
   const { decision } = detail;
@@ -21,9 +22,9 @@ export function AgentReview({ detail }: { readonly detail: InvoiceDetail }) {
       <ReadFields detail={detail} />
       <RuleList detail={detail} />
       {decision ? (
-        <>
+        <div className="space-y-2 border-t border-line pt-3">
           <details className="text-[13px]">
-            <summary className="cursor-pointer caps">Registro técnico (auditoría)</summary>
+            <summary className="caps cursor-pointer">Registro técnico (auditoría)</summary>
             <p className="mt-2 font-mono text-[12px] leading-relaxed whitespace-pre-line text-ink-2">
               {decision.explanation}
             </p>
@@ -32,39 +33,69 @@ export function AgentReview({ detail }: { readonly detail: InvoiceDetail }) {
             Costo de lectura: {usdMicros(decision.cost_usd_micros)} · política v
             {detail.policyVersion ?? "?"}
           </p>
-        </>
+        </div>
       ) : null}
     </>
   );
 }
+
+/** Tinte de la fila de un campo que hizo fallar un control, según lo que hace el control. */
+const FLAG_TINT: Readonly<Record<Exclude<Verdict, "pagar">, string>> = {
+  escalar: "bg-escalate-solid/12",
+  frenar: "bg-hold-solid/12",
+};
 
 function ReadFields({ detail }: { readonly detail: InvoiceDetail }) {
   const currency =
     detail.extraction?.extraction.kind === "invoice"
       ? detail.extraction.extraction.fields.currency.value
       : null;
+  // El campo de cada control que falló, con lo que hace ese control: la fila se resalta.
+  const flagged = new Map<string, Exclude<Verdict, "pagar">>();
+  for (const rule of detail.rules) {
+    const finding = rule.finding;
+    if (finding?.field && isFailed(rule) && !flagged.has(finding.field)) {
+      flagged.set(finding.field, finding.action);
+    }
+  }
   return (
-    <div className="space-y-1">
+    <div>
       <SubTitle>Campos</SubTitle>
       {detail.fields.length === 0 ? (
-        <p className="text-[13px] text-ink-2">El agente no pudo leer campos de este documento.</p>
+        <p className="mt-2 text-[13px] text-ink-2">
+          El agente no pudo leer campos de este documento.
+        </p>
       ) : (
-        detail.fields.map((field) => (
-          <EvidenceTarget key={field.name} id={field.name}>
-            <span className="grid grid-cols-[7rem_minmax(0,1fr)_auto] items-center gap-2 text-[13px]">
-              <span className="text-ink-2">{FIELD_LABEL[field.name]}</span>
-              <span className="truncate font-mono text-ink">
-                {displayValue(field, currency)}
-                {field.source === "humano" ? (
-                  <span className="ml-1.5 rounded-sm border border-line-strong px-1 font-sans text-[11px] text-ink-2">
-                    a mano
+        <ul className="mt-1">
+          {detail.fields.map((field) => {
+            const flag = flagged.get(field.name);
+            return (
+              <li
+                key={field.name}
+                className={`border-b border-line last:border-b-0 ${
+                  flag ? `-mx-2.5 rounded-[var(--radius-control)] px-2.5 ${FLAG_TINT[flag]}` : ""
+                }`}
+              >
+                <EvidenceTarget id={field.name}>
+                  <span className="grid h-9 grid-cols-[7.5rem_minmax(0,1fr)_auto] items-center gap-3 text-[13px]">
+                    <span className="text-ink-3">{FIELD_LABEL[field.name]}</span>
+                    <span
+                      className={`truncate text-ink ${field.name === "payee_name" ? "" : "font-mono"} ${flag ? "font-semibold" : ""}`}
+                    >
+                      {displayValue(field, currency)}
+                      {field.source === "humano" ? (
+                        <span className="ml-1.5 rounded-sm border border-line-strong px-1 font-sans text-[11px] font-normal text-ink-2">
+                          a mano
+                        </span>
+                      ) : null}
+                    </span>
+                    <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
                   </span>
-                ) : null}
-              </span>
-              <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
-            </span>
-          </EvidenceTarget>
-        ))
+                </EvidenceTarget>
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
@@ -78,22 +109,40 @@ function isFailed(rule: RuleTrace): boolean {
 function RuleList({ detail }: { readonly detail: InvoiceDetail }) {
   const failed = detail.rules.filter(isFailed);
   const others = detail.rules.filter((rule) => !isFailed(rule));
+  const passed = others.filter((rule) => rule.outcome === "pass").length;
+  const skipped = others.length - passed;
+  const summary =
+    (failed.length > 0 ? `${String(others.length)} controles más` : "Todos en orden") +
+    `: ${String(passed)} ${passed === 1 ? "pasó" : "pasaron"}` +
+    (skipped > 0 ? `, ${String(skipped)} no ${skipped === 1 ? "aplicó" : "aplicaron"}` : "");
   return (
     <div>
       <SubTitle>
         {detail.rulesFromEscalation ? "Controles de la escalada aprobada" : "Controles"}
       </SubTitle>
-      <ul className="mt-1">
-        {failed.map((rule) => (
-          <RuleRow key={rule.code} rule={rule} />
-        ))}
-      </ul>
+      {detail.rules.length === 0 ? (
+        <p className="mt-2 text-[13px] text-ink-2">
+          Del historial de ejemplo: llegó ya decidida, sin el detalle de sus controles.
+        </p>
+      ) : null}
+      {failed.length > 0 ? (
+        <ul className="mt-1">
+          {failed.map((rule) => (
+            <RuleRow key={rule.code} rule={rule} />
+          ))}
+        </ul>
+      ) : null}
       {others.length > 0 ? (
-        <details className="mt-1 text-[13px]">
-          <summary className="cursor-pointer text-ink-2">
-            {others.length} controles más, en orden
+        <details className="group text-[13px]">
+          <summary className="flex h-10 cursor-pointer list-none items-center gap-2.5">
+            <CheckIcon className="shrink-0 text-pay-solid" />
+            <span className="flex-1 text-ink-2">{summary}</span>
+            <span className="text-ink-2 underline decoration-1 underline-offset-[3px]">
+              <span className="group-open:hidden">Ver todos</span>
+              <span className="hidden group-open:inline">Ocultar</span>
+            </span>
           </summary>
-          <ul>
+          <ul className="pb-1">
             {others.map((rule) => (
               <RuleRow key={rule.code} rule={rule} />
             ))}
@@ -106,29 +155,41 @@ function RuleList({ detail }: { readonly detail: InvoiceDetail }) {
 
 /** Cómo se ve una regla que falló, según lo que hace: frenar o escalar. Siempre con texto. */
 const FAILED_STYLE = {
-  frenar: { Icon: StopIcon, className: "text-hold-solid", label: "no pasó · la frena" },
-  escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "no pasó · la escala" },
+  frenar: { Icon: StopIcon, className: "text-hold-solid", label: "la frena" },
+  escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "la escala" },
 } as const;
 
 function RuleRow({ rule }: { readonly rule: RuleTrace }) {
   // Una regla que no se pudo evaluar frena (rule_error): es lo más estricto.
   const style = isFailed(rule) ? FAILED_STYLE[rule.finding?.action ?? "frenar"] : null;
   const Icon = style?.Icon ?? CheckIcon;
-  const status = style?.label ?? (rule.outcome === "skipped" ? "no aplicó" : "pasó");
+  const title = rule.finding ? reasonFor(rule.finding).title : ruleTitle(rule.code);
+  if (!style) {
+    return (
+      <li className="flex items-center gap-2.5 py-1.5 text-[13px]">
+        <span aria-hidden="true" className="text-ink-3">
+          <Icon />
+        </span>
+        <span className="flex-1 text-ink-2">{title}</span>
+        <span className="text-[12px] text-ink-3">
+          {rule.outcome === "skipped" ? "no aplicó" : "pasó"}
+        </span>
+      </li>
+    );
+  }
   return (
-    <li className="grid grid-cols-[1.25rem_1fr] gap-x-2 py-1 text-[13px]">
-      <span aria-hidden="true" className={style?.className ?? "text-ink-3"}>
+    <li className="flex gap-2.5 border-b border-line py-2.5 text-[13px]">
+      <span aria-hidden="true" className={`mt-px ${style.className}`}>
         <Icon />
       </span>
-      <span>
-        <span className="text-ink">
-          {rule.finding ? reasonFor(rule.finding).title : ruleTitle(rule.code)}
+      <span className="min-w-0 space-y-0.5">
+        <span className="block font-semibold text-ink">
+          {title}
+          <span className="sr-only"> · no pasó, {style.label}</span>
         </span>
-        <span className={style ? `font-medium ${style.className}` : "text-ink-3"}> · {status}</span>
         {rule.finding ? (
-          <span className="block text-[12px] text-ink-3">
-            observado {rule.finding.observed} · umbral {rule.finding.threshold} ·{" "}
-            <span className="font-mono">{rule.code}</span>
+          <span className="block font-mono text-[11px] leading-[14px] text-ink-3">
+            observado {rule.finding.observed} · umbral {rule.finding.threshold} · {rule.code}
           </span>
         ) : null}
       </span>

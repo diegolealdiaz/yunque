@@ -65,7 +65,7 @@ export function EvidenceTarget({
       type="button"
       aria-pressed={active}
       onClick={() => select(active ? null : id)}
-      className={`w-full rounded-[var(--radius-control)] px-2 py-1 text-left ${active ? "bg-surface-sunken font-medium" : "hover:bg-surface-hover"}`}
+      className={`-mx-2.5 w-[calc(100%+1.25rem)] rounded-[var(--radius-control)] px-2.5 text-left ${active ? "bg-surface-hover font-medium" : "hover:bg-surface-hover"}`}
     >
       {children}
     </button>
@@ -118,7 +118,10 @@ export function DocumentViewer({
         </p>
       ) : null}
       {pages.map((page, index) => (
-        <figure key={page.src} className="relative overflow-hidden card">
+        <figure
+          key={page.src}
+          className="relative overflow-hidden rounded-[8px] border border-line bg-surface-sunken"
+        >
           <Image
             src={page.src}
             width={page.width}

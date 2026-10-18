@@ -57,7 +57,7 @@ export function DecisionPanel({
 }
 
 function Panel({ children }: { readonly children: ReactNode }) {
-  return <div className="space-y-2 card p-4 text-[13px]">{children}</div>;
+  return <div className="space-y-2 text-[13px]">{children}</div>;
 }
 
 function Rejected({

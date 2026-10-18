@@ -3,38 +3,33 @@ import { calendarDate, rateText } from "@/src/ui/format";
 import { decisionSummary, reasonFor } from "@/src/ui/reasons";
 import type { ExplanationRating, InvoiceDetail } from "@/src/usecases";
 
-import { AlertIcon, CheckIcon, StopIcon } from "../../../_components/icons";
-
 import { ExplanationFeedback } from "./explanation-feedback";
 
-/** Color, icono y borde de la tarjeta "Por qué", según cómo terminó la factura. */
+/** Color y fondo de la tarjeta "Por qué", según cómo terminó la factura. */
 const WHY_TONE = {
   pagar: {
-    Icon: CheckIcon,
     text: "text-pay",
-    box: "border-pay-solid/35 bg-linear-to-r from-pay-tint to-pay-tint/30",
+    box: "border-pay-solid/30 bg-linear-to-b from-pay-solid/11 to-pay-solid/3",
+    rule: "border-pay-solid/22",
   },
   escalar: {
-    Icon: AlertIcon,
     text: "text-escalate",
-    box: "border-escalate-solid/35 bg-linear-to-r from-escalate-tint to-escalate-tint/30",
+    box: "border-escalate-solid/30 bg-linear-to-b from-escalate-solid/11 to-escalate-solid/3",
+    rule: "border-escalate-solid/22",
   },
   frenar: {
-    Icon: StopIcon,
     text: "text-hold",
-    box: "border-hold-solid/35 bg-linear-to-r from-hold-tint to-hold-tint/30",
+    box: "border-hold-solid/30 bg-linear-to-b from-hold-solid/11 to-hold-solid/3",
+    rule: "border-hold-solid/22",
   },
 } as const;
 
-/** La frase de los controles que pasaron, contando las razones ya listadas arriba. */
-function passedText(passed: number, reasons: number): string {
-  if (passed === 0) {
+/** Cuántos controles pasaron de los que aplican: "Pasó 18 de 19 controles." */
+function passedText(passed: number, applicable: number): string {
+  if (applicable === 0) {
     return "Factura del historial de ejemplo: llegó ya decidida, sin el detalle de sus controles.";
   }
-  if (reasons === 0) return `Pasó los ${String(passed)} controles que aplican.`;
-  return passed === 1
-    ? "Pasó el otro control que aplica."
-    : `Pasó los otros ${String(passed)} controles.`;
+  return `Pasó ${String(passed)} de ${String(applicable)} ${applicable === 1 ? "control" : "controles"}.`;
 }
 
 /**
@@ -68,40 +63,41 @@ export function WhyCard({
     // La llave es el hallazgo, no el título: dos campos con la misma regla dan el mismo título.
     .map((f, i) => ({ key: `${f.code}:${f.field ?? String(i)}`, ...reasonFor(f) }));
   const passed = detail.rules.filter((rule) => rule.outcome === "pass").length;
-  const { Icon } = tone;
+  const applicable = detail.rules.filter((rule) => rule.outcome !== "skipped").length;
   return (
     <section
       aria-label="Por qué"
-      className={`rounded-[var(--radius-card)] border px-6 py-5 ${tone.box}`}
+      className={`grid gap-x-7 gap-y-5 rounded-[var(--radius-card)] border px-6 py-5.5 md:grid-cols-[minmax(0,1fr)_21rem] ${tone.box}`}
     >
-      <p className={`caps ${tone.text}`}>Por qué</p>
-      <p className="mt-2 flex items-center gap-2 text-[20px] font-bold tracking-tight text-ink">
-        <Icon className={`size-5 shrink-0 ${tone.text}`} />
-        {summary.headline}
-      </p>
-      {reasons.length > 0 ? (
-        <ul className="mt-3 space-y-2">
-          {reasons.map((reason) => (
-            <li key={reason.key} className="text-[14px] leading-relaxed">
-              <span className="font-semibold text-ink">{reason.title}.</span>{" "}
-              <span className="text-ink-2">{reason.detail}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <p className="mt-3 text-[13px] text-ink-2">{passedText(passed, reasons.length)}</p>
-      <p className="mt-1 text-[14px] text-ink">
-        <span className="font-semibold">Qué puedes hacer:</span> {summary.next}
-      </p>
-      {decision.amount && decision.amount.currency !== "USD" ? (
-        <p className="mt-2 text-[12px] text-ink-3">
-          Para los límites en USD: {formatMoney(decision.amount)} ≈{" "}
-          {formatMoney(toUsd(decision.amount, fx))}, con 1 USD ={" "}
-          {rateText(fx.perUsd[decision.amount.currency])} {decision.amount.currency} (tasas fijas al{" "}
-          {calendarDate(fx.asOf)}).
+      <div className="min-w-0 space-y-2.5">
+        <p className={`caps ${tone.text}`}>Por qué</p>
+        <p className="text-[22px] leading-7 font-bold tracking-[-0.01em] text-ink">
+          {summary.headline}
         </p>
-      ) : null}
-      <ExplanationFeedback invoiceId={invoice.id} decisionId={decision.id} current={rating} />
+        {reasons.length > 0 ? (
+          <ul className="space-y-1.5">
+            {reasons.map((reason) => (
+              <li key={reason.key} className="text-[14px] leading-[22px] text-ink-2">
+                <span className="font-semibold text-ink">{reason.title}.</span> {reason.detail}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className="text-[13px] text-ink-3">{passedText(passed, applicable)}</p>
+        {decision.amount && decision.amount.currency !== "USD" ? (
+          <p className="text-[12px] text-ink-3">
+            Para los límites en USD: {formatMoney(decision.amount)} ≈{" "}
+            {formatMoney(toUsd(decision.amount, fx))}, con 1 USD ={" "}
+            {rateText(fx.perUsd[decision.amount.currency])} {decision.amount.currency} (tasas fijas
+            al {calendarDate(fx.asOf)}).
+          </p>
+        ) : null}
+        <ExplanationFeedback invoiceId={invoice.id} decisionId={decision.id} current={rating} />
+      </div>
+      <div className={`space-y-2 md:border-l md:pl-7 ${tone.rule}`}>
+        <p className="caps">Qué puedes hacer</p>
+        <p className="text-[14px] leading-[22px] text-ink">{summary.next}</p>
+      </div>
     </section>
   );
 }

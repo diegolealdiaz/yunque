@@ -51,11 +51,13 @@ export function ApprovalChecklist({
         <input key={name} type="hidden" name={name} value={value} />
       ))}
       <fieldset className="space-y-2">
-        <legend className="mb-2 text-[13px] font-medium text-ink">Para aprobar, marca:</legend>
+        <legend className="mb-2 text-[13px] text-ink-3">
+          Para aprobar, marca lo que verificaste:
+        </legend>
         {items.map((item) => (
           <label
             key={item.code}
-            className="flex cursor-pointer items-start gap-2 text-[13px] text-ink"
+            className="flex cursor-pointer items-start gap-2.5 text-[13px] leading-[19px] text-ink"
           >
             <input
               type="checkbox"
@@ -63,7 +65,7 @@ export function ApprovalChecklist({
               value={item.code}
               checked={checked.has(item.code)}
               onChange={() => toggle(item.code)}
-              className="mt-0.5 size-4 shrink-0 accent-[var(--ink)]"
+              className="mt-px size-4 shrink-0 accent-[var(--brand)]"
             />
             <span>{item.text}</span>
           </label>
@@ -73,7 +75,7 @@ export function ApprovalChecklist({
         type="submit"
         disabled={!complete || disabledReason !== null || pending || formAction === null}
         aria-describedby="approval-status"
-        className="h-9 w-full btn-primary px-4 text-[13px]"
+        className="h-10 w-full btn-primary px-4 text-[14px]"
       >
         {pending ? "Aprobando…" : "Aprobar"}
       </button>

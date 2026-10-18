@@ -67,6 +67,7 @@ export function DataTable({
   rows,
   empty = null,
   fill = false,
+  spacious = false,
 }: {
   /** Nombre de la tabla para lectores de pantalla. */
   readonly caption: string;
@@ -76,6 +77,11 @@ export function DataTable({
   readonly empty?: ReactNode;
   /** Ocupa el alto restante de la pantalla y se desplaza por dentro (escritorio). */
   readonly fill?: boolean;
+  /**
+   * Filas de 48 px con dos líneas por celda (nombre y referencia) y las líneas separadas del
+   * borde de la tarjeta: el archivo de Facturas, que se lee más que se recorre.
+   */
+  readonly spacious?: boolean;
 }) {
   const router = useRouter();
   const place = (c: number) => columns[c]?.card ?? "line";
@@ -183,7 +189,7 @@ export function DataTable({
       <div
         className={`card max-md:hidden max-lg:overflow-x-auto ${
           fill ? "lg:min-h-0 lg:flex-1 lg:overflow-auto" : ""
-        }`}
+        } ${spacious ? "px-2 py-1.5" : ""}`}
       >
         <table className="w-full table-fixed border-collapse text-[13px]">
           <caption className="sr-only">{caption}</caption>
@@ -194,7 +200,7 @@ export function DataTable({
                   key={c}
                   scope="col"
                   style={column.width ? { width: column.width } : undefined}
-                  className={`caps h-10 px-4 ${column.align === "right" ? "text-right" : ""} ${visibility(column)}`}
+                  className={`caps px-4 ${spacious ? "h-[42px]" : "h-10"} ${column.align === "right" ? "text-right" : ""} ${visibility(column)}`}
                 >
                   <span className={column.hideHeader ? "sr-only" : undefined}>{column.header}</span>
                 </th>
@@ -220,7 +226,7 @@ export function DataTable({
                     router.push(row.href);
                   }
                 }}
-                className={`h-[var(--row-height)] border-b border-line last:border-b-0 hover:bg-surface-hover focus-visible:bg-surface-hover ${row.href ? "cursor-pointer" : ""}`}
+                className={`${spacious ? "h-12" : "h-[var(--row-height)]"} border-b border-line last:border-b-0 hover:bg-surface-hover focus-visible:bg-surface-hover ${row.href ? "cursor-pointer" : ""}`}
               >
                 {row.cells.map((cell, c) => (
                   <td

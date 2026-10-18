@@ -4,6 +4,7 @@ import { useActionState } from "react";
 
 import type { ChecklistItem } from "@/src/domain";
 
+import { ActionDialog } from "../../../_components/action-dialog";
 import { ActionOutcome } from "../../../_components/action-outcome";
 import { ApprovalChecklist } from "../../../_components/approval-checklist";
 import { ApproverPicker } from "../../../_components/approver-picker";
@@ -51,54 +52,61 @@ export function ResolutionPanel({
     <div className="space-y-4">
       <ApproverPicker approvers={approvers} approver={approver} path={`/facturas/${invoiceId}`} />
 
-      <div className="card p-4">
-        <ApprovalChecklist
-          items={checklist}
-          signature={signatureSummary}
-          formAction={approve}
-          hiddenFields={hidden}
-          pending={approving}
-          disabledReason={
-            blocked ?? (approver === null ? "Elige quién resuelve para poder aprobar." : null)
-          }
-        />
-      </div>
+      <ApprovalChecklist
+        items={checklist}
+        signature={signatureSummary}
+        formAction={approve}
+        hiddenFields={hidden}
+        pending={approving}
+        disabledReason={
+          blocked ?? (approver === null ? "Elige quién resuelve para poder aprobar." : null)
+        }
+      />
       <ActionOutcome state={approved} />
 
-      <details className="card p-4 text-[13px]">
-        <summary className="cursor-pointer font-medium text-ink">Rechazar…</summary>
-        <form action={reject} className="mt-3 space-y-2">
-          {Object.entries(hidden).map(([name, value]) => (
-            <input key={name} type="hidden" name={name} value={value} />
-          ))}
-          <label className="block">
-            <span className="block text-[12px] text-ink-3">Motivo (queda en la bitácora)</span>
-            <textarea
-              name="reason"
-              required
-              minLength={5}
-              maxLength={1000}
-              rows={3}
-              className="mt-1 w-full rounded-[var(--radius-control)] border border-control bg-surface p-2 text-ink"
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={rejecting || approver === null}
-            className="h-8 rounded-[var(--radius-control)] border border-hold-solid px-3 font-medium text-hold disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {rejecting ? "Rechazando…" : "Rechazar"}
-          </button>
-          <p className="text-[12px] text-ink-3">Un rechazo es final: la factura no se pagará.</p>
-        </form>
-      </details>
-      <ActionOutcome state={rejected} />
-
-      <CorrectionForm
-        invoiceId={invoiceId}
-        fields={editable}
-        disabledReason={approver === null ? "Elige quién resuelve para poder corregir." : null}
-      />
+      {/* Rechazar y corregir, lado a lado: cada uno abre su formulario en un diálogo. */}
+      <div className="grid grid-cols-2 gap-2">
+        <ActionDialog label="Rechazar" block>
+          <form action={reject} className="space-y-2 text-[13px]">
+            {Object.entries(hidden).map(([name, value]) => (
+              <input key={name} type="hidden" name={name} value={value} />
+            ))}
+            <label className="block">
+              <span className="block text-[12px] text-ink-3">Motivo (queda en la bitácora)</span>
+              <textarea
+                name="reason"
+                required
+                minLength={5}
+                maxLength={1000}
+                rows={3}
+                className="mt-1 w-full rounded-[var(--radius-control)] border border-control bg-surface p-2 text-ink"
+              />
+            </label>
+            <button
+              type="submit"
+              disabled={rejecting || approver === null}
+              className="h-9 rounded-[var(--radius-control)] border border-hold-solid px-4 font-medium text-hold disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {rejecting ? "Rechazando…" : "Rechazar"}
+            </button>
+            <p className="text-[12px] text-ink-3">
+              {approver === null
+                ? "Elige quién resuelve para poder rechazar."
+                : "Un rechazo es final: la factura no se pagará."}
+            </p>
+          </form>
+          <div className="mt-2">
+            <ActionOutcome state={rejected} />
+          </div>
+        </ActionDialog>
+        <ActionDialog label="Corregir campo" block>
+          <CorrectionForm
+            invoiceId={invoiceId}
+            fields={editable}
+            disabledReason={approver === null ? "Elige quién resuelve para poder corregir." : null}
+          />
+        </ActionDialog>
+      </div>
       {canReevaluate ? (
         <ReevaluateButton
           invoiceId={invoiceId}

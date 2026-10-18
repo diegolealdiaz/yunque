@@ -5,10 +5,12 @@ import type { ReactNode } from "react";
 
 import { EXTRACTED_FIELD_NAMES, formatMoney } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
-import { FIELD_LABEL } from "@/src/ui/labels";
+import { dueRelative, relativeInstant } from "@/src/ui/format";
+import { ARRIVAL_LABEL, FIELD_LABEL } from "@/src/ui/labels";
 import { timelineLines } from "@/src/ui/timeline";
 import {
   approvalOffer,
+  currentBusinessDate,
   editableValue,
   isNotFound,
   loadExplanationRating,
@@ -62,10 +64,19 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     config.secrets.session,
   );
   const resolution = offer ? resolutionFor(detail, offer, approver) : null;
+  const now = new Date();
+  const today = currentBusinessDate(
+    { demo: config.demo.enabled, timeZone: config.displayTimeZone },
+    now,
+  );
 
   return (
-    <div className="space-y-6 pb-12">
-      <DetailHeader detail={detail} />
+    <div className="space-y-5 pb-12">
+      <DetailHeader
+        detail={detail}
+        arrived={relativeInstant(invoice.received_at, now, config.displayTimeZone)}
+        today={today}
+      />
 
       <WhyCard detail={detail} fx={organization.fx} rating={rating} />
 
@@ -75,9 +86,14 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           izquierda y, a la derecha, la decisión arriba y lo leído debajo, así "Tu decisión"
           se ve sin desplazarse en un portátil o un proyector.
         */}
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)_19rem]">
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:grid-cols-[19rem_minmax(0,1fr)_21rem]">
           <Column
             title="Documento"
+            aside={
+              detail.pages.length > 0
+                ? `${String(detail.pages.length)} ${detail.pages.length === 1 ? "página" : "páginas"}`
+                : null
+            }
             className="lg:col-start-1 lg:row-span-2 lg:row-start-1 xl:row-span-1"
           >
             <DocumentViewer
@@ -111,9 +127,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
               approver={approver}
               timeZone={config.displayTimeZone}
             />
-            <div>
+            <div className="border-t border-line pt-4">
               <SubTitle>Línea de tiempo</SubTitle>
-              <div className="mt-2">
+              <div className="mt-3">
                 <Timeline
                   entries={timelineLines(detail.timeline)}
                   timeZone={config.displayTimeZone}
@@ -158,71 +174,107 @@ function resolutionFor(detail: InvoiceDetail, offer: Offer, approver: string | n
   };
 }
 
-/** Quién cobra, la referencia, el monto y el veredicto con la regla que lo decidió. */
-function DetailHeader({ detail }: { readonly detail: InvoiceDetail }) {
+/**
+ * Quién cobra, de dónde llegó y cuándo vence; a la derecha el monto y el veredicto con la
+ * regla que lo decidió.
+ */
+function DetailHeader({
+  detail,
+  arrived,
+  today,
+}: {
+  readonly detail: InvoiceDetail;
+  /** Hace cuánto llegó: "hace 3 h". */
+  readonly arrived: string;
+  /** Día de negocio, para el vencimiento relativo. */
+  readonly today: string;
+}) {
   const { invoice, decision } = detail;
   const deciding = decision
     ? (decision.findings.find((f) => f.action === decision.verdict) ?? null)
     : null;
+  const due = detail.fields.find((field) => field.name === "due_date")?.value;
+  const meta = [
+    `${ARRIVAL_LABEL[invoice.channel]} ${arrived}`,
+    typeof due === "string" ? capitalize(dueRelative(due, today)) : null,
+  ].filter((part): part is string => part !== null);
   return (
-    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-      <div className="min-w-0 space-y-1.5">
-        <Link
-          href="/pendientes"
-          data-shortcut="volver"
-          className="text-[13px] text-ink-2 hover:text-ink"
-        >
-          ← Pendientes
-        </Link>
-        <h1 className="text-[26px] leading-tight font-bold tracking-tight text-ink sm:text-[30px]">
-          {detail.payeeName ?? <span className="font-mono">{invoice.reference}</span>}
-        </h1>
-        {detail.payeeName ? (
-          <p className="font-mono text-[13px] text-ink-3">{invoice.reference}</p>
-        ) : null}
-      </div>
-      <div className="flex flex-wrap items-center gap-4">
-        {decision?.amount ? (
-          <span className="num font-mono text-[24px] font-semibold tracking-tight text-ink sm:text-[28px]">
-            {formatMoney(decision.amount)}
-          </span>
-        ) : null}
-        {decision ? (
-          <VerdictChip
-            focusable
-            verdict={decision.verdict}
-            rule={
-              deciding
-                ? {
-                    code: deciding.code,
-                    observed: deciding.observed,
-                    threshold: deciding.threshold,
-                  }
-                : null
-            }
-            policyVersion={detail.policyVersion}
-          />
-        ) : (
-          <VerdictChip verdict="en_proceso" />
-        )}
+    <div className="space-y-2.5">
+      <Link
+        href="/pendientes"
+        data-shortcut="volver"
+        className="text-[13px] font-medium text-ink-2 hover:text-ink"
+      >
+        ← Pendientes
+      </Link>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 space-y-1.5">
+          <h1 className="text-[26px] leading-tight font-bold tracking-tight text-ink sm:text-[30px]">
+            {detail.payeeName ?? "Sin beneficiario leído"}
+          </h1>
+          <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-3">
+            <span className="font-mono">{invoice.reference}</span>
+            {meta.map((part) => (
+              <span key={part} className="inline-flex items-center gap-2.5">
+                <span aria-hidden="true" className="size-[3px] rounded-full bg-control" />
+                {part}
+              </span>
+            ))}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-5">
+          {decision?.amount ? (
+            <span className="num font-mono text-[24px] font-semibold tracking-tight text-ink sm:text-[28px]">
+              {formatMoney(decision.amount)}
+            </span>
+          ) : null}
+          {decision ? (
+            <VerdictChip
+              focusable
+              verdict={decision.verdict}
+              rule={
+                deciding
+                  ? {
+                      code: deciding.code,
+                      observed: deciding.observed,
+                      threshold: deciding.threshold,
+                    }
+                  : null
+              }
+              policyVersion={detail.policyVersion}
+            />
+          ) : (
+            <VerdictChip verdict="en_proceso" />
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Una columna del detalle: una tarjeta con su título y, a la derecha, un dato corto. */
 function Column({
   title,
+  aside = null,
   className = "",
   children,
 }: {
   readonly title: string;
+  readonly aside?: string | null;
   /** Posición en la rejilla según el ancho de pantalla. */
   readonly className?: string;
   readonly children: ReactNode;
 }) {
   return (
-    <section aria-label={title} className={`min-w-0 space-y-4 ${className}`}>
-      <h2 className="text-[16px] font-semibold tracking-tight text-ink">{title}</h2>
+    <section aria-label={title} className={`card min-w-0 space-y-4 p-5 ${className}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-[15px] font-semibold text-ink">{title}</h2>
+        {aside ? <span className="font-mono text-[11px] text-ink-3">{aside}</span> : null}
+      </div>
       {children}
     </section>
   );

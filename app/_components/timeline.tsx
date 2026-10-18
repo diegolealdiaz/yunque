@@ -27,7 +27,7 @@ export function Timeline({
     <ol className="space-y-2 text-[13px]">
       {entries.map((entry) => (
         <li key={entry.id} className="grid grid-cols-[3rem_1fr] gap-2">
-          <time dateTime={entry.at} className="num text-ink-3">
+          <time dateTime={entry.at} className="num font-mono text-[12px] text-ink-3">
             {clock(entry.at, timeZone)}
           </time>
           <span>

@@ -34,9 +34,8 @@ export function CorrectionForm({
 }) {
   const [state, action, pending] = useActionState(correctAction, null);
   return (
-    <details className="card p-4 text-[13px]">
-      <summary className="cursor-pointer font-medium text-ink">Corregir campos…</summary>
-      <form action={action} className="mt-3 space-y-2">
+    <div className="text-[13px]">
+      <form action={action} className="space-y-2">
         <input type="hidden" name="invoiceId" value={invoiceId} />
         {fields.map((field) => (
           <div
@@ -84,7 +83,7 @@ export function CorrectionForm({
       <div className="mt-2">
         <ActionOutcome state={state} />
       </div>
-    </details>
+    </div>
   );
 }
 

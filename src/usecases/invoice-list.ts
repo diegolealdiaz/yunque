@@ -121,3 +121,24 @@ export async function assertWithinDailyLimits(
     });
   }
 }
+
+/** Filtro de las píldoras de Facturas: un veredicto, o las que siguen sin decisión. */
+export type ListVerdict = Verdict | "en_proceso";
+
+/** Cuántas facturas hay en cada píldora de Facturas. */
+export type ListCounts = Readonly<Record<ListVerdict | "todas", number>>;
+
+export function countByVerdict(rows: readonly InvoiceListRow[]): ListCounts {
+  const counts = { todas: rows.length, pagar: 0, escalar: 0, frenar: 0, en_proceso: 0 };
+  for (const row of rows) counts[row.decided?.verdict ?? "en_proceso"] += 1;
+  return counts;
+}
+
+/** Las filas de una píldora; sin píldora, todas. */
+export function narrowByVerdict(
+  rows: readonly InvoiceListRow[],
+  verdict: ListVerdict | null,
+): readonly InvoiceListRow[] {
+  if (verdict === null) return rows;
+  return rows.filter((row) => (row.decided?.verdict ?? "en_proceso") === verdict);
+}

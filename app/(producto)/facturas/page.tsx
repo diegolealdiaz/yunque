@@ -3,52 +3,50 @@ import { z } from "zod";
 
 import { loadBatchCases } from "@/src/dataset/demo-seed";
 import { loadMailbox } from "@/src/dataset/mailbox";
-import {
-  ChannelSchema,
-  InvoiceStatusSchema,
-  VerdictSchema,
-  formatMoney,
-  type Channel,
-  type InvoiceStatus,
-  type Verdict,
-} from "@/src/domain";
-import { dueRelative, instant, relativeInstant } from "@/src/ui/format";
-import { CHANNEL_LABEL, STATUS_LABEL } from "@/src/ui/labels";
+import { ChannelSchema, InvoiceStatusSchema, VerdictSchema, formatMoney } from "@/src/domain";
+import { instant, relativeInstant } from "@/src/ui/format";
+import { CHANNEL_SHORT_LABEL, RULE_SHORT_LABEL } from "@/src/ui/labels";
 import {
   LIST_LIMIT,
-  currentBusinessDate,
-  startOfBusinessDay,
   activeAccess,
+  countByVerdict,
   loadInboundAddress,
-  loadTelegramStatus,
   loadInvoiceList,
+  loadTelegramStatus,
+  narrowByVerdict,
+  startOfBusinessDay,
+  type InvoiceListRow,
+  type ListVerdict,
 } from "@/src/usecases";
 
-import { DataTable } from "../../_components/data-table";
-import { PageHeader } from "../../_components/page-header";
 import { ActionDialog } from "../../_components/action-dialog";
-import { CloseIcon } from "../../_components/icons";
-import { StatusBadge } from "../../_components/status-badge";
+import { DataTable } from "../../_components/data-table";
+import { CloseIcon, SearchIcon, UploadIcon } from "../../_components/icons";
+import { PageHeader } from "../../_components/page-header";
 import { EmptyState } from "../../_components/states";
-import { VerdictChip } from "../../_components/verdict-chip";
+import { VerdictPill } from "../../_components/verdict-pill";
 import { appContext } from "../../_data/context";
 
-import { DeliveryRunner } from "./delivery-runner";
 import { AccessPanel, type ClientAccess } from "./access-panel";
+import { DeliveryRunner } from "./delivery-runner";
 import { UploadPanel } from "./upload-panel";
 
 export const metadata = { title: "Facturas · Yunque" };
 
 /**
- * Facturas (docs/interfaz.md §5.3): el archivo completo, con filtros por veredicto, estado,
- * canal y texto, y los caminos de entrada de la pantalla: subir archivos y, en la demo,
- * procesar las facturas de ejemplo, revisar el correo de ejemplo y probar con una factura
- * propia por correo o Telegram (D23, D24). Los filtros viven en la URL, así un enlace (como "Ver las 15" de Pendientes) abre
- * la lista ya filtrada.
+ * Facturas (docs/interfaz.md §5.3): el archivo completo, con píldoras por veredicto (cada una
+ * con cuántas hay), búsqueda por texto y los caminos de entrada de la pantalla: subir
+ * archivos y, en la demo, procesar las facturas de ejemplo, revisar el correo de ejemplo y
+ * probar con una factura propia por correo o Telegram (D23, D24). Los filtros viven en la URL,
+ * así un enlace (como "Ver las 15" de Pendientes) abre la lista ya filtrada; estado y canal
+ * se aceptan en la URL aunque la pantalla no los ofrezca.
  */
 
 const FiltersSchema = z.object({
-  veredicto: VerdictSchema.optional().catch(undefined),
+  veredicto: z
+    .union([VerdictSchema, z.literal("en_proceso")])
+    .optional()
+    .catch(undefined),
   estado: InvoiceStatusSchema.optional().catch(undefined),
   canal: ChannelSchema.optional().catch(undefined),
   q: z.string().max(100).optional().catch(undefined),
@@ -57,58 +55,19 @@ const FiltersSchema = z.object({
 });
 
 type Filters = z.infer<typeof FiltersSchema>;
-const STATUSES: readonly InvoiceStatus[] = [
-  "esperando_aprobacion",
-  "decidida",
-  "aprobada",
-  "rechazada",
-  "procesando",
-  "fallida",
-];
-const CHANNELS: readonly Channel[] = ["upload", "batch", "inbox", "telegram", "api"];
 
-function Select<T extends string>({
-  name,
-  label,
-  value,
-  options,
-  labelOf,
-}: {
-  readonly name: string;
-  readonly label: string;
-  readonly value: T | undefined;
-  readonly options: readonly T[];
-  readonly labelOf: (option: T) => string;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-[12px] text-ink-3">
-      {label}
-      <select
-        name={name}
-        defaultValue={value ?? ""}
-        className="h-8 rounded-[var(--radius-control)] border border-control bg-surface px-2 text-[13px] text-ink"
-      >
-        <option value="">Todos</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {labelOf(option)}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
-/** Atajos por veredicto, en píldoras: el filtro más usado a un clic, sin abrir el formulario. */
-const VERDICT_PILLS: readonly { verdict: Verdict | null; label: string; dot: string | null }[] = [
-  { verdict: null, label: "Todas", dot: null },
-  { verdict: "pagar", label: "Pagadas", dot: "bg-pay-solid" },
-  { verdict: "escalar", label: "Escaladas", dot: "bg-escalate-solid" },
-  { verdict: "frenar", label: "Frenadas", dot: "bg-hold-solid" },
-];
+/** Píldoras por veredicto: el filtro más usado a un clic, con cuántas hay en cada una. */
+const VERDICT_PILLS: readonly { verdict: ListVerdict | null; label: string; dot: string | null }[] =
+  [
+    { verdict: null, label: "Todas", dot: null },
+    { verdict: "pagar", label: "Pagadas", dot: "bg-pay-solid" },
+    { verdict: "escalar", label: "Escaladas", dot: "bg-escalate-solid" },
+    { verdict: "frenar", label: "Frenadas", dot: "bg-hold-solid" },
+    { verdict: "en_proceso", label: "En proceso", dot: "bg-ink-3" },
+  ];
 
 /** Enlace a la lista con un veredicto, conservando los demás filtros. */
-function verdictHref(filters: Filters, verdict: Verdict | null): string {
+function verdictHref(filters: Filters, verdict: ListVerdict | null): string {
   const params = new URLSearchParams();
   if (verdict) params.set("veredicto", verdict);
   if (filters.estado) params.set("estado", filters.estado);
@@ -119,6 +78,26 @@ function verdictHref(filters: Filters, verdict: Verdict | null): string {
   return query ? `/facturas?${query}` : "/facturas";
 }
 
+/** Por qué terminó así, en pocas palabras; las pagadas cumplen todo. */
+function Reason({ row }: { readonly row: InvoiceListRow }) {
+  const decided = row.decided;
+  if (!decided) return <span className="text-ink-3">Leyendo el documento</span>;
+  if (!decided.rule) return <span className="text-ink-3">Dentro de tus reglas</span>;
+  const short = RULE_SHORT_LABEL[decided.rule.code];
+  return (
+    <span
+      className="text-ink-2"
+      title={`observado ${decided.rule.observed} · umbral ${decided.rule.threshold}`}
+    >
+      {short.charAt(0).toUpperCase() + short.slice(1)}
+      <span className="sr-only">
+        {" "}
+        · observado {decided.rule.observed}, umbral {decided.rule.threshold}
+      </span>
+    </span>
+  );
+}
+
 export default async function FacturasPage({
   searchParams,
 }: {
@@ -127,19 +106,15 @@ export default async function FacturasPage({
   const filters = FiltersSchema.parse(await searchParams);
   const { config, db, organization } = await appContext();
   const now = new Date();
-  const today = currentBusinessDate(
-    { demo: config.demo.enabled, timeZone: config.displayTimeZone },
-    now,
-  );
   const inbound = config.demo.enabled ? config.inboundEmail : null;
   const telegram = config.demo.enabled ? config.telegram : null;
   const accessEnabled = config.demo.enabled && config.access !== null;
-  const [rows, batch, mailbox, grant, emailAddress, telegramStatus] = await Promise.all([
+  // Sin el veredicto: así cada píldora sabe cuántas tiene; el veredicto se aplica después.
+  const [all, batch, mailbox, grant, emailAddress, telegramStatus] = await Promise.all([
     loadInvoiceList(
       db,
       organization.id,
       {
-        ...(filters.veredicto ? { verdict: filters.veredicto } : {}),
         ...(filters.estado ? { status: filters.estado } : {}),
         ...(filters.canal ? { channel: filters.canal } : {}),
         ...(filters.q ? { query: filters.q } : {}),
@@ -165,25 +140,27 @@ export default async function FacturasPage({
         ? { chats: telegramStatus.chats, maxPerDay: telegram.maxPerChatPerDay }
         : null,
   };
+  const counts = countByVerdict(all);
+  const rows = narrowByVerdict(all, filters.veredicto ?? null);
   const filtered = Boolean(
     filters.veredicto || filters.estado || filters.canal || filters.q || filters.dia,
   );
+  // Lo que se busca o se filtra fuera de las píldoras: se puede quitar de una vez.
+  const narrowed = Boolean(filters.estado || filters.canal || filters.q);
 
   return (
-    <div className="flex flex-col gap-4 lg:h-full">
+    <div className="flex flex-col gap-5 lg:h-full">
       <PageHeader
         title="Facturas"
-        meta={
-          <span>
-            {rows.length === LIST_LIMIT ? `${String(LIST_LIMIT)}+` : rows.length}{" "}
-            {rows.length === 1 ? "factura" : "facturas"}
-          </span>
+        subtitle={
+          <>
+            {all.length === LIST_LIMIT ? `${String(LIST_LIMIT)}+` : all.length}{" "}
+            {all.length === 1 ? "factura" : "facturas"} · todas las decisiones del agente y de tu
+            equipo
+          </>
         }
         actions={
           <>
-            <ActionDialog label="Subir factura" primary={!config.demo.enabled}>
-              <UploadPanel maxBytes={config.demo.maxUploadBytes} />
-            </ActionDialog>
             {accessEnabled && (inbound || telegram) ? (
               <ActionDialog label="Probar con tu factura">
                 <AccessPanel access={clientAccess} />
@@ -204,153 +181,130 @@ export default async function FacturasPage({
                   ids={batch.map((c) => c.id)}
                   label={`Procesar facturas de ejemplo (${String(batch.length)})`}
                   noun="facturas"
-                  primary
                 />
               </>
             ) : null}
+            <ActionDialog label="Subir factura" primary icon={<UploadIcon />}>
+              <UploadPanel maxBytes={config.demo.maxUploadBytes} />
+            </ActionDialog>
           </>
         }
       />
 
-      {config.demo.enabled ? (
-        <p className="-mt-2 text-[12px] text-ink-3">
-          Demo: los botones de ejemplo simulan las facturas que llegan en una quincena por PDF,
-          foto, correo y chat.
-          {accessEnabled && (inbound || telegram)
-            ? " Con «Probar con tu factura» puedes enviar una real."
-            : ""}
-        </p>
-      ) : null}
-
-      <nav aria-label="Filtrar por veredicto">
-        <ul className="flex flex-wrap gap-1.5">
-          {VERDICT_PILLS.map(({ verdict, label, dot }) => {
-            const active = (filters.veredicto ?? null) === verdict;
-            return (
-              <li key={label}>
+      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-3">
+        <nav aria-label="Filtrar por veredicto">
+          <ul className="flex flex-wrap gap-1.5">
+            {VERDICT_PILLS.map(({ verdict, label, dot }) => {
+              const active = (filters.veredicto ?? null) === verdict;
+              return (
+                <li key={label}>
+                  <Link
+                    href={verdictHref(filters, verdict)}
+                    aria-current={active ? "page" : undefined}
+                    className={`inline-flex h-[34px] items-center gap-2 rounded-full px-3.5 text-[13px] ${
+                      active
+                        ? "bg-surface-hover font-semibold text-ink"
+                        : "text-ink-2 hover:bg-surface-hover hover:text-ink"
+                    }`}
+                  >
+                    {dot ? (
+                      <span aria-hidden="true" className={`size-[7px] rounded-full ${dot}`} />
+                    ) : null}
+                    {label}
+                    <span className="num font-mono text-[12px] font-normal text-ink-3">
+                      {counts[verdict ?? "todas"]}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+            {filters.dia ? (
+              <li>
                 <Link
-                  href={verdictHref(filters, verdict)}
-                  aria-current={active ? "page" : undefined}
-                  className={`inline-flex h-8 items-center gap-2 rounded-full px-3.5 text-[13px] ${
-                    active
-                      ? "bg-surface-hover font-semibold text-ink"
-                      : "text-ink-2 hover:bg-surface-hover hover:text-ink"
-                  }`}
+                  href={verdictHref({ ...filters, dia: undefined }, filters.veredicto ?? null)}
+                  aria-label="Quitar el filtro: decididas hoy"
+                  className="inline-flex h-[34px] items-center gap-2 rounded-full border border-line-strong px-3.5 text-[13px] text-ink hover:bg-surface-hover"
                 >
-                  {dot ? (
-                    <span aria-hidden="true" className={`size-[7px] rounded-full ${dot}`} />
-                  ) : null}
-                  {label}
+                  Decididas hoy
+                  <CloseIcon />
                 </Link>
               </li>
-            );
-          })}
-          {filters.dia ? (
-            <li>
-              <Link
-                href={verdictHref({ ...filters, dia: undefined }, filters.veredicto ?? null)}
-                aria-label="Quitar el filtro: decididas hoy"
-                className="inline-flex h-8 items-center gap-2 rounded-full border border-line-strong px-3.5 text-[13px] text-ink hover:bg-surface-hover"
-              >
-                Decididas hoy
-                <CloseIcon />
-              </Link>
-            </li>
-          ) : null}
-        </ul>
-      </nav>
+            ) : null}
+          </ul>
+        </nav>
 
-      <form className="flex flex-wrap items-end gap-3" role="search">
-        {filters.veredicto ? (
-          <input type="hidden" name="veredicto" value={filters.veredicto} />
-        ) : null}
-        {filters.dia ? <input type="hidden" name="dia" value={filters.dia} /> : null}
-        <label className="flex flex-col gap-1 text-[12px] text-ink-3">
-          Buscar
-          <input
-            name="q"
-            type="search"
-            data-shortcut="buscar"
-            defaultValue={filters.q ?? ""}
-            placeholder="Beneficiario o referencia ( / )"
-            className="h-8 w-64 rounded-[var(--radius-control)] border border-control bg-surface px-2.5 text-[13px] text-ink placeholder:text-ink-3"
-          />
-        </label>
-        <Select
-          name="estado"
-          label="Estado"
-          value={filters.estado}
-          options={STATUSES}
-          labelOf={(s) => STATUS_LABEL[s]}
-        />
-        <Select
-          name="canal"
-          label="Canal"
-          value={filters.canal}
-          options={CHANNELS}
-          labelOf={(c) => CHANNEL_LABEL[c]}
-        />
-        <button
-          type="submit"
-          className="h-8 rounded-[var(--radius-control)] border border-control px-3 text-[13px] font-medium text-ink"
-        >
-          Filtrar
-        </button>
-        {filtered ? (
-          <Link
-            href="/facturas"
-            className="h-8 content-center text-[13px] text-ink-2 underline underline-offset-4"
-          >
-            Quitar filtros
-          </Link>
-        ) : null}
-      </form>
+        <form role="search" className="ml-auto flex items-center gap-3">
+          {filters.veredicto ? (
+            <input type="hidden" name="veredicto" value={filters.veredicto} />
+          ) : null}
+          {filters.estado ? <input type="hidden" name="estado" value={filters.estado} /> : null}
+          {filters.canal ? <input type="hidden" name="canal" value={filters.canal} /> : null}
+          {filters.dia ? <input type="hidden" name="dia" value={filters.dia} /> : null}
+          {narrowed ? (
+            <Link
+              href={verdictHref({ dia: filters.dia }, filters.veredicto ?? null)}
+              className="text-[13px] whitespace-nowrap text-ink-2 underline underline-offset-4"
+            >
+              Quitar búsqueda
+            </Link>
+          ) : null}
+          <label className="flex h-9 w-[17.5rem] items-center gap-2 rounded-[8px] border border-line bg-surface-hover px-3 text-ink-3 focus-within:border-control">
+            <SearchIcon className="size-3.5 shrink-0" />
+            <span className="sr-only">Buscar beneficiario o referencia</span>
+            <input
+              name="q"
+              type="search"
+              data-shortcut="buscar"
+              defaultValue={filters.q ?? ""}
+              placeholder="Beneficiario o referencia"
+              className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-3"
+            />
+            <kbd
+              aria-hidden="true"
+              className="rounded-[4px] border border-line-strong px-1.5 font-mono text-[11px] text-ink-3"
+            >
+              /
+            </kbd>
+          </label>
+        </form>
+      </div>
 
       <DataTable
         fill
+        spacious
         caption="Facturas, las más recientes primero"
         columns={[
-          { header: "Estado", width: "9.5rem", from: "2xl" },
-          { header: "Referencia", width: "10rem", from: "xl", card: "line" },
-          { header: "Beneficiario", flexible: true, card: "title" },
+          { header: "Beneficiario", width: "15rem", card: "title" },
           { header: "Monto", align: "right", width: "10rem", card: "aside" },
-          { header: "Vence", width: "10rem", from: "xl" },
-          { header: "Canal", width: "9.5rem", from: "3xl", card: "hidden" },
-          { header: "Veredicto", width: "20.5rem" },
-          { header: "Actualizada", width: "7.5rem", from: "2xl", card: "hidden" },
+          { header: "Veredicto", width: "8.5rem" },
+          { header: "Motivo", flexible: true },
+          { header: "Canal", width: "6.5rem", from: "xl", card: "hidden" },
+          { header: "Actualizada", align: "right", width: "7.5rem", from: "lg", card: "hidden" },
         ]}
         rows={rows.map((row) => ({
           key: row.invoiceId,
           href: `/facturas/${row.invoiceId}`,
           label: row.reference,
           cells: [
-            <StatusBadge key="s" status={row.status} />,
-            <span key="r" className="font-mono text-[12px]">
-              {row.reference}
+            <span key="p" className="block min-w-0">
+              <span className="block truncate font-medium text-ink">
+                {row.decided?.payeeName ?? <span className="font-normal text-ink-3">sin leer</span>}
+              </span>
+              <span className="block font-mono text-[11px] text-ink-3">{row.reference}</span>
             </span>,
-            <span key="p" className="font-medium">
-              {row.decided?.payeeName ?? <span className="font-normal text-ink-3">sin leer</span>}
+            <span key="a" className="font-mono font-medium">
+              {row.decided?.amount ? (
+                formatMoney(row.decided.amount)
+              ) : (
+                <span className="text-ink-3">—</span>
+              )}
             </span>,
-            <span key="a" className="font-mono">
-              {row.decided?.amount ? formatMoney(row.decided.amount) : ""}
+            <VerdictPill key="v" verdict={row.decided?.verdict ?? "en_proceso"} />,
+            <Reason key="m" row={row} />,
+            <span key="c" className="text-ink-3">
+              {CHANNEL_SHORT_LABEL[row.channel]}
             </span>,
-            <span key="d" className="text-ink-2">
-              {row.decided ? dueRelative(row.decided.dueDate, today) : ""}
-            </span>,
-            <span key="c" className="text-ink-2">
-              {CHANNEL_LABEL[row.channel]}
-            </span>,
-            row.decided ? (
-              <VerdictChip
-                key="v"
-                verdict={row.decided.verdict}
-                rule={row.decided.rule}
-                policyVersion={row.decided.policyVersion}
-              />
-            ) : (
-              <VerdictChip key="v" verdict="en_proceso" />
-            ),
-            <span key="u" className="text-ink-3">
+            <span key="u" className="font-sans text-ink-3">
               <time dateTime={row.updatedAt} title={instant(row.updatedAt, config.displayTimeZone)}>
                 {relativeInstant(row.updatedAt, now, config.displayTimeZone)}
               </time>
