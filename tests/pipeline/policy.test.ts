@@ -147,8 +147,8 @@ describe("ver qué cambiaría (P-107)", () => {
     const change = preview.changes.find((c) => c.invoiceId === ids.get("sobre_umbral"));
     expect(change?.before).toEqual({ verdict: "escalar", rule: "amount_over_approval_threshold" });
     expect(change?.after.verdict).toBe("pagar");
-    // Las 18 abiertas del dataset más la frenada del historial, que no tiene lectura y se omite.
-    expect(preview.evaluated).toBe(19);
+    // Las 21 abiertas del dataset más la frenada del historial, que no tiene lectura y se omite.
+    expect(preview.evaluated).toBe(22);
     expect(preview.skipped).toBe(1);
     // Nada escrito: ni decisiones nuevas ni versión nueva.
     const decisionsAfter = await repos.listDecisionsSince(

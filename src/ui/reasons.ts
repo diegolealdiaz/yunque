@@ -98,6 +98,10 @@ const REASONS: Readonly<Record<FindingCode, (f: Finding, ctx: ReasonContext) => 
     detail:
       "Esta factura, o el mismo archivo, ya había llegado antes. Pagarla otra vez sería un pago doble.",
   }),
+  recurring_period_repeat: (f) => ({
+    title: "Segundo cobro del periodo",
+    detail: `Este proveedor cobra una vez por periodo y ${s(f.observed)}. Una persona confirma que es un cobro aparte, no un pago doble.`,
+  }),
   amount_mismatch: (f) => ({
     title: "Cobra distinto a lo acordado",
     detail: `La factura cobra ${s(f.observed)}. Lo acordado con el beneficiario es ${s(f.threshold)}.`,

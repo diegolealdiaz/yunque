@@ -168,6 +168,8 @@ export const FIXED_RULE_COPY: Readonly<Partial<Record<RuleCode, string>>> = {
   field_ambiguous: "Un dato clave tiene dos valores posibles en el documento.",
   evidence_missing: "Un dato leído no se encuentra en el documento.",
   totals_mismatch: "El subtotal, los impuestos y el total no cuadran.",
+  recurring_period_repeat:
+    "El proveedor recurrente ya tiene una factura del mismo periodo; podría ser un pago doble.",
   suspicious_instructions: "El documento trae instrucciones para el agente.",
   extraction_unreadable: "El documento no se pudo leer o no es una factura.",
 };

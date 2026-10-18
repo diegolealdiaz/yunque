@@ -30,6 +30,8 @@ export type PriorInvoiceRow = {
   readonly document_hash: Sha256;
   readonly semantic_key: string | null;
   readonly amount: Money | null;
+  /** Fecha de emisión leída (ISO), o null si no se leyó. Para reglas de historial por periodo. */
+  readonly issue_date: string | null;
   readonly received_at: string;
   readonly outcome: Verdict | "simulada" | "aprobada" | "rechazada" | "pendiente";
 };
@@ -125,6 +127,7 @@ export async function listPriorInvoices(
       status: invoices.status,
       documentHash: invoices.documentHash,
       semanticKey: invoices.semanticKey,
+      issueDate: invoices.issueDate,
       receivedAt: invoices.receivedAt,
     })
     .from(invoices)
@@ -165,6 +168,7 @@ export async function listPriorInvoices(
         d && d.amount !== null && currency !== null && isSupportedCurrency(currency)
           ? money(d.amount, currency)
           : null,
+      issue_date: row.issueDate,
       received_at: row.receivedAt,
       outcome: outcomeOf(status.data, verdict?.success ? verdict.data : null, d?.dryRun ?? false),
     };

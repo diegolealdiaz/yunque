@@ -1,6 +1,6 @@
 {
   "today": "2026-10-17",
-  "october_committed_usd_cents": 5180000,
+  "october_committed_usd_cents": 5704430,
   "cases": [
     {
       "id": "nube_oct",
@@ -344,7 +344,7 @@
     },
     {
       "id": "joao_png",
-      "group": "normal",
+      "group": "trampa",
       "template": "invoice_en",
       "format": "png",
       "same_document_as": null,
@@ -370,14 +370,14 @@
       },
       "channel": null,
       "expected": {
-        "verdict": "pagar",
-        "rule": null,
-        "reason": "Beneficiario registrado, monto dentro del acuerdo y de los límites"
+        "verdict": "escalar",
+        "rule": "recurring_period_repeat",
+        "reason": "El proveedor recurrente ya tiene una factura del mismo periodo; una persona confirma que no es un pago doble"
       }
     },
     {
       "id": "stackline_email",
-      "group": "normal",
+      "group": "trampa",
       "template": "invoice_en",
       "format": "email",
       "same_document_as": null,
@@ -408,9 +408,9 @@
         "body": "Your invoice is attached. Payment is due in 30 days."
       },
       "expected": {
-        "verdict": "pagar",
-        "rule": null,
-        "reason": "Beneficiario registrado, monto dentro del acuerdo y de los límites"
+        "verdict": "escalar",
+        "rule": "recurring_period_repeat",
+        "reason": "El proveedor recurrente ya tiene una factura del mismo periodo; una persona confirma que no es un pago doble"
       }
     },
     {
@@ -486,7 +486,7 @@
     },
     {
       "id": "nube_nov",
-      "group": "normal",
+      "group": "trampa",
       "template": "factura_co",
       "format": "pdf",
       "same_document_as": null,
@@ -512,9 +512,9 @@
       },
       "channel": null,
       "expected": {
-        "verdict": "pagar",
-        "rule": null,
-        "reason": "Beneficiario registrado, monto dentro del acuerdo y de los límites"
+        "verdict": "escalar",
+        "rule": "recurring_period_repeat",
+        "reason": "El proveedor recurrente ya tiene una factura del mismo periodo; una persona confirma que no es un pago doble"
       }
     },
     {
