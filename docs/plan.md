@@ -181,9 +181,9 @@
 ## Fase 7. Canales adicionales
 
 ### Paso 31. API de decisión [recorte]
-- **Construye:** `POST /api/decide` con autenticación por token de empresa, mismo caso de uso, respuesta con veredicto, hallazgos y referencia.
+- **Construye:** `POST /api/decide` con llave de empresa (D32), con documento o con campos, mismo caso de uso, respuesta con veredicto, regla, hallazgos, referencia y enlace al acta; `GET /api/decide/{referencia}` con el estado vigente; "Conectar tu agente" en el acceso de cliente; servidor MCP en `mcp/` como cliente delgado.
 - **Hecho cuando:** una petición con token inválido recibe 401; una válida con factura adjunta recibe la misma decisión que la pantalla.
-- **Prueba:** P-127, P-128.
+- **Prueba:** P-127, P-128, P-158, P-159.
 
 ### Paso 32. Telegram [recorte]
 - **Construye:** bot como notificador y canal de entrada (D24): enlace de conexión de un solo uso con el acceso de cliente, webhook con secreto, deduplicación y cupo por `update_id`, descarga acotada del archivo, mismo caso de uso, avisos con HTML escapado por la cola. Al desplegar: crear el bot con @BotFather y registrar el webhook con su `secret_token`.

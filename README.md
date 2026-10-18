@@ -67,6 +67,68 @@ Los clientes pueden probar el agente con una factura propia: por correo, o envi�
 
 Para apagarlos: `INBOUND_EMAIL_ENABLED=false` apaga el correo; quitar las tres variables de Telegram apaga el bot. Las rutas responden 404 y la pantalla deja de ofrecerlos.
 
+## API de decisión para tu agente
+
+Tu propio agente le pregunta a Yunque antes de pagar y recibe `pagar`, `frenar` o `escalar`, con la regla que decidió, el porqué y el enlace al acta. Pasa por el mismo motor, las mismas reglas y el mismo registro que cualquier factura (decisión D32 de [Decisiones](docs/decisiones.md)).
+
+**Llave.** Con el acceso de cliente vigente, en Facturas → "Probar con tu factura" → "Conectar tu agente", genera la llave `yq_…`. Se muestra una sola vez, vence con el acceso y generar otra anula la anterior.
+
+**Con campos** (sin modelo: Yunque arma el PDF de la solicitud y lo verifica como una factura):
+
+```bash
+curl https://<tu-dominio>/api/decide \
+  -H "Authorization: Bearer yq_..." \
+  -H "Content-Type: application/json" \
+  -d '{"idempotency_key":"pago-001","payee_name":"Nube Andina SAS","invoice_number":"NA-2026-10",
+       "currency":"COP","total":"4800000.00","bank_account":"31245679023","due_date":"2026-11-20"}'
+```
+
+Obligatorios: `idempotency_key`, `payee_name`, `invoice_number`, `currency` y `total` (decimal con punto, como texto). Opcionales: `payee_tax_id`, `issue_date`, `due_date`, `subtotal`, `taxes`, `bank_account`, `bank_holder`, `purchase_order`, `hours` y `description`.
+
+**Con documento** (PDF o imagen, lo lee el modelo): `multipart/form-data` con `file` e `idempotency_key`.
+
+**Respuesta.** `201` con la decisión nueva, o `200` si la llave ya se había usado con la misma solicitud. Reusar la llave con otros datos responde `400`.
+
+```json
+{
+  "reference": "YQ-2026-10-0003",
+  "status": "decidida",
+  "verdict": "frenar",
+  "deciding_rule": "bank_account_mismatch",
+  "headline": "No se pagó.",
+  "findings": [{ "code": "bank_account_mismatch", "action": "frenar", "title": "La cuenta bancaria cambió", "detail": "..." }],
+  "payment_order": null,
+  "record_url": "https://<tu-dominio>/facturas/..."
+}
+```
+
+**Estado.** `GET /api/decide/{reference}` devuelve el estado vigente: así el agente sabe cuándo una persona aprobó o rechazó lo que escaló. Si tienes Telegram conectado, la escalada también te avisa ahí.
+
+### Con Claude u otro asistente (MCP)
+
+`mcp/server.ts` expone la API como servidor MCP, con tres herramientas: `decide_payment` (con campos), `decide_invoice_file` (un PDF o foto del disco) y `get_decision` (estado por referencia). Es un cliente delgado: decidir sigue siendo del motor de Yunque. La `idempotency_key` es obligatoria y única por pago: la misma factura con otra llave se frena como duplicada, y una repetición con la misma llave se avisa como tal.
+
+En Claude Code:
+
+```bash
+claude mcp add yunque -e YUNQUE_API_KEY=yq_... -e YUNQUE_URL=https://<tu-dominio> \
+  -- npx tsx <ruta-al-repo>/mcp/server.ts
+```
+
+En Claude Desktop, en `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "yunque": {
+      "command": "npx",
+      "args": ["tsx", "<ruta-al-repo>/mcp/server.ts"],
+      "env": { "YUNQUE_API_KEY": "yq_...", "YUNQUE_URL": "https://<tu-dominio>" }
+    }
+  }
+}
+```
+
 ## Documentación
 
 | Documento | Qué contiene |
