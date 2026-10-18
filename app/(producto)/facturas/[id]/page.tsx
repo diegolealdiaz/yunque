@@ -3,18 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 
-import {
-  EXTRACTED_FIELD_NAMES,
-  formatMoney,
-  isSupportedCurrency,
-  money,
-  toUsd,
-  type FxTable,
-} from "@/src/domain";
+import { EXTRACTED_FIELD_NAMES, formatMoney } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
-import { calendarDate, instant, rateText, usdMicros } from "@/src/ui/format";
-import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
-import { decisionSummary, reasonFor } from "@/src/ui/reasons";
+import { FIELD_LABEL } from "@/src/ui/labels";
 import { timelineLines } from "@/src/ui/timeline";
 import {
   approvalOffer,
@@ -22,328 +13,28 @@ import {
   isNotFound,
   loadExplanationRating,
   loadInvoiceDetail,
-  type DetailField,
-  type ExplanationRating,
   type InvoiceDetail,
-  type RuleTrace,
 } from "@/src/usecases";
 
-import { ConfidenceDot } from "../../../_components/confidence-dot";
-import {
-  DocumentViewer,
-  EvidenceProvider,
-  EvidenceTarget,
-} from "../../../_components/document-viewer";
-import { AlertIcon, CheckIcon, StopIcon } from "../../../_components/icons";
+import { DocumentViewer, EvidenceProvider } from "../../../_components/document-viewer";
 import { Timeline } from "../../../_components/timeline";
 import { VerdictChip } from "../../../_components/verdict-chip";
 import { appContext } from "../../../_data/context";
 import { fileStorage } from "../../../_data/storage";
 
-import { ReevaluateButton } from "./correction-form";
-import { ExplanationFeedback } from "./explanation-feedback";
-import { ResolutionPanel } from "./resolution-panel";
+import { AgentReview } from "./agent-review";
+import { DecisionPanel, type Resolution } from "./decision-panel";
+import { DATE_FIELDS, MONEY_FIELDS, SubTitle } from "./parts";
+import { WhyCard } from "./why-card";
 
 export const metadata = { title: "Factura · Yunque" };
 
 /**
- * Detalle de una decisión (docs/interfaz.md §5.2). Tres columnas, una pregunta cada una:
- * qué dice el documento, qué leyó y decidió el agente, y qué hace la persona. Todo lo que
- * viene del documento se pinta como texto; la imagen la sirve el servidor, nunca el PDF.
+ * Detalle de una decisión (docs/interfaz.md §5.2). Arriba, quién cobra, cuánto y el "Por
+ * qué". Debajo, tres columnas, una pregunta cada una: qué dice el documento, qué leyó y
+ * decidió el agente (agent-review.tsx), y qué hace la persona (decision-panel.tsx). Todo lo
+ * que viene del documento se pinta como texto; la imagen la sirve el servidor, nunca el PDF.
  */
-
-const MONEY_FIELDS = new Set(["subtotal", "taxes", "total"]);
-const DATE_FIELDS = new Set(["issue_date", "due_date"]);
-
-/** Valor de un campo para la pantalla: montos con su moneda, fechas absolutas. */
-function displayValue(field: DetailField, currency: string | null): string {
-  if (
-    typeof field.value === "number" &&
-    MONEY_FIELDS.has(field.name) &&
-    currency &&
-    isSupportedCurrency(currency)
-  ) {
-    return formatMoney(money(field.value, currency));
-  }
-  if (typeof field.value === "string" && DATE_FIELDS.has(field.name))
-    return calendarDate(field.value);
-  return String(field.value);
-}
-
-function Column({
-  title,
-  className = "",
-  children,
-}: {
-  readonly title: string;
-  /** Posición en la rejilla según el ancho de pantalla. */
-  readonly className?: string;
-  readonly children: ReactNode;
-}) {
-  return (
-    <section aria-label={title} className={`min-w-0 space-y-4 ${className}`}>
-      <h2 className="text-[16px] font-semibold tracking-tight text-ink">{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-function SubTitle({ children }: { readonly children: ReactNode }) {
-  return <h3 className="caps">{children}</h3>;
-}
-
-/** Cómo se ve una regla que falló, según lo que hace: frenar o escalar. Siempre con texto. */
-const FAILED_STYLE = {
-  frenar: { Icon: StopIcon, className: "text-hold-solid", label: "no pasó · la frena" },
-  escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "no pasó · la escala" },
-} as const;
-
-function RuleRow({ rule }: { readonly rule: RuleTrace }) {
-  const failed = rule.outcome === "fail" || rule.outcome === "error";
-  // Una regla que no se pudo evaluar frena (rule_error): es lo más estricto.
-  const style = failed ? FAILED_STYLE[rule.finding?.action ?? "frenar"] : null;
-  const Icon = style?.Icon ?? CheckIcon;
-  const status = style?.label ?? (rule.outcome === "skipped" ? "no aplicó" : "pasó");
-  return (
-    <li className="grid grid-cols-[1.25rem_1fr] gap-x-2 py-1 text-[13px]">
-      <span aria-hidden="true" className={style?.className ?? "text-ink-3"}>
-        <Icon />
-      </span>
-      <span>
-        <span className="text-ink">
-          {rule.finding ? reasonFor(rule.finding).title : ruleTitle(rule.code)}
-        </span>
-        <span className={style ? `font-medium ${style.className}` : "text-ink-3"}> · {status}</span>
-        {rule.finding ? (
-          <span className="block text-[12px] text-ink-3">
-            observado {rule.finding.observed} · umbral {rule.finding.threshold} ·{" "}
-            <span className="font-mono">{rule.code}</span>
-          </span>
-        ) : null}
-      </span>
-    </li>
-  );
-}
-
-/** Color, icono y borde de la tarjeta "Por qué", según cómo terminó la factura. */
-const WHY_TONE = {
-  pagar: {
-    Icon: CheckIcon,
-    text: "text-pay",
-    box: "border-pay-solid/35 bg-linear-to-r from-pay-tint to-pay-tint/30",
-  },
-  escalar: {
-    Icon: AlertIcon,
-    text: "text-escalate",
-    box: "border-escalate-solid/35 bg-linear-to-r from-escalate-tint to-escalate-tint/30",
-  },
-  frenar: {
-    Icon: StopIcon,
-    text: "text-hold",
-    box: "border-hold-solid/35 bg-linear-to-r from-hold-tint to-hold-tint/30",
-  },
-} as const;
-
-/**
- * La decisión explicada para el cliente, arriba de todo (docs/interfaz.md §5.2): qué pasó,
- * por qué, en frases simples, y qué puede hacer. Sale de los mismos hallazgos registrados;
- * el registro técnico sigue más abajo para auditoría.
- */
-function WhyCard({
-  detail,
-  fx,
-  rating,
-}: {
-  readonly detail: InvoiceDetail;
-  readonly fx: FxTable;
-  /** La opinión vigente sobre esta explicación, o null. */
-  readonly rating: ExplanationRating | null;
-}) {
-  const { decision, invoice } = detail;
-  if (!decision) return null;
-  const findings = detail.rules.flatMap((rule) => (rule.finding ? [rule.finding] : []));
-  const summary = decisionSummary(decision.verdict, invoice.status, findings);
-  const tone =
-    invoice.status === "rechazada"
-      ? WHY_TONE.frenar
-      : invoice.status === "aprobada"
-        ? WHY_TONE.pagar
-        : WHY_TONE[decision.verdict];
-  // Primero lo que frena, luego lo que escala: así la razón de más peso va arriba.
-  const reasons = [...findings]
-    .sort((a, b) => (a.action === b.action ? 0 : a.action === "frenar" ? -1 : 1))
-    // La llave es el hallazgo, no el título: dos campos con la misma regla dan el mismo título.
-    .map((f, i) => ({ key: `${f.code}:${f.field ?? String(i)}`, ...reasonFor(f) }));
-  const passed = detail.rules.filter((rule) => rule.outcome === "pass").length;
-  const { Icon } = tone;
-  return (
-    <section
-      aria-label="Por qué"
-      className={`rounded-[var(--radius-card)] border px-6 py-5 ${tone.box}`}
-    >
-      <p className={`caps ${tone.text}`}>Por qué</p>
-      <p className="mt-2 flex items-center gap-2 text-[20px] font-bold tracking-tight text-ink">
-        <Icon className={`size-5 shrink-0 ${tone.text}`} />
-        {summary.headline}
-      </p>
-      {reasons.length > 0 ? (
-        <ul className="mt-3 space-y-2">
-          {reasons.map((reason) => (
-            <li key={reason.key} className="text-[14px] leading-relaxed">
-              <span className="font-semibold text-ink">{reason.title}.</span>{" "}
-              <span className="text-ink-2">{reason.detail}</span>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      <p className="mt-3 text-[13px] text-ink-2">
-        {passed > 0
-          ? reasons.length > 0
-            ? passed === 1
-              ? "Pasó el otro control que aplica."
-              : `Pasó los otros ${String(passed)} controles.`
-            : `Pasó los ${String(passed)} controles que aplican.`
-          : "Factura del historial de ejemplo: llegó ya decidida, sin el detalle de sus controles."}
-      </p>
-      <p className="mt-1 text-[14px] text-ink">
-        <span className="font-semibold">Qué puedes hacer:</span> {summary.next}
-      </p>
-      {decision.amount && decision.amount.currency !== "USD" ? (
-        <p className="mt-2 text-[12px] text-ink-3">
-          Para los límites en USD: {formatMoney(decision.amount)} ≈{" "}
-          {formatMoney(toUsd(decision.amount, fx))}, con 1 USD ={" "}
-          {rateText(fx.perUsd[decision.amount.currency])} {decision.amount.currency} (tasas fijas al{" "}
-          {calendarDate(fx.asOf)}).
-        </p>
-      ) : null}
-      <ExplanationFeedback invoiceId={invoice.id} decisionId={decision.id} current={rating} />
-    </section>
-  );
-}
-
-type Resolution = Parameters<typeof ResolutionPanel>[0];
-
-function DecisionPanel({
-  detail,
-  resolution,
-  approver,
-  timeZone,
-}: {
-  readonly detail: InvoiceDetail;
-  readonly resolution: Resolution | null;
-  /** Aprobador elegido (cookie verificada), o null. */
-  readonly approver: string | null;
-  readonly timeZone: string;
-}) {
-  const { decision, invoice, approval } = detail;
-  if (!decision) {
-    return <p className="text-[13px] text-ink-2">La factura todavía no tiene decisión.</p>;
-  }
-  if (invoice.status === "esperando_aprobacion" && resolution) {
-    return <ResolutionPanel {...resolution} />;
-  }
-  if (invoice.status === "rechazada" && approval) {
-    return (
-      <div className="space-y-2 card p-4 text-[13px]">
-        <p className="font-medium text-hold">
-          Rechazada por {approval.approver} · {instant(approval.created_at, timeZone)}
-        </p>
-        <p className="text-ink-2">Motivo: {approval.reason}</p>
-        <p className="text-ink-3">El rechazo es final: la factura no se pagará.</p>
-      </div>
-    );
-  }
-  if (decision.verdict === "pagar") {
-    const order = decision.payment_order;
-    return (
-      <div className="space-y-2 card p-4 text-[13px]">
-        <p className="font-medium text-pay">
-          {decision.actor.kind === "humano"
-            ? `Aprobada por ${decision.actor.name} · ${instant(decision.decided_at, timeZone)}`
-            : "Pagada por el agente dentro de las reglas."}
-        </p>
-        {order ? (
-          <>
-            <dl className="space-y-1">
-              <div className="flex justify-between gap-2">
-                <dt className="text-ink-3">Orden</dt>
-                <dd className="font-medium">preparada, no ejecutada</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-ink-3">A</dt>
-                <dd>{order.beneficiary_name}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-ink-3">Cuenta</dt>
-                <dd className="font-mono">
-                  {order.account_masked} · {order.rail}
-                </dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-ink-3">Monto</dt>
-                <dd className="font-mono">{formatMoney(order.amount)}</dd>
-              </div>
-              <div className="flex justify-between gap-2">
-                <dt className="text-ink-3">Programada</dt>
-                <dd>{calendarDate(order.scheduled_for)}</dd>
-              </div>
-            </dl>
-            {/* Descarga de archivo, no navegación: un enlace simple con `download`. */}
-            <a
-              href={`/facturas/${decision.invoice_id}/orden`}
-              download
-              className="inline-flex h-8 items-center rounded-[var(--radius-control)] border border-control px-3 text-[13px] font-medium text-ink"
-            >
-              Descargar orden en PDF
-            </a>
-          </>
-        ) : (
-          <p className="text-ink-2">
-            Modo de prueba: decidida sin preparar orden ni comprometer presupuesto.
-          </p>
-        )}
-      </div>
-    );
-  }
-  // Escalada que ya no espera: el historial sembrado trae aprobadas sin orden de Yunque. No
-  // es una frenada, y la pantalla no debe decir que lo es.
-  if (decision.verdict === "escalar") {
-    return (
-      <div className="space-y-2 card p-4 text-[13px]">
-        {invoice.status === "aprobada" ? (
-          <p className="font-medium text-pay">
-            Aprobada por {approval ? approval.approver : "una persona"}
-            {approval ? ` · ${instant(approval.created_at, timeZone)}` : ""}
-          </p>
-        ) : (
-          <p className="font-medium text-escalate">Escalada a una persona.</p>
-        )}
-        <p className="text-ink-2">
-          {invoice.status === "aprobada"
-            ? "El agente la escaló y una persona la aprobó."
-            : "El agente la escaló: la decide una persona."}
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div className="space-y-2 card p-4 text-[13px]">
-      <p className="font-medium text-hold">El agente la frenó.</p>
-      <p className="text-ink-2">No se paga. Arriba está el porqué.</p>
-      {detail.newerPolicy ? (
-        <>
-          <p className="text-ink-2">
-            Hay una versión de política más nueva: se puede reevaluar con ella.
-          </p>
-          <ReevaluateButton
-            invoiceId={invoice.id}
-            disabledReason={approver === null ? "Elige quién resuelve para poder reevaluar." : null}
-          />
-        </>
-      ) : null}
-    </div>
-  );
-}
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -370,81 +61,11 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
     (await cookies()).get(APPROVER_COOKIE)?.value,
     config.secrets.session,
   );
-  const readFields =
-    detail.extraction?.extraction.kind === "invoice" ? detail.extraction.extraction.fields : null;
-  const resolution: Resolution | null = offer
-    ? {
-        invoiceId: invoice.id,
-        payload: JSON.stringify(offer.payload),
-        signature: offer.signature,
-        signatureSummary: detail.signatureSummary ?? "sin contenido para firmar",
-        checklist: offer.checklist,
-        blocked: offer.blocked,
-        approvers: detail.approvers,
-        approver,
-        editable: EXTRACTED_FIELD_NAMES.map((name) => ({
-          name,
-          label: FIELD_LABEL[name],
-          value: editableValue(readFields, name),
-          hint: MONEY_FIELDS.has(name) ? "1234.56" : DATE_FIELDS.has(name) ? "AAAA-MM-DD" : null,
-        })),
-        canReevaluate: detail.newerPolicy || offer.needsReevaluation,
-      }
-    : null;
-  const currency =
-    detail.extraction?.extraction.kind === "invoice"
-      ? detail.extraction.extraction.fields.currency.value
-      : null;
-  const failed = detail.rules.filter((r) => r.outcome === "fail" || r.outcome === "error");
-  const others = detail.rules.filter((r) => r.outcome !== "fail" && r.outcome !== "error");
-  const deciding = decision
-    ? (decision.findings.find((f) => f.action === decision.verdict) ?? null)
-    : null;
+  const resolution = offer ? resolutionFor(detail, offer, approver) : null;
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0 space-y-1.5">
-          <Link
-            href="/pendientes"
-            data-shortcut="volver"
-            className="text-[13px] text-ink-2 hover:text-ink"
-          >
-            ← Pendientes
-          </Link>
-          <h1 className="text-[26px] leading-tight font-bold tracking-tight text-ink sm:text-[30px]">
-            {detail.payeeName ?? <span className="font-mono">{invoice.reference}</span>}
-          </h1>
-          {detail.payeeName ? (
-            <p className="font-mono text-[13px] text-ink-3">{invoice.reference}</p>
-          ) : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-4">
-          {decision?.amount ? (
-            <span className="num font-mono text-[24px] font-semibold tracking-tight text-ink sm:text-[28px]">
-              {formatMoney(decision.amount)}
-            </span>
-          ) : null}
-          {decision ? (
-            <VerdictChip
-              focusable
-              verdict={decision.verdict}
-              rule={
-                deciding
-                  ? {
-                      code: deciding.code,
-                      observed: deciding.observed,
-                      threshold: deciding.threshold,
-                    }
-                  : null
-              }
-              policyVersion={detail.policyVersion}
-            />
-          ) : (
-            <VerdictChip verdict="en_proceso" />
-          )}
-        </div>
-      </div>
+      <DetailHeader detail={detail} />
 
       <WhyCard detail={detail} fx={organization.fx} rating={rating} />
 
@@ -480,70 +101,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
             title="Lo que leyó y revisó el agente"
             className="lg:col-start-2 lg:row-start-2 xl:row-start-1"
           >
-            <div className="space-y-1">
-              <SubTitle>Campos</SubTitle>
-              {detail.fields.length === 0 ? (
-                <p className="text-[13px] text-ink-2">
-                  El agente no pudo leer campos de este documento.
-                </p>
-              ) : (
-                detail.fields.map((field) => (
-                  <EvidenceTarget key={field.name} id={field.name}>
-                    <span className="grid grid-cols-[7rem_minmax(0,1fr)_auto] items-center gap-2 text-[13px]">
-                      <span className="text-ink-2">{FIELD_LABEL[field.name]}</span>
-                      <span className="truncate font-mono text-ink">
-                        {displayValue(field, currency)}
-                        {field.source === "humano" ? (
-                          <span className="ml-1.5 rounded-sm border border-line-strong px-1 font-sans text-[11px] text-ink-2">
-                            a mano
-                          </span>
-                        ) : null}
-                      </span>
-                      <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
-                    </span>
-                  </EvidenceTarget>
-                ))
-              )}
-            </div>
-
-            <div>
-              <SubTitle>
-                {detail.rulesFromEscalation ? "Controles de la escalada aprobada" : "Controles"}
-              </SubTitle>
-              <ul className="mt-1">
-                {failed.map((rule) => (
-                  <RuleRow key={rule.code} rule={rule} />
-                ))}
-              </ul>
-              {others.length > 0 ? (
-                <details className="mt-1 text-[13px]">
-                  <summary className="cursor-pointer text-ink-2">
-                    {others.length} controles más, en orden
-                  </summary>
-                  <ul>
-                    {others.map((rule) => (
-                      <RuleRow key={rule.code} rule={rule} />
-                    ))}
-                  </ul>
-                </details>
-              ) : null}
-            </div>
-
-            {decision ? (
-              <details className="text-[13px]">
-                <summary className="cursor-pointer caps">Registro técnico (auditoría)</summary>
-                <p className="mt-2 font-mono text-[12px] leading-relaxed whitespace-pre-line text-ink-2">
-                  {decision.explanation}
-                </p>
-              </details>
-            ) : null}
-
-            {decision ? (
-              <p className="text-[12px] text-ink-3">
-                Costo de lectura: {usdMicros(decision.cost_usd_micros)} · política v
-                {detail.policyVersion ?? "?"}
-              </p>
-            ) : null}
+            <AgentReview detail={detail} />
           </Column>
 
           <Column title="Tu decisión" className="lg:col-start-2 lg:row-start-1 xl:col-start-3">
@@ -562,7 +120,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 />
               </div>
               <Link
-                href={`/bitacora?factura=${detail.invoice.reference}`}
+                href={`/bitacora?factura=${invoice.reference}`}
                 className="mt-2 inline-block text-[12px] text-ink-2 underline underline-offset-4"
               >
                 Ver todos sus eventos en la bitácora
@@ -572,5 +130,100 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         </div>
       </EvidenceProvider>
     </div>
+  );
+}
+
+type Offer = NonNullable<Awaited<ReturnType<typeof approvalOffer>>>;
+
+/** Lo que necesita el panel de aprobación: la oferta firmada y los campos editables. */
+function resolutionFor(detail: InvoiceDetail, offer: Offer, approver: string | null): Resolution {
+  const readFields =
+    detail.extraction?.extraction.kind === "invoice" ? detail.extraction.extraction.fields : null;
+  return {
+    invoiceId: detail.invoice.id,
+    payload: JSON.stringify(offer.payload),
+    signature: offer.signature,
+    signatureSummary: detail.signatureSummary ?? "sin contenido para firmar",
+    checklist: offer.checklist,
+    blocked: offer.blocked,
+    approvers: detail.approvers,
+    approver,
+    editable: EXTRACTED_FIELD_NAMES.map((name) => ({
+      name,
+      label: FIELD_LABEL[name],
+      value: editableValue(readFields, name),
+      hint: MONEY_FIELDS.has(name) ? "1234.56" : DATE_FIELDS.has(name) ? "AAAA-MM-DD" : null,
+    })),
+    canReevaluate: detail.newerPolicy || offer.needsReevaluation,
+  };
+}
+
+/** Quién cobra, la referencia, el monto y el veredicto con la regla que lo decidió. */
+function DetailHeader({ detail }: { readonly detail: InvoiceDetail }) {
+  const { invoice, decision } = detail;
+  const deciding = decision
+    ? (decision.findings.find((f) => f.action === decision.verdict) ?? null)
+    : null;
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="min-w-0 space-y-1.5">
+        <Link
+          href="/pendientes"
+          data-shortcut="volver"
+          className="text-[13px] text-ink-2 hover:text-ink"
+        >
+          ← Pendientes
+        </Link>
+        <h1 className="text-[26px] leading-tight font-bold tracking-tight text-ink sm:text-[30px]">
+          {detail.payeeName ?? <span className="font-mono">{invoice.reference}</span>}
+        </h1>
+        {detail.payeeName ? (
+          <p className="font-mono text-[13px] text-ink-3">{invoice.reference}</p>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center gap-4">
+        {decision?.amount ? (
+          <span className="num font-mono text-[24px] font-semibold tracking-tight text-ink sm:text-[28px]">
+            {formatMoney(decision.amount)}
+          </span>
+        ) : null}
+        {decision ? (
+          <VerdictChip
+            focusable
+            verdict={decision.verdict}
+            rule={
+              deciding
+                ? {
+                    code: deciding.code,
+                    observed: deciding.observed,
+                    threshold: deciding.threshold,
+                  }
+                : null
+            }
+            policyVersion={detail.policyVersion}
+          />
+        ) : (
+          <VerdictChip verdict="en_proceso" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Column({
+  title,
+  className = "",
+  children,
+}: {
+  readonly title: string;
+  /** Posición en la rejilla según el ancho de pantalla. */
+  readonly className?: string;
+  readonly children: ReactNode;
+}) {
+  return (
+    <section aria-label={title} className={`min-w-0 space-y-4 ${className}`}>
+      <h2 className="text-[16px] font-semibold tracking-tight text-ink">{title}</h2>
+      {children}
+    </section>
   );
 }

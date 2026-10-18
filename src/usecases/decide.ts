@@ -1,14 +1,12 @@
 import { withWriteTransaction, type Database } from "@/src/db/client";
 import { DbError } from "@/src/db/errors";
 import {
-  appendEvent,
   ensureLedgerPeriod,
   getCurrentPolicy,
   getLedgerPeriod,
   listBalances,
   listPriorInvoices,
   listTelegramChats,
-  transitionInvoice,
 } from "@/src/db/repositories";
 import {
   EXTRACTED_FIELD_NAMES,
@@ -27,7 +25,6 @@ import {
   type Extraction,
   type ExtractionRecord,
   type FieldSource,
-  type Finding,
   type Invoice,
   type Money,
   type LedgerPeriod,
@@ -48,7 +45,6 @@ import {
   type VerificationReport,
 } from "@/src/engine";
 import { explainDecision } from "@/src/explain";
-import { IngestError, ModelError } from "@/src/extraction";
 
 import { businessDateOf, engineNow } from "./business-day";
 import { UseCaseError } from "./errors";
@@ -61,6 +57,7 @@ import {
   type DecisionRecord,
   type Reservation,
 } from "./record-decision";
+import { StageFailure, inStage } from "./stage";
 
 /**
  * El tramo común a toda decisión del agente: con una lectura ya hecha (del modelo, o
@@ -68,8 +65,7 @@ import {
  * frescos y registrar la decisión con todo lo que arrastra en una transacción. Lo usan
  * `processInvoice` y la corrección o reevaluación de una factura.
  *
- * También vive aquí el camino de error: una etapa que falla deja la factura en `escalar`
- * con el hallazgo `processing_error`, o en `fallida` si ni eso se puede escribir.
+ * El camino de error vive en escalate-on-failure.ts y las etapas en stage.ts.
  */
 
 export type DecideDeps = {
@@ -89,49 +85,6 @@ export type Reading = {
   readonly cost_usd_micros: number;
   readonly latency_ms: number;
 };
-
-/** Cómo se reintenta una factura fallida: la misma entrega vuelve a procesarse. */
-export const RETRY_ACTION = "Vuelve a enviar la misma factura por el mismo canal para reintentarla";
-
-// ---------------------------------------------------------------------------
-// Etapas. Cada error dentro de una etapa sale envuelto con el nombre de la etapa, que es
-// lo que la persona lee en el hallazgo.
-// ---------------------------------------------------------------------------
-
-export const STAGE_LABELS = {
-  normalize: "normalización del documento",
-  read: "lectura y verificación",
-  resolve: "resolución del beneficiario",
-  evaluate: "evaluación de reglas",
-  record: "registro de la decisión",
-} as const;
-export type Stage = keyof typeof STAGE_LABELS;
-
-export class StageFailure extends Error {
-  readonly stage: Stage;
-  constructor(stage: Stage, cause: unknown) {
-    super(`Falló la etapa ${stage}`, { cause });
-    this.name = "StageFailure";
-    this.stage = stage;
-  }
-}
-
-export async function inStage<T>(stage: Stage, fn: () => Promise<T> | T): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    throw error instanceof StageFailure ? error : new StageFailure(stage, error);
-  }
-}
-
-/** Código corto y mensaje seguro de un error. Un error desconocido no expone su texto. */
-export function describeError(error: unknown): { code: string; message: string } {
-  if (error instanceof IngestError) return { code: error.code, message: error.message };
-  if (error instanceof DbError) return { code: error.code, message: "error de la base de datos" };
-  if (error instanceof ModelError) return { code: error.code, message: "error del modelo" };
-  if (error instanceof UseCaseError) return { code: error.code, message: error.message };
-  return { code: "unexpected", message: "error inesperado" };
-}
 
 /** Evento de bitácora de una factura. Por defecto el actor es el agente. */
 export function auditEvent(
@@ -218,7 +171,7 @@ export async function decideAndRecord(deps: DecideDeps, args: DecideArgs): Promi
  * La empresa tiene un chat de Telegram conectado (D24): sus decisiones importantes también
  * se avisan por ahí. Si la consulta falla, la decisión sigue y el aviso queda en pantalla.
  */
-async function hasTelegramChat(deps: DecideDeps, organizationId: Ulid): Promise<boolean> {
+export async function hasTelegramChat(deps: DecideDeps, organizationId: Ulid): Promise<boolean> {
   return listTelegramChats(deps.db, organizationId)
     .then((chats) => chats.length > 0)
     .catch(() => false);
@@ -386,118 +339,28 @@ function fieldSources(extraction: Extraction): Partial<Record<ExtractedFieldName
   return out;
 }
 
+type RecordArgs = DecideArgs & {
+  readonly policyVersion: PolicyVersion;
+  readonly context: EvaluationContext;
+  readonly evaluation: Evaluation;
+  readonly telegramLinked: boolean;
+};
+
 /** Arma la decisión y todo lo que se escribe con ella, sin tocar la base. */
-function buildRecord(
-  deps: DecideDeps,
-  args: DecideArgs & {
-    readonly policyVersion: PolicyVersion;
-    readonly context: EvaluationContext;
-    readonly evaluation: Evaluation;
-    readonly telegramLinked: boolean;
-  },
-): DecisionRecord {
-  const { organization, policyVersion, invoice, reading, payee, context, evaluation } = args;
-  const read = reading;
-  const policy = policyVersion.content;
-  const duplicateWindowDays = policy.rules.duplicate_invoice.window_days;
-  const extraction = read.record.extraction;
+function buildRecord(deps: DecideDeps, args: RecordArgs): DecisionRecord {
+  const { organization, policyVersion, invoice, reading, context } = args;
   const now = deps.now();
   const at = now.toISOString();
-  const dryRun = policy.controls.dry_run;
-  const amount = amountOf(extraction);
+  const amount = amountOf(reading.record.extraction);
   const amountUsd = amount ? toUsd(amount, organization.fx) : null;
-  const vendor: Vendor | null = payee.kind === "matched" ? payee.vendor : null;
-  const scheduledFor = evaluation.scheduled_for;
-
-  let reservation: Reservation | null = null;
-  let paymentOrder: PaymentOrderDraft | null = null;
-  if (evaluation.verdict === "pagar") {
-    // Defensa en profundidad (invariante 11): el motor nunca paga sin vendor ni monto, pero
-    // si ocurriera, no hay de dónde sacar la cuenta y la factura escala por error.
-    if (!vendor || !amount || !amountUsd || !scheduledFor || !context.ledger) {
-      throw new Error("pagar sin vendor, monto, fecha o presupuesto");
-    }
-    if (!dryRun) {
-      paymentOrder = paymentOrderFor({
-        vendor,
-        amount,
-        policy,
-        scheduledFor,
-        reference: invoice.reference,
-      });
-      reservation = {
-        periodKey: context.ledger.period_key,
-        budgetCurrency: "USD",
-        usdCents: amountUsd.amount,
-        currency: amount.currency,
-        amount: amount.amount,
-      };
-    }
-  }
-
-  const payeeName =
-    vendor?.name ?? (extraction.kind === "invoice" ? extraction.fields.payee_name.value : null);
-  const decision: Decision = {
-    id: deps.newId(),
-    organization_id: organization.id,
-    invoice_id: invoice.id,
-    verdict: evaluation.verdict,
-    findings: [...evaluation.findings],
-    explanation: explainDecision({
-      evaluation,
-      amount,
-      payeeName,
-      policyVersion: policyVersion.version,
-    }),
-    summary: null,
-    scheduled_for: scheduledFor,
-    payment_order: paymentOrder,
-    amount,
-    amount_usd: amountUsd ? { amount: amountUsd.amount, currency: "USD" } : null,
-    vendor_id: vendor?.id ?? null,
-    policy_version_id: policyVersion.id,
-    policy_hash: policyVersion.content_hash,
-    document_hash: invoice.document_hash,
-    extraction_hash: read.record.extraction_hash,
-    field_sources: fieldSources(extraction),
-    previous_decision_id: args.previousDecisionId,
-    dry_run: dryRun,
-    actor: args.actor,
-    cost_usd_micros: read.cost_usd_micros,
-    latency_ms: read.latency_ms,
-    decided_at: at,
-  };
-
-  const deciding = decidingFinding(evaluation);
-  const decidedEvent = auditEvent(deps, {
-    type: evaluation.verdict === "escalar" ? "invoice.escalated" : "invoice.decided",
-    actor: args.actor,
-    invoice,
-    decisionId: decision.id,
-    data: {
-      verdict: decision.verdict,
-      deciding_rule: deciding?.code ?? null,
-      findings: decision.findings.map((f) => f.code),
-      rule_log: evaluation.log.map((l) => ({ code: l.code, outcome: l.outcome })),
-      policy_version: policyVersion.version,
-      policy_hash: policyVersion.content_hash,
-      dry_run: dryRun,
-      payment_order: paymentOrder !== null,
-    },
-    traceId: args.traceId,
-    at,
-  });
+  const vendor = args.payee.kind === "matched" ? args.payee.vendor : null;
+  const { paymentOrder, reservation } = paymentFor(args, { vendor, amount, amountUsd });
+  const decision = decisionFrom(deps, args, { vendor, amount, amountUsd, paymentOrder, at });
 
   return {
     invoice,
     decision,
-    duplicateGuard:
-      decision.verdict === "pagar" && context.semantic_key !== null
-        ? {
-            semanticKey: context.semantic_key,
-            since: new Date(context.now.getTime() - duplicateWindowDays * 86_400_000).toISOString(),
-          }
-        : null,
+    duplicateGuard: duplicateGuardFor(decision, context, policyVersion.content),
     patch: {
       ...(args.documentPatch
         ? { text: args.documentPatch.text, page_keys: [...args.documentPatch.page_keys] }
@@ -510,11 +373,11 @@ function buildRecord(
       organization_id: organization.id,
       invoice_id: invoice.id,
       document_hash: invoice.document_hash,
-      record: read.record,
+      record: reading.record,
       created_at: at,
     },
     reservation,
-    events: [...args.pipelineEvents, decidedEvent],
+    events: [...args.pipelineEvents, decidedEvent(deps, args, decision)],
     notifications: notificationsFor({
       decision,
       invoice,
@@ -525,148 +388,131 @@ function buildRecord(
   };
 }
 
-// ---------------------------------------------------------------------------
-// Camino de error: la factura ya registrada escala con el error como motivo.
-// ---------------------------------------------------------------------------
+type Amounts = {
+  readonly vendor: Vendor | null;
+  readonly amount: Money | null;
+  readonly amountUsd: Money | null;
+};
 
-export async function escalateOnFailure(
-  deps: DecideDeps,
-  args: {
-    readonly organization: Organization;
-    readonly policyVersion: PolicyVersion;
-    readonly invoice: Invoice;
-    readonly failure: StageFailure;
-    readonly traceId: string;
-  },
-): Promise<{ readonly invoice: Invoice; readonly decision: Decision }> {
-  const { organization, invoice, failure, traceId } = args;
-  // La decisión se registra con la política vigente: la del inicio pudo cambiar mientras tanto.
-  const policyVersion =
-    (await getCurrentPolicy(deps.db, organization.id).catch(() => null)) ?? args.policyVersion;
-  const error = describeError(failure.cause);
-  const telegramLinked = await hasTelegramChat(deps, organization.id);
-  const now = deps.now();
-  const at = now.toISOString();
-  const finding: Finding = {
-    code: "processing_error",
-    severity: "block",
-    action: "escalar",
-    observed: `${STAGE_LABELS[failure.stage]} (${error.code})`,
-    threshold: "un procesamiento completo",
-    evidence: null,
-    field: null,
-    message: `La factura no se pudo procesar por completo: ${error.message}`,
+/**
+ * La orden de pago y la reserva de presupuesto de un `pagar`. En modo de prueba no hay
+ * ninguna de las dos: la decisión queda registrada sin mover dinero.
+ */
+function paymentFor(
+  args: RecordArgs,
+  { vendor, amount, amountUsd }: Amounts,
+): { paymentOrder: PaymentOrderDraft | null; reservation: Reservation | null } {
+  const { evaluation, context, invoice } = args;
+  const policy = args.policyVersion.content;
+  if (evaluation.verdict !== "pagar") return { paymentOrder: null, reservation: null };
+  const scheduledFor = evaluation.scheduled_for;
+  // Defensa en profundidad (invariante 11): el motor nunca paga sin vendor ni monto, pero
+  // si ocurriera, no hay de dónde sacar la cuenta y la factura escala por error.
+  if (!vendor || !amount || !amountUsd || !scheduledFor || !context.ledger) {
+    throw new Error("pagar sin vendor, monto, fecha o presupuesto");
+  }
+  if (policy.controls.dry_run) return { paymentOrder: null, reservation: null };
+  return {
+    paymentOrder: paymentOrderFor({
+      vendor,
+      amount,
+      policy,
+      scheduledFor,
+      reference: invoice.reference,
+    }),
+    reservation: {
+      periodKey: context.ledger.period_key,
+      budgetCurrency: "USD",
+      usdCents: amountUsd.amount,
+      currency: amount.currency,
+      amount: amount.amount,
+    },
   };
-  const decision: Decision = {
+}
+
+/** La decisión con su explicación, la huella de la política y de la lectura, y su costo. */
+function decisionFrom(
+  deps: Pick<DecideDeps, "newId">,
+  args: RecordArgs,
+  input: Amounts & { readonly paymentOrder: PaymentOrderDraft | null; readonly at: string },
+): Decision {
+  const { organization, policyVersion, invoice, reading, evaluation } = args;
+  const { vendor, amount, amountUsd } = input;
+  const extraction = reading.record.extraction;
+  const payeeName =
+    vendor?.name ?? (extraction.kind === "invoice" ? extraction.fields.payee_name.value : null);
+  return {
     id: deps.newId(),
     organization_id: organization.id,
     invoice_id: invoice.id,
-    verdict: "escalar",
-    findings: [finding],
+    verdict: evaluation.verdict,
+    findings: [...evaluation.findings],
     explanation: explainDecision({
-      evaluation: { verdict: "escalar", findings: [finding], log: [], scheduled_for: null },
-      amount: null,
-      payeeName: null,
+      evaluation,
+      amount,
+      payeeName,
       policyVersion: policyVersion.version,
     }),
     summary: null,
-    scheduled_for: null,
-    payment_order: null,
-    amount: null,
-    amount_usd: null,
-    vendor_id: null,
+    scheduled_for: evaluation.scheduled_for,
+    payment_order: input.paymentOrder,
+    amount,
+    amount_usd: amountUsd ? { amount: amountUsd.amount, currency: "USD" } : null,
+    vendor_id: vendor?.id ?? null,
     policy_version_id: policyVersion.id,
     policy_hash: policyVersion.content_hash,
     document_hash: invoice.document_hash,
-    extraction_hash: null,
-    field_sources: {},
-    previous_decision_id: null,
+    extraction_hash: reading.record.extraction_hash,
+    field_sources: fieldSources(extraction),
+    previous_decision_id: args.previousDecisionId,
     dry_run: policyVersion.content.controls.dry_run,
-    actor: { kind: "agente" },
-    cost_usd_micros: 0,
-    latency_ms: 0,
-    decided_at: at,
+    actor: args.actor,
+    cost_usd_micros: reading.cost_usd_micros,
+    latency_ms: reading.latency_ms,
+    decided_at: input.at,
   };
-  const errorData = { stage: failure.stage, code: error.code };
-  const record: DecisionRecord = {
-    invoice,
-    decision,
-    duplicateGuard: null,
-    patch: { approval_expires_at: approvalExpiry("escalar", now) },
-    extraction: null,
-    reservation: null,
-    events: [
-      auditEvent(deps, {
-        type: "invoice.escalated",
-        invoice,
-        decisionId: decision.id,
-        data: {
-          verdict: "escalar",
-          deciding_rule: "processing_error",
-          findings: ["processing_error"],
-          error: errorData,
-          policy_version: policyVersion.version,
-          policy_hash: policyVersion.content_hash,
-        },
-        traceId,
-        at,
-      }),
-    ],
-    notifications: notificationsFor({
-      decision,
-      invoice,
-      telegramLinked,
-      newId: deps.newId,
-      nowIso: at,
-    }),
-  };
-  try {
-    await recordDecision(deps.db, record);
-  } catch (recordError) {
-    await markFailed(deps, { invoice, errorData, traceId, at }, recordError);
-    throw new UseCaseError("record_failed", "La factura quedó marcada como fallida", {
-      action: RETRY_ACTION,
-      retryable: true,
-      cause: failure,
-    });
-  }
-  return { invoice: savedInvoice(record), decision };
 }
 
 /**
- * Último recurso: ni la decisión de escalado se pudo escribir. La factura pasa a `fallida`,
- * un estado del que solo se sale reintentando. Si tampoco eso se puede, el error sube.
+ * Un `pagar` con llave semántica bloquea, al registrarse, otro pago del mismo cobro dentro
+ * de la ventana de duplicados.
  */
-async function markFailed(
-  deps: DecideDeps,
-  args: {
-    readonly invoice: Invoice;
-    readonly errorData: Record<string, unknown>;
-    readonly traceId: string;
-    readonly at: string;
-  },
-  cause: unknown,
-): Promise<void> {
-  const { invoice, at } = args;
-  try {
-    await withWriteTransaction(deps.db, async (tx) => {
-      await transitionInvoice(tx, invoice.organization_id, invoice.id, "procesando", "fallida", at);
-      await appendEvent(
-        tx,
-        auditEvent(deps, {
-          type: "invoice.failed",
-          invoice,
-          data: { ...args.errorData, record_error: describeError(cause).code },
-          traceId: args.traceId,
-          at,
-        }),
-      );
-    });
-  } catch (error) {
-    throw new UseCaseError("record_failed", "No se pudo registrar el resultado de la factura", {
-      action: RETRY_ACTION,
-      retryable: true,
-      cause: error,
-    });
-  }
+function duplicateGuardFor(
+  decision: Decision,
+  context: EvaluationContext,
+  policy: Policy,
+): DecisionRecord["duplicateGuard"] {
+  if (decision.verdict !== "pagar" || context.semantic_key === null) return null;
+  const windowMs = policy.rules.duplicate_invoice.window_days * 86_400_000;
+  return {
+    semanticKey: context.semantic_key,
+    since: new Date(context.now.getTime() - windowMs).toISOString(),
+  };
+}
+
+/** El evento de bitácora de la decisión: veredicto, regla que decide y rastro del motor. */
+function decidedEvent(
+  deps: Pick<DecideDeps, "newId">,
+  args: RecordArgs,
+  decision: Decision,
+): AuditEvent {
+  const { evaluation, policyVersion } = args;
+  return auditEvent(deps, {
+    type: evaluation.verdict === "escalar" ? "invoice.escalated" : "invoice.decided",
+    actor: args.actor,
+    invoice: args.invoice,
+    decisionId: decision.id,
+    data: {
+      verdict: decision.verdict,
+      deciding_rule: decidingFinding(evaluation)?.code ?? null,
+      findings: decision.findings.map((f) => f.code),
+      rule_log: evaluation.log.map((l) => ({ code: l.code, outcome: l.outcome })),
+      policy_version: policyVersion.version,
+      policy_hash: policyVersion.content_hash,
+      dry_run: decision.dry_run,
+      payment_order: decision.payment_order !== null,
+    },
+    traceId: args.traceId,
+    at: decision.decided_at,
+  });
 }

@@ -36,15 +36,9 @@ import {
 } from "@/src/extraction";
 import { resolvePayee } from "@/src/resolve";
 
-import {
-  StageFailure,
-  auditEvent,
-  decideAndRecord,
-  escalateOnFailure,
-  inStage,
-  type DecideDeps,
-  type Reading,
-} from "./decide";
+import { auditEvent, decideAndRecord, type DecideDeps, type Reading } from "./decide";
+import { escalateOnFailure } from "./escalate-on-failure";
+import { StageFailure, inStage } from "./stage";
 
 /**
  * Corrección de campos a mano y reevaluación (docs/arquitectura.md §4b y §5, invariante 4).

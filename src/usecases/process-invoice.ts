@@ -33,16 +33,11 @@ import {
 } from "@/src/extraction";
 import { resolvePayee } from "@/src/resolve";
 
-import {
-  StageFailure,
-  auditEvent,
-  decideAndRecord,
-  escalateOnFailure,
-  inStage,
-  type DecideDeps,
-} from "./decide";
+import { auditEvent, decideAndRecord, type DecideDeps } from "./decide";
 import { UseCaseError } from "./errors";
+import { escalateOnFailure } from "./escalate-on-failure";
 import { READ_DEADLINE_MS, readWithoutModel, type InvoiceReader } from "./invoice-reader";
+import { StageFailure, inStage } from "./stage";
 
 /**
  * processInvoice: el único camino por el que una factura entra y sale decidida. Todos los
