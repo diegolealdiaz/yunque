@@ -4,21 +4,26 @@ import { connection } from "next/server";
 import { loadBatchCases } from "@/src/dataset/demo-seed";
 import { RULES } from "@/src/domain/rules";
 
-import { DecisionPreview } from "./_landing/decision-preview";
+import { loadSampleBatch } from "./_landing/cases";
 import { LandingMotion } from "./_landing/motion";
+import { Portal } from "./_landing/portal";
 import { ProductFrame } from "./_landing/product-frame";
 import {
+  Announcement,
+  Channels,
   Control,
+  ControlPanel,
   Faq,
   FinalCall,
   Hero,
-  HowItWorks,
   LandingFooter,
   LandingNav,
   Proof,
   Section,
-  Verdicts,
+  Why,
 } from "./_landing/sections";
+import { HowItWorks, Problem } from "./_landing/story";
+import { Ticker } from "./_landing/ticker";
 
 export const metadata: Metadata = {
   title: "Yunque · Paga tus facturas sin salirte de tus reglas",
@@ -27,54 +32,58 @@ export const metadata: Metadata = {
 };
 
 /**
- * Portada pública (docs/interfaz.md §11). Presenta el producto y lleva a probarlo. No lee
- * ni crea empresas: la empresa de ejemplo nace al entrar al producto con "Probar la demo".
- * Las cifras salen del código: cuántos controles tiene el motor y cuántos casos el lote.
- * El movimiento (entrada, revelaciones, producto que crece, pop de botones) vive en
- * `LandingMotion`; las secciones solo lo marcan.
+ * Portada pública (docs/interfaz.md §11). Presenta el producto como un relato y lleva a
+ * probarlo: la promesa, el agente decidiendo, lo que decidió con el lote de ejemplo, el
+ * problema, cómo funciona, el producto, el control y el cierre. No lee ni crea empresas: la
+ * empresa de ejemplo nace al entrar al producto con "Probar la demo". Las cifras salen del
+ * código y del manifiesto del dataset. El movimiento vive en `LandingMotion`; las secciones
+ * solo lo marcan.
  */
 export default async function Home() {
   // Por petición, no prerenderizada: la política de seguridad exige el nonce de cada respuesta
   // en los scripts, y una página estática no lo tendría.
   await connection();
   const ruleCount = Object.keys(RULES).length;
+  const batch = await loadSampleBatch();
   const sampleCount = await loadBatchCases()
     .then((cases) => cases.length)
     .catch(() => 0);
 
   return (
     <LandingMotion>
+      <Announcement sampleCount={sampleCount} />
       <LandingNav />
       <main id="contenido" className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
-        <Hero preview={<DecisionPreview />} />
-        <div className="space-y-28 pb-24">
-          <ProductFrame />
-          <Section
-            eyebrow="Tres salidas, nunca otra"
-            title="Cada factura termina en pagar, frenar o escalar."
-            lead="El color siempre significa lo mismo, en la pantalla, en el aviso y en la bitácora."
-          >
-            <Verdicts />
-          </Section>
+        <Hero />
+        <Portal />
+        {batch ? <Ticker batch={batch} /> : null}
+        <div className="space-y-32 py-32">
+          <Problem />
           <Section
             id="como-funciona"
             eyebrow="Cómo funciona"
-            title="Del correo a la decisión, en segundos."
-            lead="Tu equipo deja de revisar las facturas que cumplen y dedica su tiempo a las que de verdad necesitan criterio."
+            title="De la factura a la decisión, en segundos."
+            lead="Llegue por correo, por Telegram, en PDF o en foto, cada factura sigue el mismo camino. Tu equipo deja de revisar las que cumplen y dedica su tiempo a las que necesitan criterio."
           >
-            <HowItWorks ruleCount={ruleCount} />
+            <HowItWorks ruleCount={ruleCount} counts={batch?.counts ?? null} />
           </Section>
           <Section
-            id="control"
-            eyebrow="Control"
-            title="Automatizar pagos sin perder el control."
-            lead="El agente trabaja dentro de un mandato que tú firmas. Cada decisión se explica, se audita y, si hace falta, la revisa una persona antes de que el dinero se mueva."
+            eyebrow="Dónde trabaja"
+            title="Tu agente, en los canales que ya usas."
+            lead="Sin portales nuevos para tus proveedores: la factura llega como hoy y el agente la toma de ahí."
           >
-            <Control />
+            <Channels />
           </Section>
-          <Section eyebrow="Con datos, no con promesas" title="Medido en cada cambio.">
-            <Proof ruleCount={ruleCount} sampleCount={sampleCount} />
+          <ProductFrame />
+          <Section eyebrow="Por qué Yunque" title="Automatizar pagos sin perder el control.">
+            <Why />
           </Section>
+        </div>
+        <ControlPanel>
+          <Control />
+          <Proof ruleCount={ruleCount} sampleCount={sampleCount} />
+        </ControlPanel>
+        <div className="pt-32">
           <Section id="preguntas" eyebrow="Preguntas" title="Lo que suelen preguntar.">
             <Faq />
           </Section>

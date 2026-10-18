@@ -70,7 +70,8 @@
   --row-height: 44px;
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+.theme-dark {
   color-scheme: dark;
 
   --shell: #0a1220;
@@ -177,6 +178,21 @@ table {
   border-radius: var(--radius-control);
 }
 
+/* Selectores con la flecha dibujada por la app, a la misma distancia del borde en todo navegador.
+   Fuera de capa para ganarle al padding de las utilidades. */
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 2rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink-3) 50%),
+    linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 50%,
+    calc(100% - 10px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+
 /* Piezas compartidas. En la capa de componentes, así una utilidad puede ajustarlas. */
 @layer components {
   /* Tarjeta: agrupa algo de verdad. Un dato suelto no necesita caja. */
@@ -267,36 +283,6 @@ table {
   visibility: hidden;
 }
 
-/* Brillo que cruza la tarjeta de ejemplo una vez, al final de la entrada. */
-.card-shine {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 45%;
-  pointer-events: none;
-  opacity: 0;
-  background-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    rgb(255 255 255 / 0.14) 50%,
-    transparent 100%
-  );
-}
-
-:root:not([data-theme="dark"]) .card-shine {
-  background-image: linear-gradient(
-    100deg,
-    transparent 0%,
-    rgb(255 255 255 / 0.6) 50%,
-    transparent 100%
-  );
-}
-
-/* Conector que se dibuja entre pasos: `--draw` va de 0 a 1 con la animación; sin ella, 1. */
-.draw-line {
-  transform: scaleX(var(--draw, 1));
-  transform-origin: left center;
-}
-
 /* Tarjeta que se levanta bajo el puntero, solo donde hay puntero. */
 @media (hover: hover) and (pointer: fine) {
   .card-lift {
@@ -316,4 +302,155 @@ table {
   .card-lift:hover {
     transform: none;
   }
+}
+
+/*
+ * Panel siempre oscuro dentro de cualquier tema (la portada lo usa para el control). Toma los
+ * tokens del tema oscuro de arriba; aquí solo el fondo, que no hereda.
+ */
+.theme-dark {
+  background-color: var(--shell);
+  color: var(--ink);
+}
+
+/* Rejilla fina del fondo, que se desvanece hacia los bordes. Decorativa. */
+.hero-grid {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 35%, black 25%, transparent 75%);
+  opacity: 0.55;
+}
+
+/* Luces de marca desenfocadas. motion.tsx las mueve despacio; quietas también se ven bien. */
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+.aurora-1 {
+  top: -10rem;
+  left: 18%;
+  width: 38rem;
+  height: 26rem;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--brand-grad-start) 30%, transparent),
+    transparent
+  );
+}
+
+.aurora-2 {
+  top: 2rem;
+  right: 12%;
+  width: 32rem;
+  height: 22rem;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--brand-grad-end) 24%, transparent),
+    transparent
+  );
+}
+
+.aurora-scene {
+  inset: 15% 20%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--brand) 22%, transparent),
+    transparent
+  );
+}
+
+.aurora-cta {
+  left: 10%;
+  right: 10%;
+  bottom: -40%;
+  height: 100%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--brand-grad-start) 34%, transparent),
+    color-mix(in oklab, var(--brand-grad-end) 12%, transparent) 60%,
+    transparent
+  );
+}
+
+/* Barra de lectura del agente: una franja con el borde de marca que baja por los controles. */
+.agent-scan {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3rem;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--brand) 12%, transparent) 80%,
+    color-mix(in oklab, var(--brand) 70%, transparent) 100%
+  );
+}
+
+/* Cinta de decisiones: se desvanece en los bordes y corre sola salvo con "reducir movimiento". */
+.ticker-mask {
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ticker-track {
+    animation: ticker 110s linear infinite;
+  }
+
+  .ticker-mask:hover .ticker-track {
+    animation-play-state: paused;
+  }
+}
+
+/* Media vuelta de la pista: la segunda copia queda donde empezó la primera (más medio hueco). */
+@keyframes ticker {
+  to {
+    transform: translateX(calc(-50% - 6px));
+  }
+}
+
+/* Luz que sigue al puntero sobre una tarjeta; motion.tsx pone su posición en --mx y --my. */
+.spotlight {
+  position: relative;
+}
+
+.spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  background: radial-gradient(
+    420px circle at var(--mx, 50%) var(--my, 50%),
+    color-mix(in oklab, var(--brand) 12%, transparent),
+    transparent 45%
+  );
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .spotlight:hover::before {
+    opacity: 1;
+  }
+}
+
+/* Pestaña del paso que se lee en "Cómo funciona". */
+.story-tab[aria-current="step"] {
+  background-color: var(--brand-tint);
+  color: var(--brand);
+}
+
+/* Barra de la portada: transparente arriba del todo, con fondo y borde al bajar. */
+[data-nav][data-top="true"] {
+  border-color: transparent;
+}
+
+[data-nav][data-top="true"] [data-nav-bg] {
+  opacity: 0;
 }

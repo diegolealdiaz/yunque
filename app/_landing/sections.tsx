@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { AlertIcon, CheckIcon, ChevronIcon, LockIcon, StopIcon } from "../_components/icons";
+import { CheckIcon, ChevronIcon, LockIcon, StopIcon } from "../_components/icons";
 import { ThemeToggle } from "../_components/theme-toggle";
 
 import { MobileMenu } from "./mobile-menu";
@@ -31,6 +31,16 @@ function DemoButton({ size = "md" }: { readonly size?: "md" | "lg" }) {
   );
 }
 
+/** La etiqueta de cada sección: una píldora con el punto de marca. */
+export function Eyebrow({ children }: { readonly children: ReactNode }) {
+  return (
+    <p className="caps inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1 text-brand">
+      <span aria-hidden="true" className="size-1.5 rounded-full bg-brand" />
+      {children}
+    </p>
+  );
+}
+
 function Section({
   id,
   eyebrow,
@@ -49,23 +59,48 @@ function Section({
       id={id}
       aria-labelledby={id ? `${id}-titulo` : undefined}
       data-reveal
-      className="scroll-mt-20"
+      className="scroll-mt-20 text-center"
     >
-      <p className="caps text-brand">{eyebrow}</p>
+      <Eyebrow>{eyebrow}</Eyebrow>
       <h2
         id={id ? `${id}-titulo` : undefined}
         data-reveal-title
-        className="mt-3 max-w-3xl text-[30px] leading-[1.15] font-bold tracking-tight text-ink sm:text-[38px]"
+        className="mx-auto mt-5 max-w-3xl text-[30px] leading-[1.12] font-bold tracking-tight text-ink sm:text-[44px]"
       >
         {title}
       </h2>
       {lead ? (
-        <p data-reveal-lead className="mt-4 max-w-2xl text-[16px] leading-relaxed text-ink-2">
+        <p
+          data-reveal-lead
+          className="mx-auto mt-4 max-w-2xl text-[16px] leading-relaxed text-ink-2"
+        >
           {lead}
         </p>
       ) : null}
-      <div className="mt-10">{children}</div>
+      <div className="mt-12 text-left">{children}</div>
     </section>
+  );
+}
+
+/** Franja de aviso sobre la barra: la demo está abierta, con su enlace. */
+export function Announcement({ sampleCount }: { readonly sampleCount: number }) {
+  return (
+    <div className="border-b border-line bg-shell text-[13px]">
+      <Link
+        href={DEMO_HREF}
+        className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-4 py-2 text-ink-2 hover:text-ink sm:px-6"
+      >
+        <span className="shrink-0 rounded-full bg-brand-tint px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-brand">
+          Demo abierta
+        </span>
+        <span className="truncate">
+          {sampleCount > 0
+            ? `${String(sampleCount)} facturas de ejemplo listas para decidir`
+            : "Facturas de ejemplo listas para decidir"}
+        </span>
+        <ChevronIcon />
+      </Link>
+    </div>
   );
 }
 
@@ -77,12 +112,19 @@ const NAV_LINKS = [
 
 export function LandingNav() {
   return (
-    <header className="sticky top-0 z-30 border-b border-line">
+    <header
+      data-nav
+      className="sticky top-0 z-30 border-b border-line transition-[border-color] duration-300"
+    >
       {/*
         El fondo translúcido va en su propia capa: un desenfoque en el encabezado mismo lo
         volvería el marco de los elementos fijos, y el menú del teléfono quedaría encerrado.
       */}
-      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-paper/80 backdrop-blur-md" />
+      <div
+        aria-hidden="true"
+        data-nav-bg
+        className="absolute inset-0 -z-10 bg-paper/75 backdrop-blur-md transition-opacity duration-300"
+      />
       <nav
         aria-label="Portada"
         className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6"
@@ -121,20 +163,38 @@ export function LandingNav() {
   );
 }
 
-export function Hero({ preview }: { readonly preview: ReactNode }) {
+/**
+ * Fondo del primer bloque, de borde a borde: una rejilla fina que se desvanece hacia los lados
+ * y dos luces de marca que se mueven despacio (motion.tsx). Decorativo.
+ */
+function HeroBackdrop() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute -top-16 bottom-0 left-1/2 -z-10 -ml-[50vw] w-screen overflow-hidden"
+    >
+      <div className="hero-grid absolute inset-0" />
+      <div data-aurora className="aurora aurora-1" />
+      <div data-aurora className="aurora aurora-2" />
+    </div>
+  );
+}
+
+export function Hero() {
   return (
     <section
       aria-labelledby="portada-titulo"
       data-hero-scroll
-      className="grid items-center gap-12 pt-14 pb-20 lg:grid-cols-[1.05fr_1fr] lg:pt-20"
+      className="relative flex flex-col items-center pt-16 pb-14 text-center sm:pt-24 sm:pb-16"
     >
-      <div data-hero-copy>
-        <p data-intro="eyebrow" className="caps">
-          Agente de cuentas por pagar
-        </p>
+      <HeroBackdrop />
+      <div data-hero-copy className="flex flex-col items-center">
+        <div data-intro="eyebrow">
+          <Eyebrow>Agente de cuentas por pagar</Eyebrow>
+        </div>
         <h1
           id="portada-titulo"
-          className="mt-4 text-[40px] leading-[1.05] font-bold tracking-tight text-ink sm:text-[56px]"
+          className="mt-6 max-w-4xl text-[42px] leading-[1.03] font-bold tracking-[-0.03em] text-ink sm:text-[68px]"
         >
           {/* Cada línea sube desde abajo de su máscara; el descenso de la «g» cabe en el relleno. */}
           <span className="block overflow-hidden pb-[0.08em]">
@@ -148,12 +208,17 @@ export function Hero({ preview }: { readonly preview: ReactNode }) {
             </span>
           </span>
         </h1>
-        <p data-intro="lead" className="mt-6 max-w-xl text-[17px] leading-relaxed text-ink-2">
+        <p
+          data-intro="lead"
+          className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-2 sm:text-[19px]"
+        >
           Yunque lee cada factura, la revisa contra tu política y decide: paga lo que cumple, frena
-          lo sospechoso y te pasa solo lo que necesita una persona, con la regla, el valor y el
-          umbral a la vista.
+          lo sospechoso y te pasa solo lo que necesita una persona, con la regla a la vista.
         </p>
-        <div data-intro="cta" className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+        <div
+          data-intro="cta"
+          className="mt-9 flex flex-wrap items-center justify-center gap-x-6 gap-y-3"
+        >
           <DemoButton size="lg" />
           <a
             href="#como-funciona"
@@ -168,121 +233,114 @@ export function Hero({ preview }: { readonly preview: ReactNode }) {
           Sin registro · datos de ejemplo · ningún pago real
         </p>
       </div>
-      {preview}
     </section>
   );
 }
 
-const VERDICTS = [
+const CHANNELS = [
   {
-    Icon: CheckIcon,
-    tone: "text-pay",
-    tint: "bg-pay-tint",
-    name: "Pagar",
-    body: "Cumple todas tus reglas. El agente prepara la orden sin esperar a nadie.",
-    example: "Proveedor conocido, monto dentro del umbral, cuenta de siempre.",
+    name: "PDF o foto",
+    title: "Súbela desde la pantalla.",
+    body: "Arrastra el PDF o la foto de la factura, o procesa de una vez el lote del periodo. El agente lee la página aunque no tenga capa de texto.",
+    sample: [
+      ["Archivo", "AH-5560.pdf"],
+      ["Lectura", "cada campo con su cita"],
+      ["Lote", "33 facturas del periodo"],
+    ],
   },
   {
-    Icon: StopIcon,
-    tone: "text-hold",
-    tint: "bg-hold-tint",
-    name: "Frenar",
-    body: "Algo no debe pagarse. Se detiene y queda escrito por qué.",
-    example: "Factura duplicada, instrucciones escondidas en el documento, sin saldo.",
+    name: "Correo",
+    title: "Reenvía la factura y listo.",
+    body: "Cada empresa tiene su dirección. El agente lee el adjunto o el cuerpo del correo, y una misma entrega nunca se procesa dos veces.",
+    sample: [
+      ["De", "facturacion@nubeandina.example"],
+      ["Asunto", "Factura F-2291 · octubre"],
+      ["Adjunto", "F-2291.pdf"],
+    ],
   },
   {
-    Icon: AlertIcon,
-    tone: "text-escalate",
-    tint: "bg-escalate-tint",
-    name: "Escalar",
-    body: "Necesita criterio humano. Llega a quien aprueba con lo que hay que verificar.",
-    example: "Primer pago a un beneficiario, cuenta nueva, monto sobre el umbral.",
+    name: "Telegram",
+    title: "Una foto desde el teléfono.",
+    body: "Manda la factura al bot de tu empresa y recibe en el mismo chat el aviso de cada decisión importante, con su motivo.",
+    sample: [
+      ["Tú", "foto · factura-andes.jpg"],
+      ["Yunque", "Escalada: supera el umbral"],
+      ["Yunque", "Revísala en Pendientes"],
+    ],
   },
 ] as const;
 
-export function Verdicts() {
+/** Dónde vive el agente: dos tarjetas lado a lado, cada una con un ejemplo de su canal. */
+export function Channels() {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {VERDICTS.map(({ Icon, tone, tint, name, body, example }) => (
-        <article key={name} data-reveal-item className="card card-lift p-6">
-          <span
-            className={`inline-flex size-10 items-center justify-center rounded-full ${tint} ${tone}`}
-          >
-            <Icon className="size-5" />
-          </span>
-          <h3 className={`mt-4 text-[20px] font-bold tracking-tight ${tone}`}>{name}</h3>
-          <p className="mt-2 text-[15px] leading-relaxed text-ink">{body}</p>
-          <p className="mt-3 text-[13px] leading-relaxed text-ink-3">{example}</p>
+    <div className="grid gap-4 lg:grid-cols-3">
+      {CHANNELS.map((channel) => (
+        <article key={channel.name} data-reveal-item className="card card-lift spotlight p-7">
+          <p className="caps text-brand">{channel.name}</p>
+          <h3 className="mt-3 text-[22px] font-bold tracking-tight text-ink">{channel.title}</h3>
+          <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{channel.body}</p>
+          <dl className="mt-6 divide-y divide-line rounded-[12px] border border-line bg-surface-sunken text-[13px]">
+            {channel.sample.map(([label, value]) => (
+              <div key={`${label}-${value}`} className="flex items-center gap-4 px-4 py-2.5">
+                <dt className="w-16 shrink-0 text-ink-3">{label}</dt>
+                <dd className="truncate font-mono text-[12px] text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
         </article>
       ))}
     </div>
   );
 }
 
-export function HowItWorks({ ruleCount }: { readonly ruleCount: number }) {
-  const steps = [
-    {
-      n: "01",
-      title: "Llega la factura",
-      body: "Por el canal que ya usa tu equipo. Si la misma entrega llega dos veces, se procesa una vez; una copia por otro camino se frena como duplicada.",
-      chips: ["PDF", "Foto", "Correo", "Telegram"],
-    },
-    {
-      n: "02",
-      title: "El agente la revisa",
-      body: `La lee y la pasa por ${String(ruleCount)} controles: monto, duplicados, presupuesto, saldo, cuenta, beneficiario. El modelo solo lee; las reglas deciden.`,
-      chips: ["Monto", "Duplicados", "Cuenta", "Presupuesto"],
-    },
-    {
-      n: "03",
-      title: "Tú decides lo que importa",
-      body: "Lo que cumple se paga; lo sospechoso se frena. Lo demás te llega con un checklist de lo que hay que verificar antes de aprobar.",
-      chips: ["Checklist", "Firma", "Bitácora"],
-    },
-  ];
+const WHY = [
+  {
+    title: "Rápido donde no hace falta criterio",
+    body: "Lo que cumple se paga sin esperar a nadie. Tu equipo mira solo las facturas que de verdad lo necesitan.",
+  },
+  {
+    title: "Explicable de punta a punta",
+    body: "Cada decisión dice qué regla aplicó, con qué valor y contra qué umbral, en palabras que entiende cualquiera.",
+  },
+  {
+    title: "Seguro por diseño",
+    body: "El modelo solo lee; las reglas deciden. Lo que diga el documento puede endurecer un veredicto, nunca ablandarlo.",
+  },
+  {
+    title: "Tus reglas, tu firma",
+    body: "La política es tuya, por versiones y firmada. Antes de guardar un cambio ves qué facturas cambiarían.",
+  },
+] as const;
+
+/** Por qué Yunque: cuatro bloques de solo texto, como un cierre de argumento. */
+export function Why() {
   return (
-    <ol data-draw-group className="grid gap-4 md:grid-cols-3">
-      {steps.map((step, i) => (
-        <li key={step.n} data-reveal-item className="card card-lift relative p-6">
-          {/* Conector al paso siguiente, dibujado al llegar: llega, se revisa, decides. */}
-          {i < steps.length - 1 ? (
-            <span
-              aria-hidden="true"
-              data-draw
-              className="draw-line absolute top-[33px] left-[52px] z-10 hidden h-px w-[calc(100%-20px)] bg-linear-to-r from-brand to-brand/0 md:block"
-            />
-          ) : null}
-          <span className="relative z-20 inline-flex rounded-full bg-surface pr-2 font-mono text-[13px] font-semibold text-brand">
-            {step.n}
-          </span>
-          <h3 className="mt-3 text-[19px] font-bold tracking-tight text-ink">{step.title}</h3>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-2">{step.body}</p>
-          <ul className="mt-5 flex flex-wrap gap-1.5">
-            {step.chips.map((chip) => (
-              <li
-                key={chip}
-                className="rounded-full bg-surface-hover px-2.5 py-1 text-[12px] font-medium text-ink-2"
-              >
-                {chip}
-              </li>
-            ))}
-          </ul>
-        </li>
-      ))}
-    </ol>
+    <div>
+      <div className="grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+        {WHY.map((item) => (
+          <div key={item.title} data-reveal-item className="border-t border-line-strong pt-5">
+            <h3 className="text-[18px] font-bold tracking-tight text-ink">{item.title}</h3>
+            <p className="mt-3 text-[14px] leading-relaxed text-ink-2">{item.body}</p>
+          </div>
+        ))}
+      </div>
+      <div data-reveal-item className="mt-12 flex justify-center">
+        <DemoButton size="lg" />
+      </div>
+    </div>
   );
 }
 
 const AUDIT = [
   { at: "09:12:04", what: "Recibida", detail: "correo" },
-  { at: "09:12:06", what: "Leída", detail: "1,8 s" },
-  { at: "09:12:06", what: "Escalada", detail: "bank_account_mismatch" },
+  { at: "09:12:06", what: "Leída", detail: "con cita y confianza" },
+  { at: "09:12:06", what: "Escalada", detail: "payee_not_allowed" },
   { at: "09:31:40", what: "Aprobada", detail: "Ana Torres" },
 ] as const;
 
 const NEVER = [
   "Pagar por encima del tope absoluto del sistema, ni aunque la política lo permita.",
-  "Pagar a una cuenta distinta de la registrada sin que una persona lo confirme.",
+  "Pagar a una cuenta distinta de la registrada: esa factura se frena.",
   "Seguir instrucciones escritas dentro de una factura.",
   "Ejecutar el pago: deja la orden preparada en el formato de tu plataforma.",
 ] as const;
@@ -290,7 +348,7 @@ const NEVER = [
 export function Control() {
   return (
     <div className="grid gap-4 lg:grid-cols-6">
-      <article data-reveal-item className="card card-lift min-w-0 p-6 lg:col-span-3">
+      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-3">
         <h3 className="text-[18px] font-bold tracking-tight text-ink">
           Cada decisión, con su regla
         </h3>
@@ -312,7 +370,7 @@ export function Control() {
         </p>
       </article>
 
-      <article data-reveal-item className="card card-lift min-w-0 p-6 lg:col-span-3">
+      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-3">
         <h3 className="text-[18px] font-bold tracking-tight text-ink">
           Ve qué cambiaría antes de guardar
         </h3>
@@ -340,7 +398,7 @@ export function Control() {
         </div>
       </article>
 
-      <article data-reveal-item className="card card-lift min-w-0 p-6 lg:col-span-2">
+      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-2">
         <h3 className="text-[18px] font-bold tracking-tight text-ink">Interruptor de emergencia</h3>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
           Un clic apaga los pagos. El agente sigue leyendo y avisando, pero nada se paga.
@@ -354,7 +412,7 @@ export function Control() {
         </div>
       </article>
 
-      <article data-reveal-item className="card card-lift min-w-0 p-6 lg:col-span-2">
+      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-2">
         <h3 className="text-[18px] font-bold tracking-tight text-ink">Aprobar es un acto</h3>
         <p className="mt-2 text-[14px] leading-relaxed text-ink-2">
           El botón se habilita cuando marcas lo que verificaste. Lo que firmas queda escrito.
@@ -373,7 +431,7 @@ export function Control() {
         </ul>
       </article>
 
-      <article data-reveal-item className="card card-lift min-w-0 p-6 lg:col-span-2">
+      <article data-reveal-item className="card card-lift spotlight min-w-0 p-6 lg:col-span-2">
         <h3 className="text-[18px] font-bold tracking-tight text-ink">Lo que Yunque nunca hace</h3>
         <ul className="mt-4 space-y-3 text-[13px] leading-relaxed">
           {NEVER.map((line) => (
@@ -387,6 +445,64 @@ export function Control() {
         </ul>
       </article>
     </div>
+  );
+}
+
+const QUESTIONS = [
+  "¿Quién aprobó este pago?",
+  "¿Por qué se frenó esta factura?",
+  "¿Qué cambia si subo el umbral?",
+  "¿Y si algo sale mal?",
+] as const;
+
+/**
+ * El panel oscuro de la portada, de borde a borde y con esquinas redondeadas: siempre con los
+ * tokens del tema oscuro (`.theme-dark`), en los dos temas. Abre con las preguntas que hace
+ * quien controla los pagos, que se turnan en una píldora (motion.tsx; sin animación se ve la
+ * primera), y responde con el control y los datos.
+ */
+export function ControlPanel({ children }: { readonly children: ReactNode }) {
+  return (
+    <section
+      id="control"
+      aria-labelledby="control-titulo"
+      className="theme-dark relative left-1/2 -ml-[50vw] w-screen scroll-mt-16 rounded-[32px] bg-shell py-24 text-ink sm:rounded-[48px] sm:py-32"
+    >
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div data-reveal className="text-center">
+          <Eyebrow>Control</Eyebrow>
+          <div
+            aria-hidden="true"
+            className="mx-auto mt-8 grid h-14 w-fit min-w-[min(100%,24rem)] overflow-hidden rounded-[14px] border border-line bg-surface px-6"
+          >
+            {QUESTIONS.map((question, i) => (
+              <span
+                key={question}
+                data-question
+                className={`[grid-area:1/1] flex items-center justify-center text-[18px] font-semibold text-ink sm:text-[22px] ${i === 0 ? "" : "invisible"}`}
+              >
+                {question}
+              </span>
+            ))}
+          </div>
+          <h2
+            id="control-titulo"
+            data-reveal-title
+            className="mx-auto mt-10 max-w-3xl text-[32px] leading-[1.1] font-bold tracking-[-0.02em] text-ink sm:text-[52px]"
+          >
+            Cada respuesta ya está escrita.
+          </h2>
+          <p
+            data-reveal-lead
+            className="mx-auto mt-5 max-w-2xl text-[16px] leading-relaxed text-ink-2 sm:text-[17px]"
+          >
+            El agente trabaja dentro de un mandato que tú firmas. Cada decisión se explica, se
+            audita y, si hace falta, la revisa una persona antes de que el dinero se mueva.
+          </p>
+        </div>
+        <div className="mt-16 space-y-16">{children}</div>
+      </div>
+    </section>
   );
 }
 
@@ -477,34 +593,32 @@ export function FinalCall({ sampleCount }: { readonly sampleCount: number }) {
     <section
       aria-labelledby="cierre-titulo"
       data-reveal
-      className="card relative overflow-hidden px-6 py-14 text-center sm:px-12"
+      className="relative py-24 text-center sm:py-32"
     >
+      {/* Resplandor de marca al pie, de borde a borde: el cierre se ilumina desde abajo. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-[radial-gradient(ellipse_60%_80%_at_50%_0%,var(--glow-1),transparent)]"
-      />
-      <div className="relative">
-        <h2
-          id="cierre-titulo"
-          data-reveal-title
-          className="mx-auto max-w-2xl text-[30px] leading-[1.15] font-bold tracking-tight text-ink sm:text-[40px]"
-        >
-          Mira al agente decidir {sampleCount} facturas en un minuto.
-        </h2>
-        <p
-          data-reveal-lead
-          className="mx-auto mt-4 max-w-xl text-[16px] leading-relaxed text-ink-2"
-        >
-          Procesa el lote de ejemplo, abre una escalada y apruébala tú. Cambia una regla y mira qué
-          cambiaría.
-        </p>
-        <div data-reveal-item className="mt-8 flex justify-center">
-          <DemoButton size="lg" />
-        </div>
-        <p className="mt-4 text-[13px] text-ink-3">
-          Sin registro · datos de ejemplo · ningún pago real
-        </p>
+        className="pointer-events-none absolute inset-x-0 bottom-0 left-1/2 -z-10 -ml-[50vw] h-[70%] w-screen overflow-hidden"
+      >
+        <div className="aurora aurora-cta" />
       </div>
+      <h2
+        id="cierre-titulo"
+        data-reveal-title
+        className="mx-auto max-w-3xl text-[34px] leading-[1.08] font-bold tracking-[-0.02em] text-ink sm:text-[56px]"
+      >
+        Paga tus facturas <span className="hero-figure">sin salirte de tus reglas.</span>
+      </h2>
+      <p data-reveal-lead className="mx-auto mt-5 max-w-xl text-[17px] leading-relaxed text-ink-2">
+        Mira al agente decidir las {sampleCount} facturas de ejemplo. Abre una escalada y apruébala
+        tú; cambia una regla y mira qué cambiaría.
+      </p>
+      <div data-reveal-item className="mt-9 flex justify-center">
+        <DemoButton size="lg" />
+      </div>
+      <p className="mt-4 text-[13px] text-ink-3">
+        Sin registro · datos de ejemplo · ningún pago real
+      </p>
     </section>
   );
 }

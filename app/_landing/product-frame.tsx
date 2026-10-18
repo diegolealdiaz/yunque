@@ -10,6 +10,8 @@ import {
 } from "../_components/icons";
 import { VerdictChip } from "../_components/verdict-chip";
 
+import { Eyebrow } from "./sections";
+
 /**
  * La bandeja de Pendientes dentro de una ventana, en la portada. En escritorio la sección es
  * más alta que la pantalla y la ventana queda fija: al bajar crece de 0,84 a 1 y sus filas
@@ -27,25 +29,25 @@ const NAV = [
 
 const ROWS = [
   {
-    payee: "Hostal Latam",
-    ref: "FAC-2291",
-    amount: "9,300.00 USD",
-    due: "mañana",
+    payee: "Andes Hardware SAS",
+    ref: "AH-5560",
+    amount: "25.000.000 COP",
+    due: "31 oct",
     why: "Supera el umbral",
   },
   {
-    payee: "Nube Andina SAS",
-    ref: "NA-00871",
-    amount: "4.800.000 COP",
-    due: "en 2 días",
-    why: "Cuenta distinta",
+    payee: "Soluciones Cloud SAS",
+    ref: "SC-0001",
+    amount: "3.200.000 COP",
+    due: "29 oct",
+    why: "No está en tu lista",
   },
   {
-    payee: "Pedro Ruiz",
-    ref: "PR-014",
-    amount: "1,250.00 USD",
-    due: "en 5 días",
-    why: "Primer pago",
+    payee: "Camila Rojas",
+    ref: "CR-120",
+    amount: "10.000.000 COP",
+    due: "31 oct",
+    why: "No cuadra con lo acordado",
   },
 ] as const;
 
@@ -58,11 +60,11 @@ export function ProductFrame() {
     >
       <div className="flex flex-col justify-center gap-8 px-4 sm:px-6 md:sticky md:top-16 md:h-[calc(100vh-4rem)]">
         <div data-reveal className="text-center">
-          <p className="caps text-brand">El producto</p>
+          <Eyebrow>El producto</Eyebrow>
           <h2
             id="producto-titulo"
             data-reveal-title
-            className="mx-auto mt-3 max-w-3xl text-[30px] leading-[1.15] font-bold tracking-tight text-ink sm:text-[38px]"
+            className="mx-auto mt-5 max-w-3xl text-[30px] leading-[1.12] font-bold tracking-tight text-ink sm:text-[44px]"
           >
             Tu bandeja trae solo lo que necesita a una persona.
           </h2>
