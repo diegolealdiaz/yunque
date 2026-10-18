@@ -1,6 +1,6 @@
-import type { Verdict } from "@/src/domain";
+import { maskAccount, type Vendor, type Verdict } from "@/src/domain";
 import { usdMicros } from "@/src/ui/format";
-import { FIELD_LABEL, ruleTitle } from "@/src/ui/labels";
+import { FIELD_LABEL, RAIL_LABEL, ruleTitle } from "@/src/ui/labels";
 import { reasonFor } from "@/src/ui/reasons";
 import type { InvoiceDetail, RuleTrace } from "@/src/usecases";
 
@@ -44,6 +44,23 @@ const FLAG_TINT: Readonly<Record<Exclude<Verdict, "pagar">, string>> = {
   escalar: "bg-escalate-solid/12",
   frenar: "bg-hold-solid/12",
 };
+
+/**
+ * La cuenta registrada del beneficiario bajo la que trae el documento, para comparar sin ir a
+ * otra pantalla. Enmascarada: los números completos no se muestran.
+ */
+function RegisteredAccount({ read, vendor }: { readonly read: string; readonly vendor: Vendor }) {
+  const digits = (text: string) => text.replace(/[^A-Za-z0-9]+/g, "").toUpperCase();
+  const same = digits(read) === digits(vendor.account.account_number);
+  const registered = `${RAIL_LABEL[vendor.account.rail]} ${maskAccount(vendor.account.account_number)}`;
+  return (
+    <p className={`pb-2 pl-[8.25rem] text-[12px] ${same ? "text-ink-3" : "font-medium text-hold"}`}>
+      {same
+        ? `Es la registrada de ${vendor.name}: ${registered}`
+        : `No es la registrada de ${vendor.name}: ${registered}`}
+    </p>
+  );
+}
 
 function ReadFields({ detail }: { readonly detail: InvoiceDetail }) {
   const currency =
@@ -92,6 +109,9 @@ function ReadFields({ detail }: { readonly detail: InvoiceDetail }) {
                     <ConfidenceDot confidence={field.confidence} minimum={detail.minConfidence} />
                   </span>
                 </EvidenceTarget>
+                {field.name === "bank_account" && detail.vendor ? (
+                  <RegisteredAccount read={String(field.value)} vendor={detail.vendor} />
+                ) : null}
               </li>
             );
           })}
@@ -132,7 +152,7 @@ function RuleList({ detail }: { readonly detail: InvoiceDetail }) {
       {failed.length > 0 ? (
         <ul className="mt-1">
           {failed.map((rule) => (
-            <RuleRow key={rule.code} rule={rule} />
+            <RuleRow key={rule.code} rule={rule} documentText={detail.invoice.text} />
           ))}
         </ul>
       ) : null}
@@ -148,7 +168,7 @@ function RuleList({ detail }: { readonly detail: InvoiceDetail }) {
           </summary>
           <ul className="pb-1">
             {others.map((rule) => (
-              <RuleRow key={rule.code} rule={rule} />
+              <RuleRow key={rule.code} rule={rule} documentText={detail.invoice.text} />
             ))}
           </ul>
         </details>
@@ -163,11 +183,20 @@ const FAILED_STYLE = {
   escalar: { Icon: AlertIcon, className: "text-escalate-solid", label: "la escala" },
 } as const;
 
-function RuleRow({ rule }: { readonly rule: RuleTrace }) {
+function RuleRow({
+  rule,
+  documentText,
+}: {
+  readonly rule: RuleTrace;
+  /** Texto del documento: dice si una cita salió del PDF o del mensaje que lo trajo. */
+  readonly documentText: string | null;
+}) {
   // Una regla que no se pudo evaluar frena (rule_error): es lo más estricto.
   const style = isFailed(rule) ? FAILED_STYLE[rule.finding?.action ?? "frenar"] : null;
   const Icon = style?.Icon ?? CheckIcon;
-  const title = rule.finding ? reasonFor(rule.finding).title : ruleTitle(rule.code);
+  const title = rule.finding
+    ? reasonFor(rule.finding, { documentText }).title
+    : ruleTitle(rule.code);
   if (!style) {
     return (
       <li className="flex items-center gap-2.5 py-1.5 text-[13px]">

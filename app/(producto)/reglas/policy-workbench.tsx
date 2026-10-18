@@ -22,6 +22,7 @@ import {
   type FieldSpec,
   type PolicyGetter,
 } from "@/src/ui/policy-form";
+import { RAIL_LABEL } from "@/src/ui/labels";
 
 import { ActionOutcome } from "../../_components/action-outcome";
 import { FigureRow } from "../../_components/figure-row";
@@ -338,6 +339,7 @@ function AllowedPayees({
         <span className="w-4 shrink-0" />
         <span className="flex-1">Beneficiario</span>
         <span className="w-10 text-center">País</span>
+        <span className="hidden w-36 sm:block">Cuenta registrada</span>
         <span className="w-24 text-right">Estado</span>
       </div>
       <ul className="divide-y divide-line">
@@ -358,6 +360,9 @@ function AllowedPayees({
               <span className="min-w-0 flex-1 truncate text-ink">{payee.name}</span>
               <span className="w-10 text-center font-mono text-[12px] text-ink-2">
                 {payee.country}
+              </span>
+              <span className="hidden w-36 font-mono text-[12px] text-ink-2 sm:block">
+                {RAIL_LABEL[payee.rail]} {payee.account}
               </span>
               <span className="inline-flex w-24 items-center justify-end gap-1.5 text-[12px] text-ink-2">
                 <span

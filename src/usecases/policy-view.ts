@@ -5,7 +5,7 @@ import {
   listPolicyVersions,
   listVendors,
 } from "@/src/db/repositories";
-import type { PolicyVersion, Ulid } from "@/src/domain";
+import { maskAccount, type PolicyVersion, type Rail, type Ulid } from "@/src/domain";
 
 /**
  * Lecturas de la política para las pantallas: la vigente y su historial. Escribir una
@@ -27,6 +27,9 @@ export type PayeeOption = {
   readonly country: string;
   /** Una persona confirmó sus datos. */
   readonly verified: boolean;
+  /** Cuenta registrada, enmascarada (`****6789`), y cómo se le paga. */
+  readonly account: string;
+  readonly rail: Rail;
 };
 
 /** Beneficiarios registrados de la empresa, por nombre, para elegir a quién se puede pagar. */
@@ -38,6 +41,8 @@ export async function loadPayeeOptions(db: Database, organizationId: Ulid): Prom
       name: v.name,
       country: v.country,
       verified: v.verification.status === "verificado",
+      account: maskAccount(v.account.account_number),
+      rail: v.account.rail,
     }))
     .sort((a, b) => a.name.localeCompare(b.name, "es"));
 }

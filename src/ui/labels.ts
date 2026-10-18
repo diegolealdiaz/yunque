@@ -6,6 +6,7 @@ import type {
   ExtractedFieldName,
   FindingCode,
   InvoiceStatus,
+  Rail,
   Verdict,
 } from "@/src/domain";
 import { RULES, RuleCodeSchema } from "@/src/domain/rules";
@@ -196,4 +197,17 @@ export const EVENT_LABEL: Readonly<Record<EventType, string>> = {
   "llm.failed": "Lectura del documento fallida",
   "email.rejected": "Correo no procesado",
   "explanation.rated": "Opinión sobre la explicación",
+};
+
+/** Cómo se le paga a una cuenta registrada, en una palabra corta. */
+export const RAIL_LABEL: Readonly<Record<Rail, string>> = {
+  ach: "ACH",
+  wire: "Wire",
+  sepa: "SEPA",
+  bre_b: "Bre-B",
+  transferencia_co: "Transferencia",
+  pix: "Pix",
+  ted: "TED",
+  spei: "SPEI",
+  cbu: "CBU",
 };
