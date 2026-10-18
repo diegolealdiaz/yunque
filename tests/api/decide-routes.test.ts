@@ -50,6 +50,7 @@ let routes: {
   llave: typeof import("@/app/api/acceso/llave/route");
   decide: typeof import("@/app/api/decide/route");
   estado: typeof import("@/app/api/decide/[reference]/route");
+  mcp: typeof import("@/app/api/mcp/route");
 };
 let session: typeof import("@/src/session");
 
@@ -77,6 +78,7 @@ beforeAll(async () => {
     llave: await import("@/app/api/acceso/llave/route"),
     decide: await import("@/app/api/decide/route"),
     estado: await import("@/app/api/decide/[reference]/route"),
+    mcp: await import("@/app/api/mcp/route"),
   };
 }, 60_000);
 
@@ -241,5 +243,71 @@ describe("decisión (P-127)", () => {
     ).json()) as { reference: string };
     const other = await visitorWithKey();
     expect((await status(other, mine.reference)).status).toBe(404);
+  }, 60_000);
+});
+
+describe("MCP remoto (P-160)", () => {
+  /** Una llamada JSON-RPC al servidor MCP remoto, como la hace un agente. */
+  function rpc(token: string | null, method: string, params: unknown, id = 1): Promise<Response> {
+    return routes.mcp.POST(
+      new Request(`${ORIGIN}/api/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+      }),
+    );
+  }
+
+  it("sin llave responde 401, como la API", async () => {
+    const response = await rpc(null, "tools/list", {});
+    expect(response.status).toBe(401);
+  });
+
+  it("ofrece las herramientas remotas y decide con las reglas de la empresa de la llave", async () => {
+    const own = await visitorWithKey();
+    // Las herramientas llaman a la API: aquí van directo a sus rutas, sin red.
+    vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
+      const request = new Request(input, init);
+      const { pathname } = new URL(request.url);
+      if (pathname === "/api/decide") return routes.decide.POST(request);
+      const reference = decodeURIComponent(pathname.replace("/api/decide/", ""));
+      return routes.estado.GET(request, { params: Promise.resolve({ reference }) });
+    });
+    try {
+      const init = await rpc(own, "initialize", {
+        protocolVersion: "2025-06-18",
+        capabilities: {},
+        clientInfo: { name: "prueba", version: "1.0.0" },
+      });
+      expect(init.status).toBe(200);
+
+      const list = (await (await rpc(own, "tools/list", {}, 2)).json()) as {
+        result: { tools: { name: string }[] };
+      };
+      const names = list.result.tools.map((tool) => tool.name).sort();
+      // La de archivos lee el disco: solo existe en el servidor local.
+      expect(names).toEqual(["decide_payment", "get_decision"]);
+
+      const call = (await (
+        await rpc(
+          own,
+          "tools/call",
+          {
+            name: "decide_payment",
+            arguments: { ...REQUEST, idempotency_key: "mcp-001", invoice_number: "NA-MCP-001" },
+          },
+          3,
+        )
+      ).json()) as { result: { content: { text: string }[]; isError?: boolean } };
+      await settle();
+      expect(call.result.isError).not.toBe(true);
+      expect(call.result.content[0]?.text).toMatch(/^(pagar|frenar|escalar) · YQ-/);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   }, 60_000);
 });

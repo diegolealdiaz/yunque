@@ -143,7 +143,7 @@ export function describeEvent(type: EventType, d: Readonly<Record<string, unknow
             ? "Ya la había leído: sin costo"
             : cost === null
               ? null
-              : `Costo de lectura ${usdMicros(cost)}`,
+              : `Costo del agente ${usdMicros(cost)}`,
         tone: "neutral",
       };
     }

@@ -314,7 +314,7 @@ Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verifica
 - **Lo que no se registra:**
   - un proveedor con el nombre, la identificación o **la cuenta** de uno registrado. Una cuenta conocida con otro nombre es una forma común de fraude;
   - un nombre parecido a uno registrado, salvo que la persona confirme expresamente que es otra empresa.
-- **La doble firma es un interruptor de Reglas, encendido por defecto.** Encenderla es inmediato. Apagarla afloja el control, así que la confirma otra persona de la lista una vez. Con ella apagada, una sola persona puede aflojar reglas, encender interruptores, registrar proveedores y aprobar lo que corrigió.
+- **La doble firma es un interruptor de Reglas, apagado por defecto:** no toda empresa trabaja con dos aprobadores, y cada una la enciende si la necesita. Encenderla es inmediato. Con ella encendida, apagarla afloja el control, así que la confirma otra persona de la lista. Con ella apagada, una sola persona puede aflojar reglas, encender interruptores, registrar proveedores y aprobar lo que corrigió. Cada interruptor de Reglas explica qué hace en «¿Qué hace?».
 
 **Consecuencia.** Registrar un proveedor sin verificar no puede llevar a un pago automático: la regla de beneficiario sin verificar escala siempre. Por eso agregarlo a la lista de permitidos no pasa por la propuesta de política de D29. En la bitácora queda quién registró al proveedor, con qué cuenta, y quién lo verificó.
 
@@ -340,3 +340,5 @@ Protecciones:
 **Por qué no un camino propio de decisión.** Un atajo que evaluara los campos sin documento ni factura registrada tendría su propio registro, su propia idempotencia y su propio acta. Pasar por `processInvoice` deja una sola garantía para todos los canales: misma política, mismo motor, mismo registro.
 
 **Consecuencia.** Un agente puede afirmar cualquier dato, como puede hacerlo una factura. La defensa es la misma: el beneficiario, la cuenta y el monto se contrastan con lo registrado, y lo que no cuadra no se paga. El servidor MCP para conectar asistentes como Claude es un cliente delgado de esta API, sin lógica propia.
+
+**MCP remoto.** Además del servidor local (`mcp/server.ts`), `/api/mcp` atiende MCP por HTTP: un agente se conecta con la URL de Yunque y la misma llave de la API, sin instalar nada. Es solo un adaptador: sus herramientas llaman a la API de decisión con esa llave, así los topes, la idempotencia y las reglas viven en un solo lugar. No guarda sesión; cada petición trae su llave. La herramienta que lee archivos del disco solo existe en el local. La pantalla **Conectar** muestra el comando con la llave puesta.

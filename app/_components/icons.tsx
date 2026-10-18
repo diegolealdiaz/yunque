@@ -144,3 +144,50 @@ export const PlayIcon = (p: IconProps) => (
     <path d="M6.75 5.75v4.5L10.25 8z" />
   </Icon>
 );
+
+/** Un documento con la esquina doblada: PDF o foto de una factura. */
+export const DocumentIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 1.75h5l3 3v9.5H4z" />
+    <path d="M9 1.75v3h3M6 8h4M6 10.5h4" />
+  </Icon>
+);
+
+/** Un sobre: correo. */
+export const MailIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5" />
+    <path d="M2.25 4.25L8 8.5l5.75-4.25" />
+  </Icon>
+);
+
+/** Un avión de papel: mensajería (Telegram). */
+export const SendIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14.25 1.75L1.75 7l4.5 1.75L14.25 1.75z" />
+    <path d="M14.25 1.75L10.5 14.25 6.25 8.75M6.25 8.75v4l2-2.25" />
+  </Icon>
+);
+
+/** Llaves de código: la API. */
+export const CodeIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5.5 3.5L2 8l3.5 4.5M10.5 3.5L14 8l-3.5 4.5M9 2.5l-2 11" />
+  </Icon>
+);
+
+/** Un destello: un agente de IA que se conecta por MCP. */
+export const AgentIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 1.75c.4 2.6 1.4 3.6 4 4-2.6.4-3.6 1.4-4 4-.4-2.6-1.4-3.6-4-4 2.6-.4 3.6-1.4 4-4z" />
+    <path d="M12 9.5c.2 1.3.7 1.8 2 2-1.3.2-1.8.7-2 2-.2-1.3-.7-1.8-2-2 1.3-.2 1.8-.7 2-2z" />
+  </Icon>
+);
+
+/** Un enchufe: conectar canales, sistemas y agentes. */
+export const PlugIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5.5 1.75v3M10.5 1.75v3M3.75 4.75h8.5v2.5a4.25 4.25 0 01-8.5 0z" />
+    <path d="M8 11.5v2.75" />
+  </Icon>
+);

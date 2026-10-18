@@ -332,7 +332,17 @@ describe("una reevaluación no ablanda lo que no cambió", () => {
   });
 });
 
+/** La doble firma viene apagada; estas pruebas la encienden, que es inmediato. */
+async function enableFourEyes(): Promise<void> {
+  await changeControls(deps(), {
+    organizationId: p.organizationId,
+    controls: { four_eyes: true },
+    signedBy: SIGNER,
+  });
+}
+
 describe("cuatro ojos al aflojar la política (P-154)", () => {
+  beforeEach(enableFourEyes);
   const propose = async (candidate: Policy, by = SIGNER) =>
     submitPolicy(deps(), {
       organizationId: p.organizationId,
@@ -343,10 +353,11 @@ describe("cuatro ojos al aflojar la política (P-154)", () => {
     });
 
   it("un cambio que afloja queda propuesto y no cambia nada hasta la segunda firma", async () => {
+    const base = await currentVersion();
     const result = await propose(higherThreshold(await current()));
     if (result.kind !== "propuesta") throw new Error("se esperaba una propuesta");
     expect(result.proposal.loosenings[0]).toMatch(/^Sube el umbral de aprobación/);
-    expect(await currentVersion()).toBe(1);
+    expect(await currentVersion()).toBe(base);
     const invoice = await repos.getInvoice(p.t.db, p.organizationId, ids.get("sobre_umbral") ?? "");
     expect(invoice.status).toBe("esperando_aprobacion");
     expect((await loadPolicyProposal(p.t.db, p.organizationId))?.id).toBe(result.proposal.id);
@@ -363,7 +374,7 @@ describe("cuatro ojos al aflojar la política (P-154)", () => {
       savePolicy(deps(), {
         organizationId: p.organizationId,
         candidate: higherThreshold(await current()),
-        baseVersion: 1,
+        baseVersion: base,
         signedBy: SECOND,
         note: null,
       }),
@@ -378,7 +389,7 @@ describe("cuatro ojos al aflojar la política (P-154)", () => {
       proposalId: result.proposal.id,
       approver: SECOND,
     });
-    expect(saved.version.version).toBe(2);
+    expect(saved.version.version).toBe(base + 1);
     expect(saved.version.signed_by).toBe(SIGNER);
     expect(saved.version.note).toBe("Segunda firma: Ana Torres · Hardware recurrente");
     const paid = await repos.getInvoice(p.t.db, p.organizationId, ids.get("sobre_umbral") ?? "");
@@ -405,9 +416,10 @@ describe("cuatro ojos al aflojar la política (P-154)", () => {
       policyEditToYaml(policy).replace(/(max_days_overdue:) \d+/, "$1 10"),
     );
     expect(stricter.rules.due_date_window.max_days_overdue).toBe(10);
+    const base = await currentVersion();
     const result = await propose(stricter);
     expect(result.kind).toBe("guardada");
-    expect(await currentVersion()).toBe(2);
+    expect(await currentVersion()).toBe(base + 1);
   }, 120_000);
 
   it("una propuesta se descarta, y una que quedó vieja ya no se aprueba", async () => {
@@ -443,6 +455,7 @@ describe("cuatro ojos al aflojar la política (P-154)", () => {
 });
 
 describe("cuatro ojos al encender un interruptor (P-154)", () => {
+  beforeEach(enableFourEyes);
   it("apagar es inmediato; encender queda propuesto y lo aprueba otra persona", async () => {
     const off = await submitControls(deps(), {
       organizationId: p.organizationId,

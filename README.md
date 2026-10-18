@@ -71,7 +71,7 @@ Para apagarlos: `INBOUND_EMAIL_ENABLED=false` apaga el correo; quitar las tres v
 
 Tu propio agente le pregunta a Yunque antes de pagar y recibe `pagar`, `frenar` o `escalar`, con la regla que decidió, el porqué y el enlace al acta. Pasa por el mismo motor, las mismas reglas y el mismo registro que cualquier factura (decisión D32 de [Decisiones](docs/decisiones.md)).
 
-**Llave.** Con el acceso de cliente vigente, en Facturas → "Probar con tu factura" → "Conectar tu agente", genera la llave `yq_…`. Se muestra una sola vez, vence con el acceso y generar otra anula la anterior.
+**Llave.** Con el acceso de cliente vigente, en la pantalla "Conectar", genera la llave `yq_…`. Se muestra una sola vez, vence con el acceso y generar otra anula la anterior.
 
 **Con campos** (sin modelo: Yunque arma el PDF de la solicitud y lo verifica como una factura):
 
@@ -106,28 +106,47 @@ Obligatorios: `idempotency_key`, `payee_name`, `invoice_number`, `currency` y `t
 
 ### Con Claude u otro asistente (MCP)
 
-`mcp/server.ts` expone la API como servidor MCP, con tres herramientas: `decide_payment` (con campos), `decide_invoice_file` (un PDF o foto del disco) y `get_decision` (estado por referencia). Es un cliente delgado: decidir sigue siendo del motor de Yunque. La `idempotency_key` es obligatoria y única por pago: la misma factura con otra llave se frena como duplicada, y una repetición con la misma llave se avisa como tal.
+Yunque es también un servidor MCP, con las herramientas `decide_payment` (con campos) y `get_decision` (estado por referencia). Es un cliente delgado de la API: decidir sigue siendo del motor de Yunque. La `idempotency_key` es obligatoria y única por pago: la misma factura con otra llave se frena como duplicada, y una repetición con la misma llave se avisa como tal.
 
-En Claude Code:
+**Remoto, sin instalar nada.** Con la llave de la API, en Claude Code:
+
+```bash
+claude mcp add --transport http yunque https://<tu-dominio>/api/mcp \
+  --header "Authorization: Bearer yq_..."
+```
+
+En otro cliente compatible con MCP, la misma conexión en su archivo de configuración:
+
+```json
+{
+  "mcpServers": {
+    "yunque": {
+      "url": "https://<tu-dominio>/api/mcp",
+      "headers": { "Authorization": "Bearer yq_..." }
+    }
+  }
+}
+```
+
+La pantalla **Conectar** de la demo muestra estos dos bloques con la llave ya puesta, listos para copiar.
+
+**Local, para leer archivos del disco.** `mcp/server.ts` agrega `decide_invoice_file`, que manda un PDF o una foto del equipo:
 
 ```bash
 claude mcp add yunque -e YUNQUE_API_KEY=yq_... -e YUNQUE_URL=https://<tu-dominio> \
   -- npx tsx <ruta-al-repo>/mcp/server.ts
 ```
 
-En Claude Desktop, en `claude_desktop_config.json`:
+## Hacia dónde va
 
-```json
-{
-  "mcpServers": {
-    "yunque": {
-      "command": "npx",
-      "args": ["tsx", "<ruta-al-repo>/mcp/server.ts"],
-      "env": { "YUNQUE_API_KEY": "yq_...", "YUNQUE_URL": "https://<tu-dominio>" }
-    }
-  }
-}
-```
+No está implementado: es el camino a producción (detalle en la [hoja de ruta](docs/roadmap.md)).
+
+- **Ejecutar los pagos por las rutas de Blinka**, con el modo de prueba como paso previo obligatorio. La orden ya sale preparada.
+- **Inicio de sesión con roles** y doble firma con identidad real.
+- **Verificar un cambio de cuenta** con el proveedor por un canal independiente.
+- **Factura electrónica como evidencia** (DIAN, SAT, NF-e) antes de pagar.
+- **Conciliación y calendario de pagos** contra el extracto bancario.
+- **Sugerencias de política** que una persona acepta o descarta, y **registro de agentes externos** con su propio presupuesto.
 
 ## Documentación
 
@@ -137,7 +156,7 @@ En Claude Desktop, en `claude_desktop_config.json`:
 | [Decisiones](docs/decisiones.md) | Registro de decisiones de arquitectura y alternativas descartadas |
 | [Trazabilidad](docs/trazabilidad.md) | Cada exigencia del reto y el componente que la cubre |
 | [Interfaz](docs/interfaz.md) | Principios, navegación, pantallas y sistema visual |
-| [Roadmap](docs/roadmap.md) | Qué entra en la demo, qué sigue y qué se descartó |
+| [Hoja de ruta](docs/roadmap.md) | Lo que hace hoy, hacia dónde va y qué se descartó a propósito |
 | [Prácticas](docs/practicas.md) | Reglas de ingeniería del equipo |
 | [Blinka](docs/blinka.md) | Encaje con el producto de Blinka |
 | [Reto](docs/reto.md) | Texto del reto |

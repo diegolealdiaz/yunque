@@ -4,13 +4,15 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 import { z } from "zod";
 
-import { errorMessage } from "./api-responses";
+import { errorMessage } from "../facturas/api-responses";
+import { AgentIcon, CodeIcon, MailIcon, SendIcon } from "../../_components/icons";
 
 /**
- * Probar con tu factura (D23, D24, D32): los canales reales de la demo para los clientes. Sin
- * acceso, pide el código que recibieron; con él, muestra la dirección de correo personal, el
- * botón para conectar Telegram y la llave para que su propio agente consulte la API de
- * decisión. Las facturas que lleguen aparecen en la lista como cualquier otra, por su canal.
+ * Conectar (D23, D24, D32): los canales reales de la demo para los clientes. Sin acceso, pide
+ * el código que recibieron; con él, muestra la dirección de correo personal, el botón para
+ * conectar Telegram, la llave de la API de decisión y el comando para conectar a Claude u otro
+ * agente por MCP con esa misma llave. Las facturas que lleguen aparecen en Facturas como
+ * cualquier otra, por su canal.
  */
 
 export type ClientAccess = {
@@ -52,10 +54,45 @@ async function post(url: string, body: unknown): Promise<{ ok: boolean; json: un
   return { ok: response.ok, json: await response.json().catch(() => null) };
 }
 
-function Section({ title, children }: { readonly title: string; readonly children: ReactNode }) {
+/** El comando que conecta Claude Code con el MCP remoto de Yunque, con la llave puesta. */
+function claudeCommand(baseUrl: string, key: string, multiline: boolean): string {
+  const parts = [
+    `claude mcp add --transport http yunque ${baseUrl}/api/mcp`,
+    `--header "Authorization: Bearer ${key}"`,
+  ];
+  return multiline ? parts.join(" \\\n  ") : parts.join(" ");
+}
+
+/** La misma conexión para otros clientes MCP que leen su configuración de un archivo JSON. */
+function mcpJson(baseUrl: string, key: string): string {
+  return JSON.stringify(
+    {
+      mcpServers: {
+        yunque: { url: `${baseUrl}/api/mcp`, headers: { Authorization: `Bearer ${key}` } },
+      },
+    },
+    null,
+    2,
+  );
+}
+
+function Section({
+  title,
+  Icon,
+  children,
+}: {
+  readonly title: string;
+  readonly Icon: (props: { className?: string }) => ReactNode;
+  readonly children: ReactNode;
+}) {
   return (
-    <section className="space-y-2 border-t border-line pt-3">
-      <h3 className="text-[13px] font-semibold text-ink">{title}</h3>
+    <section className="space-y-2.5 card p-5">
+      <h3 className="flex items-center gap-2.5 text-[14px] font-semibold text-ink">
+        <span className="inline-flex size-8 items-center justify-center rounded-[9px] bg-brand-tint text-brand">
+          <Icon className="size-4" />
+        </span>
+        {title}
+      </h3>
       {children}
     </section>
   );
@@ -181,7 +218,7 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
       </p>
 
       {access.email ? (
-        <Section title="Por correo">
+        <Section title="Por correo" Icon={MailIcon}>
           {access.email.address ? (
             <>
               <p className="text-ink-2">Reenvía la factura en PDF o como foto a:</p>
@@ -216,7 +253,7 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
       ) : null}
 
       {access.telegram ? (
-        <Section title="Por Telegram">
+        <Section title="Por Telegram" Icon={SendIcon}>
           <p className="text-ink-2">
             {access.telegram.chats > 0
               ? "Tu chat está conectado. Envíale al bot una factura en PDF o foto; también te avisa cuando una factura necesita tu decisión o se frena."
@@ -250,10 +287,10 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
           </p>
         </Section>
       ) : null}
-      <Section title="Conectar tu agente">
+      <Section title="Tu sistema, por la API" Icon={CodeIcon}>
         <p className="text-ink-2">
-          Tu propio agente le pregunta a Yunque antes de pagar y recibe pagar, frenar o escalar, con
-          su porqué. Lo que escala te espera aquí, como cualquier factura.
+          Tu ERP o tu propio software le pregunta a Yunque antes de pagar y recibe pagar, frenar o
+          escalar, con su porqué. Lo que escala te espera en Pendientes, como cualquier factura.
         </p>
         {issued ? (
           <>
@@ -286,6 +323,45 @@ export function AccessPanel({ access }: { readonly access: ClientAccess }) {
           >
             Generar llave
           </button>
+        )}
+      </Section>
+      <Section title="Claude u otro agente de IA, por MCP" Icon={AgentIcon}>
+        <p className="text-ink-2">
+          Conecta tu asistente y pregúntale «¿pago esta factura?»: le pregunta a Yunque y responde
+          con las reglas de tu empresa. Usa la misma llave de la API; no hay que instalar nada.
+        </p>
+        {issued ? (
+          <>
+            <p className="text-[12px] text-ink-3">En Claude Code, pega en la terminal:</p>
+            <div className="flex items-start gap-2">
+              <pre className="min-w-0 flex-1 overflow-x-auto rounded-[var(--radius-control)] border border-line bg-surface-sunken px-2.5 py-2 font-mono text-[11px] leading-relaxed text-ink">
+                {claudeCommand(access.apiUrl ?? window.location.origin, issued.key, true)}
+              </pre>
+              <button
+                type="button"
+                onClick={() =>
+                  void copy(
+                    "claude",
+                    claudeCommand(access.apiUrl ?? window.location.origin, issued.key, false),
+                  )
+                }
+                className="h-8 shrink-0 rounded-[var(--radius-control)] border border-control px-3 font-medium"
+              >
+                {copied === "claude" ? "Copiado" : "Copiar"}
+              </button>
+            </div>
+            <p className="text-[12px] text-ink-3">
+              En otro cliente compatible con MCP, agrega esta conexión a su configuración:
+            </p>
+            <pre className="overflow-x-auto rounded-[var(--radius-control)] border border-line bg-surface-sunken px-2.5 py-2 font-mono text-[11px] leading-relaxed text-ink">
+              {mcpJson(access.apiUrl ?? window.location.origin, issued.key)}
+            </pre>
+          </>
+        ) : (
+          <p className="text-[12px] text-ink-3">
+            Genera la llave en «Tu sistema, por la API» y aquí aparece el comando, listo para
+            copiar.
+          </p>
         )}
       </Section>
       {failure}

@@ -233,7 +233,7 @@ export default function ComponentsPage() {
             href="/componentes"
           />
           <StatCard
-            label="Costo por factura"
+            label="Costo del agente"
             value="0,0021 USD"
             detail="lectura con el modelo principal"
           />

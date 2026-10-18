@@ -8,11 +8,8 @@ import { instant, relativeInstant } from "@/src/ui/format";
 import { CHANNEL_SHORT_LABEL, RULE_SHORT_LABEL } from "@/src/ui/labels";
 import {
   LIST_LIMIT,
-  activeAccess,
   countByVerdict,
-  loadInboundAddress,
   loadInvoiceList,
-  loadTelegramStatus,
   narrowByVerdict,
   startOfBusinessDay,
   type InvoiceListRow,
@@ -27,7 +24,6 @@ import { EmptyState } from "../../_components/states";
 import { VerdictPill } from "../../_components/verdict-pill";
 import { appContext } from "../../_data/context";
 
-import { AccessPanel, type ClientAccess } from "./access-panel";
 import { DeliveryRunner } from "./delivery-runner";
 import { UploadPanel } from "./upload-panel";
 
@@ -112,11 +108,9 @@ export default async function FacturasPage({
   const filters = FiltersSchema.parse(await searchParams);
   const { config, db, organization } = await appContext();
   const now = new Date();
-  const inbound = config.demo.enabled ? config.inboundEmail : null;
-  const telegram = config.demo.enabled ? config.telegram : null;
   const accessEnabled = config.demo.enabled && config.access !== null;
   // Sin el veredicto: así cada píldora sabe cuántas tiene; el veredicto se aplica después.
-  const [all, batch, mailbox, grant, emailAddress, telegramStatus] = await Promise.all([
+  const [all, batch, mailbox] = await Promise.all([
     loadInvoiceList(
       db,
       organization.id,
@@ -132,21 +126,7 @@ export default async function FacturasPage({
     ),
     config.demo.enabled ? loadBatchCases() : Promise.resolve([]),
     config.demo.enabled ? loadMailbox() : Promise.resolve([]),
-    accessEnabled ? activeAccess(db, organization.id, now) : null,
-    inbound ? loadInboundAddress(db, organization.id, inbound.address, now) : null,
-    telegram ? loadTelegramStatus(db, organization.id) : null,
   ]);
-  const clientAccess: ClientAccess = {
-    expires: grant ? instant(grant.expiresAt, config.displayTimeZone) : null,
-    email: inbound
-      ? { address: emailAddress?.address ?? null, maxPerDay: inbound.maxPerAddressPerDay }
-      : null,
-    telegram:
-      telegram && telegramStatus
-        ? { chats: telegramStatus.chats, maxPerDay: telegram.maxPerChatPerDay }
-        : null,
-    apiUrl: config.publicAppUrl,
-  };
   const counts = countByVerdict(all);
   const rows = narrowByVerdict(all, filters.veredicto ?? null);
   const filtered = Boolean(
@@ -168,11 +148,14 @@ export default async function FacturasPage({
         }
         actions={
           <>
-            {/* Con el acceso configurado siempre está la API de decisión (D32). */}
+            {/* Correo, Telegram, la API y el MCP viven en su propia pantalla (D32). */}
             {accessEnabled ? (
-              <ActionDialog label="Probar con tu factura">
-                <AccessPanel access={clientAccess} />
-              </ActionDialog>
+              <Link
+                href="/conectar"
+                className="inline-flex h-9 items-center rounded-[var(--radius-control)] border border-control px-4 text-[13px] font-medium text-ink"
+              >
+                Probar con tu factura
+              </Link>
             ) : null}
             {config.demo.enabled ? (
               <>

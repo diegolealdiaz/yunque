@@ -37,6 +37,7 @@ export function ControlsPanel({
         <ControlSwitch
           key={`pagos-${String(controls.payments_enabled)}`}
           label="Pagos"
+          info="Es el interruptor de emergencia. Apagado, el agente sigue leyendo y explicando cada factura, pero nada se paga: lo que pagaría queda para que una persona lo revise. Úsalo si sospechas un problema."
           description="Interruptor de emergencia"
           checked={controls.payments_enabled}
           confirmOn="El agente vuelve a pagar lo que cumple las reglas."
@@ -49,6 +50,7 @@ export function ControlsPanel({
         <ControlSwitch
           key={`prueba-${String(controls.dry_run)}`}
           label="Modo de prueba"
+          info="Encendido, el agente decide como siempre, pero no prepara órdenes de pago ni compromete presupuesto ni saldo. Sirve para probar reglas nuevas con facturas reales, sin riesgo."
           description="Decide sin preparar órdenes"
           checked={controls.dry_run}
           confirmOn="Las decisiones se registran pero no comprometen presupuesto ni saldo."
@@ -60,6 +62,7 @@ export function ControlsPanel({
         <ControlSwitch
           key={`autonomia-${controls.autonomy}`}
           label="El agente"
+          info="En «Decide», el agente paga solo lo que cumple todas tus reglas y te pasa lo demás. En «Solo recomienda», toda factura pasa por una persona: el agente propone el veredicto con su porqué."
           description="Decide o solo recomienda"
           checked={controls.autonomy === "decidir"}
           onLabel="Decide"
@@ -73,6 +76,7 @@ export function ControlsPanel({
         <ControlSwitch
           key={`doble-firma-${String(controls.four_eyes)}`}
           label="Doble firma"
+          info="Encendida, lo que afloja el control lo confirma otra persona de la lista: subir un límite, volver a encender los pagos, registrar un proveedor o aprobar una factura que tú corregiste. Apagada, basta una persona. Encenderla es inmediato; apagarla la confirma otra persona."
           description="Otra persona confirma lo que afloja"
           checked={controls.four_eyes}
           confirmOn="Aflojar reglas, encender interruptores, registrar proveedores y aprobar lo que uno corrigió pedirán a otra persona de la lista."

@@ -15,6 +15,7 @@ import {
   LogIcon,
   MenuIcon,
   PlayIcon,
+  PlugIcon,
   RulesIcon,
 } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
@@ -47,6 +48,7 @@ export const NAV_ITEMS = [
   { href: "/reglas", label: "Reglas", Icon: RulesIcon, shortcut: "r", demoOnly: false },
   { href: "/metricas", label: "Métricas", Icon: ChartIcon, shortcut: "m", demoOnly: false },
   { href: "/bitacora", label: "Bitácora", Icon: LogIcon, shortcut: "b", demoOnly: false },
+  { href: "/conectar", label: "Conectar", Icon: PlugIcon, shortcut: "c", demoOnly: true },
 ] as const;
 
 const HEALTH: Readonly<Record<HealthLevel, { label: string; dot: string }>> = {

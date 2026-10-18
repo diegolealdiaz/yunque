@@ -30,7 +30,7 @@ export function AgentReview({ detail }: { readonly detail: InvoiceDetail }) {
             </p>
           </details>
           <p className="text-[12px] text-ink-3">
-            Costo de lectura: {usdMicros(decision.cost_usd_micros)} · política v
+            Costo del agente: {usdMicros(decision.cost_usd_micros)} · política v
             {detail.policyVersion ?? "?"}
           </p>
         </div>

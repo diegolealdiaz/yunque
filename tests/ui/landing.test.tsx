@@ -32,7 +32,7 @@ describe("portada pública (P-144)", async () => {
   const counts = batch?.counts ?? null;
   const html = renderToStaticMarkup(
     <>
-      <Announcement sampleCount={33} />
+      <Announcement />
       <LandingNav />
       <Hero />
       <Portal />

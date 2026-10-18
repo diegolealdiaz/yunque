@@ -50,7 +50,7 @@ export default async function Home() {
 
   return (
     <LandingMotion>
-      <Announcement sampleCount={sampleCount} />
+      <Announcement />
       <LandingNav />
       <main id="contenido" className="mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6">
         <Hero />
@@ -80,9 +80,10 @@ export default async function Home() {
         </ControlPanel>
         <div className="space-y-28 pt-28">
           <Section
+            id="canales"
             eyebrow="Dónde trabaja"
             title="En los canales que ya usas."
-            lead="La factura llega como hoy y el agente la toma de ahí."
+            lead="Tus facturas llegan como hoy, y tus sistemas y tus agentes de IA le preguntan a Yunque antes de pagar."
           >
             <Channels />
           </Section>

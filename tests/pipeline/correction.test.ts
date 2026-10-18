@@ -8,6 +8,7 @@ import {
   CorrectionError,
   approvalOffer,
   approveEscalation,
+  changeControls,
   correctAndReevaluate,
   processInvoice,
   reevaluateWithCurrentPolicy,
@@ -47,6 +48,15 @@ async function process(id: string): Promise<string> {
   return (await processInvoice(p.deps, p.input(f.bytes, `batch:${id}`, f.fileName))).invoice.id;
 }
 
+/** La doble firma viene apagada; estas pruebas la encienden, que es inmediato. */
+async function enableFourEyes(): Promise<void> {
+  await changeControls(deps(), {
+    organizationId: p.organizationId,
+    controls: { four_eyes: true },
+    signedBy: CORRECTOR,
+  });
+}
+
 const codeOf = (error: unknown) =>
   error instanceof CorrectionError || error instanceof ApprovalError ? error.code : String(error);
 
@@ -67,6 +77,7 @@ async function approveAs(invoiceId: string, approver: string) {
 describe("corregir campos de una escalada", () => {
   it("la persona fija el total ambiguo; el motor reevalúa y, por cuatro ojos, otra persona aprueba", async () => {
     p = await openPipeline();
+    await enableFourEyes();
     const id = await process("adv_dos_totales");
     const before = await repos.getLatestDecision(p.t.db, p.organizationId, id);
     expect(before && decidingFinding(before)?.code).toBe("field_ambiguous");
@@ -103,6 +114,7 @@ describe("corregir campos de una escalada", () => {
 
   it("cuatro ojos: quien corrigió tampoco aprueba después de una reevaluación ni de un replay", async () => {
     p = await openPipeline();
+    await enableFourEyes();
     const id = await process("adv_dos_totales");
     const f = await datasetCase("adv_dos_totales");
     await correctAndReevaluate(deps(), {

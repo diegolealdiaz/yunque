@@ -6,7 +6,7 @@ import { appContext } from "../../../_data/context";
 import { errorResponse, forbiddenOrigin, isSameOrigin } from "../../../_data/http";
 
 /**
- * «Conectar tu agente» (D32): genera la llave de la API de decisión de la empresa del
+ * «Conectar» (D32): genera la llave de la API de decisión de la empresa del
  * visitante y anula la anterior. Exige el acceso de cliente vigente y vence con él. La llave
  * se devuelve esta única vez; la base guarda solo su huella.
  */

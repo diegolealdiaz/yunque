@@ -8,7 +8,8 @@ import { useId, useRef } from "react";
  * (docs/interfaz.md §5.4). El cambio real lo registra el servidor en la bitácora.
  *
  * Muestra siempre el valor que confirmó el servidor (`checked`), nunca uno supuesto: si el
- * servidor rechaza el cambio, el interruptor no miente sobre el estado de los pagos.
+ * servidor rechaza el cambio, el interruptor no miente sobre el estado de los pagos. Debajo,
+ * "¿Qué hace?" se abre con la explicación completa, para quien lo ve por primera vez.
  */
 /** Color de un estado: el del veredicto que evoca, o la marca; neutro si no dice nada. */
 export type SwitchTone = "pay" | "escalate" | "hold" | "brand" | "neutral";
@@ -41,6 +42,7 @@ export function ControlSwitch({
   disabled = false,
   onTone = "brand",
   offTone = "neutral",
+  info = null,
 }: {
   readonly label: string;
   readonly description: string;
@@ -57,6 +59,8 @@ export function ControlSwitch({
   /** Color del riel y del estado encendido y apagado. */
   readonly onTone?: SwitchTone;
   readonly offTone?: SwitchTone;
+  /** Qué hace el interruptor, en dos o tres frases; se abre con "¿Qué hace?". */
+  readonly info?: string | null;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -89,6 +93,20 @@ export function ControlSwitch({
         </span>
       </button>
       <p className="col-span-2 text-[12px] text-ink-2">{description}</p>
+      {info ? (
+        <details className="group col-span-2 text-[12px]">
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1 font-medium text-brand underline-offset-4 hover:underline">
+            <span
+              aria-hidden="true"
+              className="inline-flex size-3.5 items-center justify-center rounded-full border border-current text-[9px] leading-none font-bold"
+            >
+              i
+            </span>
+            ¿Qué hace?
+          </summary>
+          <p className="mt-1.5 leading-relaxed text-ink-2">{info}</p>
+        </details>
+      ) : null}
       <dialog
         ref={dialog}
         aria-labelledby={titleId}

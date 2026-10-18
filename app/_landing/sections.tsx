@@ -2,7 +2,17 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CheckIcon, ChevronIcon, LockIcon, StopIcon } from "../_components/icons";
+import {
+  AgentIcon,
+  CheckIcon,
+  ChevronIcon,
+  CodeIcon,
+  DocumentIcon,
+  LockIcon,
+  MailIcon,
+  SendIcon,
+  StopIcon,
+} from "../_components/icons";
 import { ThemeToggle } from "../_components/theme-toggle";
 
 import { MobileMenu } from "./mobile-menu";
@@ -83,7 +93,7 @@ function Section({
 }
 
 /** Franja de aviso sobre la barra: la demo está abierta, con su enlace. */
-export function Announcement({ sampleCount }: { readonly sampleCount: number }) {
+export function Announcement() {
   return (
     <div className="border-b border-line bg-shell text-[13px]">
       <Link
@@ -93,11 +103,7 @@ export function Announcement({ sampleCount }: { readonly sampleCount: number }) 
         <span className="shrink-0 rounded-full bg-brand-tint px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap text-brand">
           Demo abierta
         </span>
-        <span className="truncate">
-          {sampleCount > 0
-            ? `${String(sampleCount)} facturas de ejemplo listas para decidir`
-            : "Facturas de ejemplo listas para decidir"}
-        </span>
+        <span className="truncate">Facturas de ejemplo listas para decidir</span>
         <ChevronIcon />
       </Link>
     </div>
@@ -318,7 +324,7 @@ export function Numbers({ ruleCount }: { readonly ruleCount: number }) {
       unit: "",
       count: false,
       label: "USD por factura",
-      detail: "lo que cuesta la lectura con IA, medido",
+      detail: "costo del agente de IA por factura, medido",
       hero: false,
     },
   ];
@@ -411,19 +417,22 @@ export function Steps() {
   );
 }
 
-const CHANNELS = [
+/** Por dónde llegan las facturas. */
+const INBOUND = [
   {
     name: "PDF o foto",
+    Icon: DocumentIcon,
     title: "Súbela desde la pantalla.",
     body: "Arrastra el PDF o la foto, o procesa de una vez el lote del periodo. Lee también escaneos sin texto.",
     sample: [
       ["Archivo", "AH-5560.pdf"],
       ["Lectura", "cada campo con su cita"],
-      ["Lote", "33 facturas del periodo"],
+      ["Lote", "facturas del periodo"],
     ],
   },
   {
     name: "Correo",
+    Icon: MailIcon,
     title: "Reenvía la factura y listo.",
     body: "Cada empresa tiene su dirección: el agente lee el adjunto o el cuerpo del correo.",
     sample: [
@@ -434,6 +443,7 @@ const CHANNELS = [
   },
   {
     name: "Telegram",
+    Icon: SendIcon,
     title: "Una foto desde el teléfono.",
     body: "Manda la factura al bot y recibe en el mismo chat el aviso de cada decisión, con su motivo.",
     sample: [
@@ -444,14 +454,58 @@ const CHANNELS = [
   },
 ] as const;
 
-/** Dónde vive el agente: tres tarjetas lado a lado, cada una con un ejemplo de su canal. */
-export function Channels() {
+/** Quién le pregunta a Yunque antes de pagar: tus sistemas y tus agentes de IA. */
+const ASKERS = [
+  {
+    name: "API",
+    Icon: CodeIcon,
+    title: "Tu sistema pregunta antes de pagar.",
+    body: "Tu ERP o tu propio software manda los datos de la factura y recibe pagar, frenar o escalar, con el porqué y la referencia del acta.",
+    sample: [
+      ["Pide", "POST /api/decide"],
+      ["Recibe", "escalar · supera el umbral"],
+      ["Acta", "YQ-2026-10-0022"],
+    ],
+  },
+  {
+    name: "Agentes de IA · MCP",
+    Icon: AgentIcon,
+    title: "Pregúntale a tu asistente de IA.",
+    body: "Conecta Claude u otro agente compatible con MCP pegando un comando. Le preguntas «¿pago esta factura?» y responde con las reglas de tu empresa.",
+    sample: [
+      ["Tú", "¿Pago la factura F-2295?"],
+      ["Agente", "Yunque la frena: cambió la cuenta"],
+      ["Conexión", "una URL y tu llave"],
+    ],
+  },
+] as const;
+
+type ChannelCard = {
+  readonly name: string;
+  readonly Icon: (props: { className?: string }) => ReactNode;
+  readonly title: string;
+  readonly body: string;
+  readonly sample: readonly (readonly [string, string])[];
+};
+
+function ChannelCards({
+  cards,
+  columns,
+}: {
+  readonly cards: readonly ChannelCard[];
+  readonly columns: string;
+}) {
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {CHANNELS.map((channel) => (
+    <div className={`grid gap-4 ${columns}`}>
+      {cards.map((channel) => (
         <article key={channel.name} data-reveal-item className="card card-lift spotlight p-7">
-          <p className="caps text-brand">{channel.name}</p>
-          <h3 className="mt-3 text-[22px] font-bold tracking-tight text-ink">{channel.title}</h3>
+          <p className="flex items-center gap-2.5">
+            <span className="inline-flex size-9 items-center justify-center rounded-[10px] bg-brand-tint text-brand">
+              <channel.Icon className="size-[18px]" />
+            </span>
+            <span className="caps text-brand">{channel.name}</span>
+          </p>
+          <h3 className="mt-4 text-[22px] font-bold tracking-tight text-ink">{channel.title}</h3>
           <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{channel.body}</p>
           <dl className="mt-6 divide-y divide-line rounded-[12px] border border-line bg-surface-sunken text-[13px]">
             {channel.sample.map(([label, value]) => (
@@ -467,6 +521,26 @@ export function Channels() {
           </dl>
         </article>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Dónde vive el agente, en dos grupos: por dónde llegan las facturas (pantalla, correo,
+ * Telegram) y quién le pregunta a Yunque antes de pagar (tus sistemas por la API y tus
+ * agentes de IA por MCP). Cada tarjeta con su ícono y un ejemplo de su canal.
+ */
+export function Channels() {
+  return (
+    <div className="space-y-10">
+      <div>
+        <p className="caps mb-4 text-ink-3">Tus facturas llegan</p>
+        <ChannelCards cards={INBOUND} columns="lg:grid-cols-3" />
+      </div>
+      <div>
+        <p className="caps mb-4 text-ink-3">Tus sistemas y agentes preguntan</p>
+        <ChannelCards cards={ASKERS} columns="lg:grid-cols-2" />
+      </div>
     </div>
   );
 }
@@ -610,7 +684,11 @@ const FAQ = [
   },
   {
     q: "¿Puedo probar con mi propia factura?",
-    a: "Sí. En la demo, «Probar con tu factura» te da una dirección de correo y un bot de Telegram con el código de acceso que te compartimos. Usa facturas de ejemplo o sin datos sensibles.",
+    a: "Sí. En la demo, la pantalla «Conectar» te da una dirección de correo y un bot de Telegram con el código de acceso que te compartimos. Usa facturas de ejemplo o sin datos sensibles.",
+  },
+  {
+    q: "¿Qué sigue?",
+    a: "Ejecutar los pagos por las rutas de Blinka, con el modo de prueba como paso previo; inicio de sesión con roles; verificar los cambios de cuenta con el proveedor por otro canal; y validar la factura electrónica ante la autoridad tributaria. Hoy la demo nunca mueve dinero: deja la orden preparada.",
   },
   {
     q: "¿Qué queda registrado?",

@@ -44,7 +44,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     route: "/probar",
     anchor: "subir",
     title: "O prueba con tu propia factura",
-    body: "Súbela en PDF o foto, o envíala por correo o Telegram desde Facturas → «Probar con tu factura». Si su proveedor no está registrado, el agente no la paga: te la pasa para que decidas.",
+    body: "Súbela en PDF o foto aquí mismo. En «Conectar» la envías por correo o Telegram, y conectas tu sistema por la API o a Claude u otro agente de IA. Si su proveedor no está registrado, el agente te la pasa para que decidas.",
   },
   {
     route: "/pendientes",

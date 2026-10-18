@@ -42,7 +42,7 @@ export async function apiContext(request: Request): Promise<ApiContext | Respons
         code: "unauthorized",
         message: "Falta la llave de la API, no es válida o venció",
         action:
-          "Genera una llave en Facturas, «Probar con tu factura», «Conectar tu agente», y mándala en Authorization: Bearer. La llave vence con el acceso: si lo renovaste, genera otra.",
+          "Genera una llave en Yunque, en «Conectar», y mándala en Authorization: Bearer. La llave vence con el acceso: si lo renovaste, genera otra.",
       },
       { "WWW-Authenticate": 'Bearer realm="yunque"' },
     );

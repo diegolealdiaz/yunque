@@ -243,9 +243,9 @@ function AgentCard({
               href={metric("exactitud")}
             />
             <Stat
-              label="Costo por factura"
+              label="Costo del agente"
               value={usdMicros(metrics.cost.per_invoice_usd_micros)}
-              detail={`${usdMicros(metrics.cost.total_usd_micros)} en total`}
+              detail={`por factura · ${usdMicros(metrics.cost.total_usd_micros)} en total`}
               href={metric("costo")}
             />
             <Stat
@@ -311,7 +311,7 @@ const DRILL_TITLE: Readonly<Record<Extract<Drill, { kind: "metric" }>["key"], st
   autonomia: "Autonomía: lo que decidió el agente contra lo esperado",
   falsos_pagar: "Falsos pagar",
   exactitud: "Exactitud por campo: campos leídos distinto de lo esperado",
-  costo: "Costo por factura",
+  costo: "Costo del agente por factura",
   tiempo: "Tiempo de decisión",
   pendientes: "Escaladas que esperan, la más antigua primero",
 };

@@ -6,11 +6,10 @@ import {
   ApprovalError,
   UseCaseError,
   approvalOffer,
-  approvePolicyProposal,
   approveEscalation,
+  changeControls,
   onboardVendor,
   processInvoice,
-  submitControls,
   vendorDraftFor,
   type DecideDeps,
 } from "@/src/usecases";
@@ -90,6 +89,11 @@ async function onboard(
 describe("alta de beneficiario desde la factura (P-157)", () => {
   it("con doble firma: queda sin verificar y lo verifica otra persona al aprobar", async () => {
     p = await openPipeline();
+    await changeControls(deps(), {
+      organizationId: p.organizationId,
+      controls: { four_eyes: true },
+      signedBy: DIEGO,
+    });
     const id = await process("beneficiario_nuevo");
     const draft = await vendorDraftFor(deps(), p.organizationId, id);
     expect(draft).toMatchObject({
@@ -128,18 +132,9 @@ describe("alta de beneficiario desde la factura (P-157)", () => {
 
   it("sin doble firma: una sola persona da de alta y aprueba", async () => {
     p = await openPipeline();
-    const off = await submitControls(deps(), {
-      organizationId: p.organizationId,
-      controls: { four_eyes: false },
-      signedBy: DIEGO,
-    });
-    // Apagar la doble firma afloja: la confirma otra persona una vez.
-    if (off.kind !== "propuesta") throw new Error("se esperaba una propuesta");
-    await approvePolicyProposal(deps(), {
-      organizationId: p.organizationId,
-      proposalId: off.proposal.id,
-      approver: ANA,
-    });
+    // La doble firma viene apagada por defecto.
+    const policy = await repos.getCurrentPolicy(p.t.db, p.organizationId);
+    expect(policy?.content.controls.four_eyes).toBe(false);
 
     const id = await process("beneficiario_nuevo");
     const { vendor, decision } = await onboard(id, DIEGO);

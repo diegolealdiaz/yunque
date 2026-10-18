@@ -118,10 +118,11 @@ export const ControlsSchema = z.strictObject({
   autonomy: AutonomySchema,
   /**
    * Doble firma: aflojar la política, encender un interruptor, registrar un proveedor o
-   * aprobar lo que uno corrigió pide a otra persona de la lista. Las políticas guardadas antes
-   * de existir el interruptor la traen encendida.
+   * aprobar lo que uno corrigió pide a otra persona de la lista. Apagada por defecto: cada
+   * empresa la enciende si trabaja con dos aprobadores. Encenderla es inmediato; apagarla,
+   * con ella encendida, la confirma otra persona.
    */
-  four_eyes: z.boolean().default(true),
+  four_eyes: z.boolean().default(false),
 });
 export type Controls = z.infer<typeof ControlsSchema>;
 
@@ -440,6 +441,6 @@ export function defaultPolicy(input: {
       source_account_id: input.sourceAccountId,
       approvers: [...input.approvers],
     },
-    controls: { payments_enabled: true, dry_run: false, autonomy: "decidir" },
+    controls: { payments_enabled: true, dry_run: false, autonomy: "decidir", four_eyes: false },
   });
 }

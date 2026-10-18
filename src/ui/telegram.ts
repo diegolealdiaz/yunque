@@ -94,7 +94,7 @@ export function sampleSummaryNotice(summary: SampleSummary): string {
 /** Respuestas fijas del bot. Las que llevan valores de afuera los escapan. */
 export const TELEGRAM_TEXT = {
   private:
-    "Este bot es privado. Para conectarlo, entra a Yunque, abre «Probar con tu factura» y usa «Conectar Telegram».",
+    "Este bot es privado. Para conectarlo, entra a Yunque, abre «Conectar» y usa «Conectar Telegram».",
   linked: (organization: string) =>
     `Listo: este chat quedó conectado a <b>${escapeTelegramHtml(organization)}</b>.\n\nTe aviso cuando una factura necesite tu decisión o se frene. También puedes enviarme una factura en PDF o foto y te digo qué decidió el agente.\n\nPara desconectar, escribe /salir.`,
   linkInvalid: "Ese enlace ya se usó o venció. Genera uno nuevo en Yunque con «Conectar Telegram».",
