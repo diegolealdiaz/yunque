@@ -43,6 +43,8 @@ export type RunEvaluationOptions = {
   readonly recordTo?: FixtureStore;
   readonly primaryModel?: string;
   readonly fallbackModel?: string | null;
+  /** Tope de tokens de respuesta del modelo; por omisión, el de la app. */
+  readonly maxOutputTokens?: number;
   /** Cambia la política antes de procesar: así la prueba de la puerta relaja una regla. */
   readonly adjustPolicy?: (policy: Policy) => Policy;
 };
@@ -58,6 +60,8 @@ export type EvaluationResult = {
 
 export const DEFAULT_PRIMARY_MODEL = "anthropic/claude-haiku-5.5";
 export const DEFAULT_FALLBACK_MODEL = "anthropic/claude-sonnet-5.5";
+/** El mismo valor por omisión que `MODEL_MAX_OUTPUT_TOKENS` en la configuración. */
+const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
 /**
  * Tope del sistema con el que se calibró el dataset. Es fijo a propósito: con el tope del
  * entorno local, los límites de la política cambiarían y los veredictos esperados también.
@@ -134,7 +138,7 @@ export async function runEvaluation(options: RunEvaluationOptions): Promise<Eval
         client,
         primaryModel: primary,
         fallbackModel: fallback,
-        maxOutputTokens: 1500,
+        maxOutputTokens: options.maxOutputTokens ?? DEFAULT_MAX_OUTPUT_TOKENS,
         cacheScope: (id: string) => id,
         newId,
         now,

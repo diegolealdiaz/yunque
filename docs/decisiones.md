@@ -224,3 +224,19 @@ Protecciones, las mismas capas que el correo (D23):
 | Extensión de navegador como canal | Capturar facturas desde el correo web | Canal sin impacto en la decisión. Se descarta |
 | Visor de PDF en el navegador para la factura original | Es lo habitual en herramientas de revisión | Expone al navegador a contenido no confiable y duplica la lógica de resaltado por formato. Se renderiza en el servidor |
 
+
+## D26. El Lector es Claude Haiku 5.5, elegido midiendo, con todo lo nuestro en el mensaje de sistema
+
+**Contexto.** El modelo se había elegido por precio sin medirlo, y el set de regresión solo había corrido con el Lector ideal. Al conectarlo de verdad aparecieron tres fallas nuestras, no del modelo: el tope de respuesta (1.500 tokens) cortaba todas las lecturas, porque una factura con sus citas pide entre 1.700 y 2.000; el prompt metía una indicación nuestra dentro del bloque del documento, y el modelo la reportaba, con razón, como instrucción sospechosa; y la lista de sospechas ofrecía "monto en letras distinto", que la regla 5 llama ambigüedad.
+
+**Decisión.** Se corrigió el prompt (`lector-v3`): toda indicación nuestra, incluida la forma de la salida, va en el mensaje de sistema y el mensaje del usuario lleva solo lo que vino de afuera; la salida es JSON compacto; una ambigüedad es un documento que muestra dos valores para un campo, no el formato de una fecha (se lee según el idioma y el país) ni el nombre corto y el completo de la misma persona; el monto en letras distinto es ambigüedad, no sospecha. El tope sube a 4.096 tokens. Con ese prompt se corrió el set de 33 facturas en vivo, sin segunda pasada, con tres candidatos:
+
+| Modelo | Correctas | Falsos pagar | Normales pagadas | Campos | Costo por factura | Tiempo medio |
+|---|---|---|---|---|---|---|
+| Claude Haiku 5.5 | 32/33 | 0 | 15/15 | 416/416 | 0,0012 USD | 6,9 s |
+| Gemini 3.8 Flash | 31/33 | 0 | 15/15 | 406/416 | 0,0087 USD | 11,9 s |
+| GPT-5.4 mini | 18/33 | 0 | 6/15 | 403/416 | 0,0052 USD | 4,1 s |
+
+Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verificación fallida. Con esa configuración el set da 33/33, cero falsos "pagar" y cero escaladas de normales; sus respuestas quedan grabadas en `tests/fixtures/lector/lector-v3` y la evaluación corre sin red.
+
+**Consecuencia.** Leer el lote de 33 cuesta unos 4 centavos de dólar. GPT-5.4 mini toma condiciones de pago comunes ("pago por transferencia") por órdenes al sistema aun con la regla explícita; Gemini es más caro y más lento sin leer mejor. Estas cifras son sobre facturas generadas por nosotros, con capa de texto y plantillas limpias: antes de prometerlas a un cliente hay que medir con facturas reales (fotos, escaneos, varias páginas, formatos de otros países).

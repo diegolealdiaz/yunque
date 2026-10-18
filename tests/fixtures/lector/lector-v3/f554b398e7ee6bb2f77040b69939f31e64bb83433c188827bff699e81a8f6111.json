@@ -1,0 +1,8 @@
+{
+  "model": "anthropic/claude-haiku-5.5",
+  "prompt_version": "lector-v3",
+  "text": "{\"kind\": \"not_invoice\", \"reason\": \"El documento es un comprobante de pago de nómina que certifica el pago de salario a un empleado; no es una factura ni una cuenta de cobro.\", \"suspicions\": []}",
+  "input_tokens": 3280,
+  "output_tokens": 231,
+  "latency_ms": 1854
+}

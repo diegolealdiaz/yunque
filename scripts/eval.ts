@@ -56,6 +56,7 @@ async function main(): Promise<void> {
           liveClient: createOpenRouterClient(config.model.apiKey),
           primaryModel: config.model.primary,
           fallbackModel: config.model.fallback,
+          maxOutputTokens: config.model.maxOutputTokens,
         }
       : {}),
   });
