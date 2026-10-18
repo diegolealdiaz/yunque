@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, notInArray, sql } from "drizzle-orm";
 
 import { AuditEventSchema, type AuditEvent, type EventType, type Ulid } from "@/src/domain";
 
@@ -27,6 +27,8 @@ export async function appendEvent(exec: Executor, event: AuditEvent): Promise<vo
 export type EventFilter = {
   readonly invoiceId?: Ulid;
   readonly type?: EventType;
+  /** Tipos que no se traen: los pasos internos, cuando solo interesan las decisiones. */
+  readonly excludeTypes?: readonly EventType[];
   /** Quién: el agente, o una persona por su nombre exacto. */
   readonly actor?: { readonly kind: "agente" } | { readonly kind: "humano"; readonly name: string };
   readonly limit?: number;
@@ -44,6 +46,9 @@ export async function listEvents(
       eq(auditEvents.organizationId, organizationId),
       filter.invoiceId === undefined ? undefined : eq(auditEvents.invoiceId, filter.invoiceId),
       filter.type === undefined ? undefined : eq(auditEvents.type, filter.type),
+      filter.excludeTypes === undefined || filter.excludeTypes.length === 0
+        ? undefined
+        : notInArray(auditEvents.type, [...filter.excludeTypes]),
       actor === undefined
         ? undefined
         : actor.kind === "agente"
@@ -70,4 +75,29 @@ export async function listEvents(
       "audit_events",
     ),
   );
+}
+
+export type EventCounts = {
+  readonly total: number;
+  /** Decisiones del agente: pagar, frenar o escalar. */
+  readonly decisions: number;
+  /** Lo que hicieron personas: aprobar, rechazar, corregir, firmar, cambiar interruptores. */
+  readonly byPeople: number;
+};
+
+/** Cuántos eventos tiene la organización, en una sola lectura. */
+export async function countEvents(exec: Executor, organizationId: Ulid): Promise<EventCounts> {
+  const [row] = await exec
+    .select({
+      total: sql<number>`count(*)`,
+      decisions: sql<number>`coalesce(sum(case when ${auditEvents.type} in ('invoice.decided', 'invoice.escalated') then 1 else 0 end), 0)`,
+      byPeople: sql<number>`coalesce(sum(case when json_extract(${auditEvents.actor}, '$.kind') = 'humano' then 1 else 0 end), 0)`,
+    })
+    .from(auditEvents)
+    .where(eq(auditEvents.organizationId, organizationId));
+  return {
+    total: Number(row?.total ?? 0),
+    decisions: Number(row?.decisions ?? 0),
+    byPeople: Number(row?.byPeople ?? 0),
+  };
 }

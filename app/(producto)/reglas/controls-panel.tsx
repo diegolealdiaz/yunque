@@ -41,7 +41,7 @@ export function ControlsPanel({
           confirmOn="El agente vuelve a pagar lo que cumple las reglas."
           confirmOff="Ninguna factura se pagará: lo que pagaría queda escalado para una persona."
           onChange={change("payments_enabled")}
-          onTone="pay"
+          onTone="brand"
           offTone="hold"
           disabled={disabled}
         />

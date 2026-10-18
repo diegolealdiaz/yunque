@@ -119,6 +119,42 @@ const SYSTEM_TITLE: Readonly<Record<string, string>> = {
   human_correction: "Campos corregidos a mano",
 };
 
+/**
+ * Por qué se frenó o escaló, en una frase para el cliente, sin los valores: la bitácora solo
+ * guarda el código de la regla que decidió. El detalle de la factura dice los valores.
+ */
+export const RULE_REASON: Readonly<Record<FindingCode, string>> = {
+  payee_not_allowed: "El beneficiario no está en la lista de permitidos",
+  bank_account_mismatch: "La cuenta de pago no es la registrada del beneficiario",
+  account_holder_mismatch: "El titular de la cuenta no es el beneficiario",
+  vendor_not_verified: "El beneficiario todavía no está verificado",
+  vendor_velocity: "Demasiadas facturas seguidas del mismo beneficiario",
+  amount_over_hard_limit: "Supera el límite por pago",
+  amount_over_approval_threshold: "Supera el monto que el agente paga solo",
+  budget_exceeded: "No cabe en el presupuesto del periodo",
+  insufficient_balance: "No hay saldo suficiente en la cuenta origen",
+  duplicate_invoice: "La misma factura ya había llegado",
+  amount_mismatch: "Cobra distinto a lo acordado con el beneficiario",
+  first_payment_to_vendor: "Es el primer pago a este beneficiario",
+  amount_unusual_for_vendor: "El monto se sale de lo que se le suele pagar",
+  unsupported_currency_or_rail: "No se puede pagar en esa moneda o a esa cuenta",
+  due_date_window: "Lleva demasiado tiempo vencida",
+  field_low_confidence: "El agente no leyó un dato clave con suficiente seguridad",
+  field_ambiguous: "Un dato clave aparece con dos valores distintos",
+  evidence_missing: "Un dato leído no aparece en el documento",
+  totals_mismatch: "Los totales del documento no cuadran",
+  suspicious_instructions: "El documento trae instrucciones para el agente",
+  extraction_unreadable: "No es una factura o no se pudo leer",
+  payments_disabled: "Los pagos estaban apagados",
+  autonomy_recomendar: "El agente solo recomienda: decide una persona",
+  policy_missing: "No había una política vigente",
+  vendors_missing: "No había lista de beneficiarios",
+  ledger_missing: "No había presupuesto registrado para el periodo",
+  rule_error: "Una regla falló al evaluarse",
+  processing_error: "Falló un paso del proceso antes de decidir",
+  human_correction: "Una persona corrigió datos a mano",
+};
+
 /** Título de cada regla o hallazgo de sistema para la traza del detalle. */
 export function ruleTitle(code: FindingCode): string {
   const rule = RuleCodeSchema.safeParse(code);

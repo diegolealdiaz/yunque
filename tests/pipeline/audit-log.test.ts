@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import * as repos from "@/src/db/repositories";
+import { STEP_EVENTS, describeEvent } from "@/src/ui/audit";
 import { loadAuditLog, processInvoice, savePolicy } from "@/src/usecases";
 
 import { datasetCase, openPipeline, type Pipeline } from "./helpers";
@@ -54,6 +55,27 @@ describe("bitácora (P-109)", () => {
           e.invoiceReference === references.get("sobre_umbral"),
       ),
     ).toBe(true);
+  });
+
+  it("sin los pasos internos quedan las decisiones, con beneficiario y frase sin códigos", async () => {
+    const log = await loadAuditLog(p.t.db, p.organizationId, { exclude: STEP_EVENTS });
+    const types = new Set(log.entries.map((e) => e.event.type));
+    for (const step of STEP_EVENTS) expect(types.has(step)).toBe(false);
+    const escalated = log.entries.find((e) => e.event.invoice_id === ids.get("sobre_umbral"));
+    expect(escalated?.payeeName).toBe("Andes Hardware SAS");
+    const line = escalated ? describeEvent(escalated.event.type, escalated.event.data) : null;
+    expect(line).toEqual({
+      title: "La pasó a una persona",
+      detail: "Supera el monto que el agente paga solo",
+      tone: "escalate",
+    });
+    // Ninguna frase deja ver un código: ni el tipo del evento ni el de la regla.
+    for (const { event } of log.entries) {
+      const { title, detail } = describeEvent(event.type, event.data);
+      expect(`${title} ${detail ?? ""}`).not.toMatch(/[a-z]+[._][a-z_]+/);
+    }
+    expect(log.counts.total).toBeGreaterThan(log.entries.length);
+    expect(log.counts.decisions).toBeGreaterThanOrEqual(3);
   });
 
   it("la factura se busca por referencia, sin importar mayúsculas, o por id", async () => {

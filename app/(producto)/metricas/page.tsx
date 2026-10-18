@@ -75,7 +75,7 @@ function Summary({ view, now }: { readonly view: MetricsView; readonly now: Date
       className="grid gap-6 border-b border-line pb-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)] lg:items-center lg:gap-10"
     >
       <Link href={drillHref({ kind: "verdict", verdict: "pagar" })} className="group block w-fit">
-        <p className="font-mono text-[40px] leading-none font-medium tracking-tight text-pay sm:text-[52px]">
+        <p className="font-mono text-[40px] leading-none font-medium tracking-tight text-brand sm:text-[52px]">
           {paid.figure}
           <span className="ml-2 text-[18px] font-normal text-ink-3">{paid.currency}</span>
         </p>
