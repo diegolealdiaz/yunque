@@ -102,11 +102,22 @@ export async function assertWithinDailyLimits(
   limits: DailyLimits,
   since: string,
   receiptKey: ReceiptKey,
+  options: {
+    /**
+     * Si cuenta contra el tope global de toda la demo. El tope global acota el costo del modelo:
+     * las facturas de ejemplo del dataset (lote y bandeja) se leen de una caché persistente y su
+     * contenido está acotado a unos pocos documentos, así que no deben poder agotar ese tope ni
+     * dejar fuera a los canales que sí cuestan (subida, API, correo y Telegram reales). El tope
+     * por visitante sí aplica siempre, para que nadie llene su propia empresa.
+     */
+    readonly countTowardGlobal?: boolean;
+  } = {},
 ): Promise<void> {
   if (await findInvoiceByReceiptKey(db, organizationId, receiptKey)) return;
+  const countTowardGlobal = options.countTowardGlobal ?? true;
   const [mine, all] = await Promise.all([
     countInvoicesSince(db, organizationId, since),
-    countAllInvoicesSince(db, since),
+    countTowardGlobal ? countAllInvoicesSince(db, since) : Promise.resolve(0),
   ]);
   if (mine >= limits.perOrganization) {
     throw new UseCaseError("limit_reached", "Llegaste al máximo de facturas por hoy", {
@@ -114,7 +125,7 @@ export async function assertWithinDailyLimits(
       severity: "warning",
     });
   }
-  if (all >= limits.global) {
+  if (countTowardGlobal && all >= limits.global) {
     throw new UseCaseError("limit_reached", "La demo llegó al máximo de facturas por hoy", {
       action: "Vuelve mañana; el dataset ya procesado sigue disponible",
       severity: "warning",

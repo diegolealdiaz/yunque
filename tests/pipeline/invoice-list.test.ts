@@ -123,6 +123,27 @@ describe("lista de facturas (P-104)", () => {
     ).catch((e: unknown) => e);
     expect(mine).toBeInstanceOf(UseCaseError);
     expect(errorResponse(mine).status).toBe(429);
+
+    // Las entregas simuladas del dataset (llaves `batch:`) no cuentan contra el tope global,
+    // que acota el costo del modelo: con solo esas, una empresa nueva pasa aunque el tope sea
+    // mínimo. Así nadie agota con el lote el cupo de los canales que sí cuestan.
+    await assertWithinDailyLimits(
+      p.t.db,
+      p.t.newId(),
+      { perOrganization: 10, global: 1 },
+      since,
+      fresh,
+    );
+
+    // Los canales que sí leen con el modelo (subida) cuentan: cuatro subidas llenan un global de 4.
+    for (let i = 0; i < 4; i++) {
+      const f = await datasetCase("nube_oct");
+      p.client.next = f.modelOutput;
+      await processInvoice(p.deps, {
+        ...p.input(f.bytes, `upload:llena-${String(i)}`, f.fileName),
+        channel: "upload",
+      });
+    }
     await expect(
       assertWithinDailyLimits(
         p.t.db,

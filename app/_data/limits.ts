@@ -26,6 +26,7 @@ export async function assertDemoLimits(
   db: Database,
   organizationId: Ulid,
   receiptKey: ReceiptKey,
+  options: { readonly countTowardGlobal?: boolean } = {},
 ): Promise<void> {
   await assertWithinDailyLimits(
     db,
@@ -33,5 +34,6 @@ export async function assertDemoLimits(
     demoInvoiceLimits(config),
     businessDayStart(config),
     receiptKey,
+    options,
   );
 }

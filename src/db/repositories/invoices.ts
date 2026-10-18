@@ -1,7 +1,8 @@
-import { and, asc, count, desc, eq, gte, inArray, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, ne, notLike } from "drizzle-orm";
 
 import {
   InvoiceSchema,
+  UNCOUNTED_RECEIPT_KEY_PATTERNS,
   canTransition,
   type Invoice,
   type InvoiceStatus,
@@ -256,9 +257,16 @@ export async function countInvoicesSince(
  * demo pública. Es la única consulta sin filtro de organización, y solo devuelve un número.
  */
 export async function countAllInvoicesSince(exec: Executor, since: string): Promise<number> {
+  // El tope global acota el costo del modelo: las entregas que se leen de caché o ya están en
+  // base (lote, bandeja de ejemplo e historial sembrado) no cuentan. Ver UNCOUNTED_RECEIPT_KEY_PATTERNS.
   const [row] = await exec
     .select({ n: count() })
     .from(invoices)
-    .where(gte(invoices.receivedAt, since));
+    .where(
+      and(
+        gte(invoices.receivedAt, since),
+        ...UNCOUNTED_RECEIPT_KEY_PATTERNS.map((pattern) => notLike(invoices.receiptKey, pattern)),
+      ),
+    );
   return row?.n ?? 0;
 }

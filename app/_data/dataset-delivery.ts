@@ -21,7 +21,12 @@ export async function deliverDatasetFile(input: {
   readonly receiptKey: ReceiptKey;
 }): Promise<Response> {
   const { config, db, organization, deps } = await processingContext();
-  await assertDemoLimits(config, db, organization.id, input.receiptKey);
+  // Las facturas de ejemplo del dataset no cuentan contra el tope global: su lectura va por
+  // caché y su contenido está acotado, así que nadie puede agotar con ellas el cupo de los
+  // canales que sí cuestan. El tope por visitante sí aplica.
+  await assertDemoLimits(config, db, organization.id, input.receiptKey, {
+    countTowardGlobal: false,
+  });
   const bytes = new Uint8Array(await readFile(input.file));
   const result = await processInvoice(deps, {
     organizationId: organization.id,
