@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { CloseIcon, SearchIcon } from "./icons";
+
 /**
  * Visor de documento con citas (docs/interfaz.md §5.2, columna 1, y D11).
  *
@@ -10,6 +12,8 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
  * - Las citas se resaltan sobre la imagen cuando se conoce su posición, y siempre sobre el
  *   texto leído debajo.
  * - Seleccionar un campo en otra columna (`EvidenceTarget`) resalta y desplaza su cita.
+ * - Tocar una página la abre en grande, en un diálogo con todas las páginas y las mismas
+ *   citas resaltadas; se cierra con Esc, con el botón o tocando fuera.
  * - Nada del documento se interpreta: el texto se pinta como texto, nunca como HTML.
  */
 
@@ -92,6 +96,51 @@ export function segmentText(text: string, highlights: readonly Highlight[]): Seg
   return out;
 }
 
+/** Una página con sus citas enmarcadas encima, en el tamaño que le dé quien la contiene. */
+function PageFigure({
+  page,
+  index,
+  highlights,
+  selected,
+}: {
+  readonly page: PageImage;
+  readonly index: number;
+  readonly highlights: readonly Highlight[];
+  readonly selected: string | null;
+}) {
+  return (
+    <span className="relative block">
+      <Image
+        src={page.src}
+        width={page.width}
+        height={page.height}
+        alt={`Página ${String(index + 1)} del documento`}
+        unoptimized
+        className="block h-auto w-full"
+      />
+      {highlights
+        .filter((h) => h.page === index + 1 && h.box)
+        .map((h) => (
+          <span
+            key={h.id}
+            aria-hidden="true"
+            className={`absolute rounded-sm border-2 ${selected === h.id ? "border-ink bg-ink/10" : "border-transparent"}`}
+            style={
+              h.box
+                ? {
+                    left: `${String(h.box.x * 100)}%`,
+                    top: `${String(h.box.y * 100)}%`,
+                    width: `${String(h.box.w * 100)}%`,
+                    height: `${String(h.box.h * 100)}%`,
+                  }
+                : undefined
+            }
+          />
+        ))}
+    </span>
+  );
+}
+
 export function DocumentViewer({
   pages,
   text,
@@ -104,6 +153,14 @@ export function DocumentViewer({
 }) {
   const { selected } = useContext(EvidenceContext);
   const marks = useRef(new Map<string, HTMLElement>());
+  const zoom = useRef<HTMLDialogElement>(null);
+  const zoomPages = useRef(new Map<number, HTMLElement>());
+
+  /** Abre el documento en grande, en la página que se tocó. */
+  const openZoom = (index: number) => {
+    zoom.current?.showModal();
+    zoomPages.current.get(index)?.scrollIntoView({ block: "start" });
+  };
 
   useEffect(() => {
     if (selected)
@@ -120,37 +177,71 @@ export function DocumentViewer({
       {pages.map((page, index) => (
         <figure
           key={page.src}
-          className="relative overflow-hidden rounded-[8px] border border-line bg-surface-sunken"
+          className="overflow-hidden rounded-[8px] border border-line bg-surface-sunken"
         >
-          <Image
-            src={page.src}
-            width={page.width}
-            height={page.height}
-            alt={`Página ${String(index + 1)} del documento`}
-            unoptimized
-            className="block h-auto w-full"
-          />
-          {highlights
-            .filter((h) => h.page === index + 1 && h.box)
-            .map((h) => (
-              <span
-                key={h.id}
-                aria-hidden="true"
-                className={`absolute rounded-sm border-2 ${selected === h.id ? "border-ink bg-ink/10" : "border-transparent"}`}
-                style={
-                  h.box
-                    ? {
-                        left: `${String(h.box.x * 100)}%`,
-                        top: `${String(h.box.y * 100)}%`,
-                        width: `${String(h.box.w * 100)}%`,
-                        height: `${String(h.box.h * 100)}%`,
-                      }
-                    : undefined
-                }
-              />
-            ))}
+          <button
+            type="button"
+            onClick={() => openZoom(index)}
+            aria-label={`Ampliar la página ${String(index + 1)}`}
+            className="group relative block w-full cursor-zoom-in"
+          >
+            <PageFigure page={page} index={index} highlights={highlights} selected={selected} />
+            <span
+              aria-hidden="true"
+              className="absolute right-2 bottom-2 inline-flex items-center gap-1.5 rounded-full bg-ink/80 px-2.5 py-1 text-[12px] font-medium text-surface opacity-90 transition-opacity group-hover:opacity-100"
+            >
+              <SearchIcon />
+              Ampliar
+            </span>
+          </button>
         </figure>
       ))}
+      {pages.length > 0 ? (
+        <dialog
+          ref={zoom}
+          aria-label="Documento ampliado"
+          // Tocar fuera de la hoja (el fondo del diálogo) lo cierra.
+          onClick={(e) => {
+            if (e.target === e.currentTarget) e.currentTarget.close();
+          }}
+          className="m-auto h-[92vh] w-[min(60rem,94vw)] max-w-none overflow-hidden rounded-[var(--radius-card)] border border-line bg-shell p-0 text-ink backdrop:bg-black/70"
+        >
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+              <p className="text-[13px] font-medium">
+                Documento · {pages.length} {pages.length === 1 ? "página" : "páginas"}
+              </p>
+              <form method="dialog">
+                <button
+                  className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-control)] border border-control px-2.5 text-[13px]"
+                  aria-label="Cerrar el documento ampliado"
+                >
+                  <CloseIcon />
+                  Cerrar
+                </button>
+              </form>
+            </div>
+            <div className="flex-1 space-y-4 overflow-auto p-4 sm:p-6">
+              {pages.map((page, index) => (
+                <div
+                  key={page.src}
+                  ref={(element) => {
+                    if (element) zoomPages.current.set(index, element);
+                  }}
+                  className="mx-auto max-w-[52rem] overflow-hidden rounded-[8px] bg-white shadow-lg"
+                >
+                  <PageFigure
+                    page={page}
+                    index={index}
+                    highlights={highlights}
+                    selected={selected}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </dialog>
+      ) : null}
       <section aria-label="Texto leído del documento">
         <h3 className="mb-1 caps">Texto leído</h3>
         {text === "" ? (
