@@ -52,6 +52,8 @@ export type PriorInvoice = {
   readonly document_hash: Sha256;
   readonly semantic_key: string | null;
   readonly amount: Money | null;
+  /** Fecha de emisión leída (ISO), o null si no se leyó. Para el periodo de un recurrente. */
+  readonly issue_date: string | null;
   readonly received_at: string;
   /**
    * Resultado conocido: veredicto del agente o resolución humana. `simulada` es un `pagar`

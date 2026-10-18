@@ -75,6 +75,10 @@ export const TEMPLATES: Readonly<Record<FindingCode, Template>> = {
     explain: (f) => `Parece ${s(f.observed)}; se espera ${s(f.threshold)}.`,
     check: () => "Revisé la factura anterior y confirmo que esta es un cobro distinto",
   },
+  recurring_period_repeat: {
+    explain: (f) => `${s(f.observed)}; se espera ${s(f.threshold)}.`,
+    check: () => "Revisé el periodo y confirmo que este segundo cobro del recurrente es correcto",
+  },
   amount_mismatch: {
     explain: (f) => `La factura trae ${s(f.observed)}; lo acordado es ${s(f.threshold)}.`,
     check: () => "Confirmo que la diferencia frente a lo acordado es correcta",

@@ -328,6 +328,13 @@ function amountOf(extraction: Extraction): Money | null {
   return isSupportedCurrency(currency.value) ? money(total.value, currency.value) : null;
 }
 
+/** Fecha de emisión leída (ISO), para reglas de historial por periodo. Null si falta o no es factura. */
+function issueDateOf(extraction: Extraction): string | null {
+  if (extraction.kind !== "invoice") return null;
+  const field = extraction.fields.issue_date;
+  return isPresent(field) ? field.value : null;
+}
+
 /** De qué fuente salió cada campo leído: modelo o persona. */
 function fieldSources(extraction: Extraction): Partial<Record<ExtractedFieldName, FieldSource>> {
   if (extraction.kind !== "invoice") return {};
@@ -366,6 +373,7 @@ function buildRecord(deps: DecideDeps, args: RecordArgs): DecisionRecord {
         ? { text: args.documentPatch.text, page_keys: [...args.documentPatch.page_keys] }
         : {}),
       semantic_key: context.semantic_key,
+      issue_date: issueDateOf(reading.record.extraction),
       approval_expires_at: approvalExpiry(decision.verdict, now),
     },
     extraction: {

@@ -53,7 +53,7 @@ describe("formulario de la política", () => {
 
   it("cada regla fija tiene su frase y ninguna configurable está entre las fijas", () => {
     for (const code of FIXED_RULES) expect(FIXED_RULE_COPY[code], code).toBeTruthy();
-    expect(FIXED_RULES).toHaveLength(13);
+    expect(FIXED_RULES).toHaveLength(14);
     expect(FIXED_RULES.some((code) => CONFIGURABLE_RULES.includes(code))).toBe(false);
   });
 

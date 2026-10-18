@@ -137,6 +137,9 @@ export const invoices = sqliteTable(
     pageKeys: json<string[]>("page_keys"),
     text: text("text"),
     semanticKey: text("semantic_key"),
+    // Fecha de emisión leída (ISO YYYY-MM-DD), para reglas que miran el periodo del cobro
+    // en el historial, como el segundo pago de un recurrente. Null si no se leyó.
+    issueDate: text("issue_date"),
     status: text("status").notNull(),
     approvalExpiresAt: text("approval_expires_at"),
     channelMeta: json<Record<string, string>>("channel_meta"),

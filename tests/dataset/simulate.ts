@@ -92,6 +92,8 @@ export async function simulateDataset(): Promise<{
         currency: h.currency,
       }),
       amount: money(h.amount, h.currency),
+      // El historial sembrado no trae fecha de emisión: no cuenta para el periodo del recurrente.
+      issue_date: null,
       received_at: h.received_at,
       outcome: h.resolution ?? h.verdict,
     };
@@ -168,6 +170,7 @@ export async function simulateDataset(): Promise<{
       document_hash: hash,
       semantic_key: key,
       amount: isSupportedCurrency(currency) ? money(c.document.total, currency) : null,
+      issue_date: c.document.issue_date,
       received_at: now.toISOString(),
       outcome: evaluation.verdict,
     });

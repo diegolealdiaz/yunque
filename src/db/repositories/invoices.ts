@@ -190,7 +190,10 @@ export async function listInvoices(
 
 export type InvoicePatch = Partial<
   Pick<Invoice, "text" | "semantic_key" | "page_keys" | "file_state" | "approval_expires_at">
->;
+> & {
+  /** Fecha de emisión leída (ISO), para reglas de historial por periodo. No vive en `Invoice`. */
+  readonly issue_date?: string | null;
+};
 
 /**
  * Transición por comparación y cambio: `UPDATE ... WHERE status = from`. Si la fila ya no
@@ -216,6 +219,7 @@ export async function transitionInvoice(
       updatedAt: now,
       ...(patch.text !== undefined ? { text: patch.text } : {}),
       ...(patch.semantic_key !== undefined ? { semanticKey: patch.semantic_key } : {}),
+      ...(patch.issue_date !== undefined ? { issueDate: patch.issue_date } : {}),
       ...(patch.page_keys !== undefined ? { pageKeys: [...patch.page_keys] } : {}),
       ...(patch.file_state !== undefined ? { fileState: patch.file_state } : {}),
       ...(patch.approval_expires_at !== undefined

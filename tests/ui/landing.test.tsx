@@ -59,10 +59,10 @@ describe("portada pública (P-144)", async () => {
 
   it("la cinta muestra cada caso del lote con su veredicto y los totales por salida", () => {
     expect(batch?.decisions).toHaveLength(33);
-    expect(counts).toEqual({ pagar: 15, frenar: 10, escalar: 8 });
-    expect(html).toContain("15 pagadas");
+    expect(counts).toEqual({ pagar: 12, frenar: 10, escalar: 11 });
+    expect(html).toContain("12 pagadas");
     expect(html).toContain("10 frenadas");
-    expect(html).toContain("8 para una persona");
+    expect(html).toContain("11 para una persona");
   });
 
   it("muestra el producto real: cada captura que usa existe en public/producto", () => {

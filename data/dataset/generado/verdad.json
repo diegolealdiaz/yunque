@@ -1,6 +1,6 @@
 {
   "generated_with": {
-    "manifest_hash": "3ba687d28fb8a27176ca3938c0078609f46cdaaad77efcaead4e2af4df8b2121",
+    "manifest_hash": "08f84fe641f465967686e42d7ec50f1f9b078e0dadcc3fb1d6fa0bc2bee2a332",
     "templates_hash": "1706dcad4c89b72eeb6078e069609f670e78db8572d3eeaaa55b5969c4194463",
     "history_hash": "b88921aa59339e1ae219470c24db0239ce6832f04776111388862daa09fb6c1c"
   },
@@ -1346,15 +1346,15 @@
     },
     {
       "id": "joao_png",
-      "group": "normal",
+      "group": "trampa",
       "format": "png",
       "file": "joao_png.png",
       "document_hash": "6f341e0b008b9baec0481fa6e21fb1ded8abed48de63809fcd5b328e469fa123",
       "base_file": "joao_png.pdf",
       "expected": {
-        "verdict": "pagar",
-        "rule": null,
-        "reason": "Beneficiario registrado, monto dentro del acuerdo y de los límites"
+        "verdict": "escalar",
+        "rule": "recurring_period_repeat",
+        "reason": "El proveedor recurrente ya tiene una factura del mismo periodo; una persona confirma que no es un pago doble"
       },
       "fields": [
         {
@@ -1460,15 +1460,15 @@
     },
     {
       "id": "stackline_email",
-      "group": "normal",
+      "group": "trampa",
       "format": "email",
       "file": "stackline_email.email.json",
       "document_hash": "ec910a37e66bb893a7ff78052a21d851bed796f29c59484166e4c0111b6fe970",
       "base_file": "stackline_email.pdf",
       "expected": {
-        "verdict": "pagar",
-        "rule": null,
-        "reason": "Beneficiario registrado, monto dentro del acuerdo y de los límites"
+        "verdict": "escalar",
+        "rule": "recurring_period_repeat",
+        "reason": "El proveedor recurrente ya tiene una factura del mismo periodo; una persona confirma que no es un pago doble"
       },
       "fields": [
         {
@@ -1856,15 +1856,15 @@
     },
     {
       "id": "nube_nov",
-      "group": "normal",
+      "group": "trampa",
       "format": "pdf",
       "file": "nube_nov.pdf",
       "document_hash": "218bbd4988d4fff436e74f18961373501dcbc03303f36add82549e06d2dfa383",
       "base_file": null,
       "expected": {
-        "verdict": "pagar",
-        "rule": null,
-        "reason": "Beneficiario registrado, monto dentro del acuerdo y de los límites"
+        "verdict": "escalar",
+        "rule": "recurring_period_repeat",
+        "reason": "El proveedor recurrente ya tiene una factura del mismo periodo; una persona confirma que no es un pago doble"
       },
       "fields": [
         {

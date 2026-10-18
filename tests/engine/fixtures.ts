@@ -142,6 +142,7 @@ export function priorPaid(daysAgo: number, amount = 480_000_000): PriorInvoice {
     document_hash: "e".repeat(64),
     semantic_key: `NUBE ANDINA SAS|F${String(2000 + daysAgo)}|${String(amount)}|COP`,
     amount: { amount, currency: "COP" },
+    issue_date: null,
     received_at: new Date(NOW.getTime() - daysAgo * 86_400_000).toISOString(),
     outcome: "pagar",
   };

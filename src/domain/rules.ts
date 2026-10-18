@@ -17,6 +17,7 @@ export const RULE_CODES = [
   "budget_exceeded",
   "insufficient_balance",
   "duplicate_invoice",
+  "recurring_period_repeat",
   "amount_mismatch",
   "first_payment_to_vendor",
   "amount_unusual_for_vendor",
@@ -111,6 +112,11 @@ export const RULES: Readonly<Record<RuleCode, RuleMeta>> = {
   },
   insufficient_balance: { title: "Saldo disponible", defaultOnFail: "frenar", configurable: false },
   duplicate_invoice: { title: "Factura duplicada", defaultOnFail: "frenar", configurable: true },
+  recurring_period_repeat: {
+    title: "Segundo cobro de un recurrente en el periodo",
+    defaultOnFail: "escalar",
+    configurable: false,
+  },
   amount_mismatch: {
     title: "No cuadra con lo acordado",
     defaultOnFail: "escalar",
