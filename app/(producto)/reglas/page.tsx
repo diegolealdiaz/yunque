@@ -2,16 +2,28 @@ import { cookies } from "next/headers";
 
 import { CURRENCIES, formatMoney, money, policyEditToYaml, type FxTable } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
-import { loadPayeeOptions, loadPolicyHistory } from "@/src/usecases";
-import { calendarDate, instant, rateText, relativeInstant } from "@/src/ui/format";
+import {
+  loadPayeeOptions,
+  loadPolicyHistory,
+  loadPolicyProposal,
+  previewPolicyChange,
+} from "@/src/usecases";
+import {
+  calendarDate,
+  instant,
+  openInvoicesText,
+  rateText,
+  relativeInstant,
+} from "@/src/ui/format";
 
 import { ApproverPicker } from "../../_components/approver-picker";
 import { PageHeader } from "../../_components/page-header";
 import { EmptyState } from "../../_components/states";
-import { appContext } from "../../_data/context";
+import { processingContext } from "../../_data/process";
 
 import { ControlsPanel } from "./controls-panel";
 import { PolicyWorkbench } from "./policy-workbench";
+import { ProposalPanel, type ProposalView } from "./proposal-panel";
 
 export const metadata = { title: "Reglas · Yunque" };
 
@@ -69,12 +81,38 @@ function RatesTable({ fx }: { readonly fx: FxTable }) {
 }
 
 export default async function ReglasPage() {
-  const { config, db, organization } = await appContext();
+  const { config, db, organization, deps } = await processingContext();
   const now = new Date();
-  const [{ current, versions, lastReplay: replayed }, payees] = await Promise.all([
+  const [{ current, versions, lastReplay: replayed }, payees, proposal] = await Promise.all([
     loadPolicyHistory(db, organization.id),
     loadPayeeOptions(db, organization.id),
+    loadPolicyProposal(db, organization.id),
   ]);
+  // Quien aprueba ve, antes de firmar, qué facturas abiertas cambiarían.
+  const proposalPreview =
+    proposal && !proposal.stale
+      ? await previewPolicyChange(deps, {
+          organizationId: organization.id,
+          candidate: proposal.candidate,
+        })
+      : null;
+  const proposalView: ProposalView | null = proposal
+    ? {
+        id: proposal.id,
+        proposedBy: proposal.proposedBy,
+        proposedAt: instant(proposal.proposedAt, config.displayTimeZone),
+        baseVersion: proposal.baseVersion,
+        loosenings: proposal.loosenings,
+        note: proposal.note,
+        stale: proposal.stale,
+        preview: proposalPreview
+          ? {
+              evaluated: proposalPreview.evaluated - proposalPreview.skipped,
+              changes: proposalPreview.changes,
+            }
+          : null,
+      }
+    : null;
   if (!current) {
     return (
       <EmptyState
@@ -119,10 +157,13 @@ export default async function ReglasPage() {
           className="rounded-[var(--radius-control)] bg-surface-sunken px-3 py-2 text-[12px] text-ink-2"
         >
           Última reevaluación: v{replayed.version} guardada por {replayed.who} ·{" "}
-          {instant(replayed.at, config.displayTimeZone)} · {replayed.reevaluated} facturas abiertas
-          reevaluadas, {replayed.changed} cambiaron de veredicto.
+          {instant(replayed.at, config.displayTimeZone)} · {openInvoicesText(replayed.reevaluated)}{" "}
+          {replayed.reevaluated === 1 ? "reevaluada" : "reevaluadas"}, {replayed.changed}{" "}
+          {replayed.changed === 1 ? "cambió" : "cambiaron"} de veredicto.
         </p>
       ) : null}
+
+      {proposalView ? <ProposalPanel proposal={proposalView} signer={signer} /> : null}
 
       <ControlsPanel controls={current.content.controls} canSign={signer !== null} />
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useId, type RefObject } from "react";
 
+import { changeCountText } from "@/src/ui/format";
 import { RULE_SHORT_LABEL } from "@/src/ui/labels";
 
 import { VerdictChip } from "../../_components/verdict-chip";
@@ -53,9 +54,11 @@ export function PreviewDialog({
       {preview?.ok ? (
         <div className="space-y-3 text-[13px]">
           <p id={titleId} className="text-[14px] font-medium">
-            {preview.changes.length === 0
-              ? `Ninguna de las ${String(preview.evaluated - preview.skipped)} facturas abiertas cambiaría de veredicto.`
-              : `${String(preview.changes.length)} de ${String(preview.evaluated - preview.skipped)} facturas abiertas cambiarían de veredicto`}
+            {changeCountText(
+              preview.changes.length,
+              preview.evaluated - preview.skipped,
+              "Con este cambio",
+            )}
           </p>
           {stale ? (
             <p className="text-[12px] font-medium text-ink">
@@ -152,6 +155,10 @@ export function SaveDialog({
         <p className="text-[13px] text-ink-2">
           Queda firmada con tu nombre y se reevalúan las facturas abiertas con ella. Las pagadas no
           se tocan.
+        </p>
+        <p className="text-[13px] text-ink-2">
+          Si el cambio afloja alguna regla (un umbral más alto, un beneficiario nuevo, una regla que
+          deja de frenar), queda como propuesta hasta que otra persona de la lista lo apruebe.
         </p>
         <input type="hidden" name="yaml" value={yaml} />
         <input type="hidden" name="version" value={version} />

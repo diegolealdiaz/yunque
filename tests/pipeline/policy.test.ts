@@ -8,10 +8,15 @@ import {
   changeControls,
   loadPolicyHistory,
   previewPolicyChange,
+  approvePolicyProposal,
+  discardPolicyProposal,
+  loadPolicyProposal,
   processInvoice,
   readingFor,
   savePolicy,
+  submitPolicy,
   type DecideDeps,
+  type ReplayResult,
 } from "@/src/usecases";
 
 import { datasetCases, openPipeline, type Pipeline } from "./helpers";
@@ -23,6 +28,8 @@ import { datasetCases, openPipeline, type Pipeline } from "./helpers";
  */
 
 const SIGNER = "Diego Leal";
+/** Segunda firma de los cambios que aflojan la política (cuatro ojos). */
+const SECOND = "Ana Torres";
 let p: Pipeline;
 const ids = new Map<string, string>();
 
@@ -85,13 +92,7 @@ async function expectReplayAsPreviewed(candidate: Policy): Promise<number> {
     candidate,
   });
   const before = await verdicts();
-  await savePolicy(deps(), {
-    organizationId: p.organizationId,
-    candidate,
-    baseVersion: await currentVersion(),
-    signedBy: SIGNER,
-    note: null,
-  });
+  await saveSigned(candidate);
   const after = await verdicts();
   const changed = [...after].filter(([id, v]) => before.get(id) !== v).map(([id]) => id);
   expect(changed.sort()).toEqual(preview.changes.map((c) => c.invoiceId).sort());
@@ -99,6 +100,23 @@ async function expectReplayAsPreviewed(candidate: Policy): Promise<number> {
     expect(after.get(change.invoiceId)).toBe(`${change.after.verdict}:${change.after.rule ?? "-"}`);
   }
   return preview.changes.length;
+}
+
+/** Guarda como en la pantalla: si el cambio afloja, lo propone SIGNER y lo aprueba SECOND. */
+async function saveSigned(candidate: Policy, note: string | null = null): Promise<ReplayResult> {
+  const submitted = await submitPolicy(deps(), {
+    organizationId: p.organizationId,
+    candidate,
+    baseVersion: await currentVersion(),
+    signedBy: SIGNER,
+    note,
+  });
+  if (submitted.kind === "guardada") return submitted;
+  return approvePolicyProposal(deps(), {
+    organizationId: p.organizationId,
+    proposalId: submitted.proposal.id,
+    approver: SECOND,
+  });
 }
 
 /** Número de la versión vigente: sobre ella se edita lo que se guarda. */
@@ -145,13 +163,7 @@ describe("ver qué cambiaría (P-107)", () => {
       organizationId: p.organizationId,
       candidate,
     });
-    const result = await savePolicy(deps(), {
-      organizationId: p.organizationId,
-      candidate,
-      baseVersion: await currentVersion(),
-      signedBy: SIGNER,
-      note: "Umbral al límite por pago",
-    });
+    const result = await saveSigned(candidate, "Umbral al límite por pago");
     expect(result.version.version).toBe(2);
     expect(result.version.signed_by).toBe(SIGNER);
     expect(result.changed).toBe(preview.changes.length);
@@ -315,4 +327,114 @@ describe("una reevaluación no ablanda lo que no cambió", () => {
     const resolved = readingFor(invoice, previous, confirmed);
     expect(resolved.verification.ambiguities.some((a) => a.field === "total")).toBe(false);
   });
+});
+
+describe("cuatro ojos al aflojar la política (P-154)", () => {
+  const propose = async (candidate: Policy, by = SIGNER) =>
+    submitPolicy(deps(), {
+      organizationId: p.organizationId,
+      candidate,
+      baseVersion: await currentVersion(),
+      signedBy: by,
+      note: "Hardware recurrente",
+    });
+
+  it("un cambio que afloja queda propuesto y no cambia nada hasta la segunda firma", async () => {
+    const result = await propose(higherThreshold(await current()));
+    if (result.kind !== "propuesta") throw new Error("se esperaba una propuesta");
+    expect(result.proposal.loosenings[0]).toMatch(/^Sube el umbral de aprobación/);
+    expect(await currentVersion()).toBe(1);
+    const invoice = await repos.getInvoice(p.t.db, p.organizationId, ids.get("sobre_umbral") ?? "");
+    expect(invoice.status).toBe("esperando_aprobacion");
+    expect((await loadPolicyProposal(p.t.db, p.organizationId))?.id).toBe(result.proposal.id);
+
+    // Ni quien propuso, ni una firma única por el camino directo.
+    await expect(
+      approvePolicyProposal(deps(), {
+        organizationId: p.organizationId,
+        proposalId: result.proposal.id,
+        approver: SIGNER,
+      }),
+    ).rejects.toMatchObject({ code: "second_signature_required" });
+    await expect(
+      savePolicy(deps(), {
+        organizationId: p.organizationId,
+        candidate: higherThreshold(await current()),
+        baseVersion: 1,
+        signedBy: SECOND,
+        note: null,
+      }),
+    ).rejects.toMatchObject({ code: "second_signature_required" });
+    // Mientras hay una abierta, no se propone otra.
+    await expect(propose(higherThreshold(await current()), SECOND)).rejects.toMatchObject({
+      code: "proposal_pending",
+    });
+
+    const saved = await approvePolicyProposal(deps(), {
+      organizationId: p.organizationId,
+      proposalId: result.proposal.id,
+      approver: SECOND,
+    });
+    expect(saved.version.version).toBe(2);
+    expect(saved.version.signed_by).toBe(SIGNER);
+    expect(saved.version.note).toBe("Segunda firma: Ana Torres · Hardware recurrente");
+    const paid = await repos.getInvoice(p.t.db, p.organizationId, ids.get("sobre_umbral") ?? "");
+    expect(paid.status).toBe("decidida");
+    expect(await loadPolicyProposal(p.t.db, p.organizationId)).toBeNull();
+    const events = await repos.listEvents(p.t.db, p.organizationId, { limit: 50 });
+    expect(
+      events.some((e) => e.type === "policy.proposal_closed" && e.data["outcome"] === "aprobada"),
+    ).toBe(true);
+    // Ya aprobada, no se puede aprobar otra vez.
+    await expect(
+      approvePolicyProposal(deps(), {
+        organizationId: p.organizationId,
+        proposalId: result.proposal.id,
+        approver: SECOND,
+      }),
+    ).rejects.toMatchObject({ code: "proposal_closed" });
+  }, 120_000);
+
+  it("endurecer se guarda directo, con una sola firma", async () => {
+    const policy = await current();
+    const stricter = candidateFromYaml(
+      policy,
+      policyEditToYaml(policy).replace(/(max_days_overdue:) \d+/, "$1 10"),
+    );
+    expect(stricter.rules.due_date_window.max_days_overdue).toBe(10);
+    const result = await propose(stricter);
+    expect(result.kind).toBe("guardada");
+    expect(await currentVersion()).toBe(2);
+  }, 120_000);
+
+  it("una propuesta se descarta, y una que quedó vieja ya no se aprueba", async () => {
+    const first = await propose(higherThreshold(await current()));
+    if (first.kind !== "propuesta") throw new Error("se esperaba una propuesta");
+    await discardPolicyProposal(deps(), {
+      organizationId: p.organizationId,
+      proposalId: first.proposal.id,
+      by: SIGNER,
+    });
+    expect(await loadPolicyProposal(p.t.db, p.organizationId)).toBeNull();
+
+    const second = await propose(higherThreshold(await current()));
+    if (second.kind !== "propuesta") throw new Error("se esperaba una propuesta");
+    // Otra versión entra mientras tanto (apagar pagos): la propuesta vence.
+    await changeControls(deps(), {
+      organizationId: p.organizationId,
+      controls: { payments_enabled: false },
+      signedBy: SIGNER,
+    });
+    expect((await loadPolicyProposal(p.t.db, p.organizationId))?.stale).toBe(true);
+    await expect(
+      approvePolicyProposal(deps(), {
+        organizationId: p.organizationId,
+        proposalId: second.proposal.id,
+        approver: SECOND,
+      }),
+    ).rejects.toMatchObject({ code: "proposal_closed" });
+    // Y una nueva propuesta la reemplaza.
+    const third = await propose(higherThreshold(await current()));
+    expect(third.kind).toBe("propuesta");
+  }, 120_000);
 });

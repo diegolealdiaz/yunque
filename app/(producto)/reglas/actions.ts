@@ -5,13 +5,17 @@ import { revalidatePath } from "next/cache";
 
 import { PolicyError, type Controls, type FindingCode, type Verdict } from "@/src/domain";
 import { APPROVER_COOKIE, verifyApprover } from "@/src/session";
+import { openInvoicesText } from "@/src/ui/format";
 import {
   UseCaseError,
+  approvePolicyProposal,
   candidateFromYaml,
   changeControls,
+  discardPolicyProposal,
   loadCurrentPolicy,
   previewPolicyChange,
-  savePolicy,
+  submitPolicy,
+  type ReplayResult,
 } from "@/src/usecases";
 
 import { deliverNotificationsAfterResponse } from "../../_data/notify";
@@ -75,11 +79,16 @@ export async function previewAction(
   }
 }
 
+/** Lo que se le dice a la persona tras guardar una versión y reevaluar las abiertas. */
+function savedMessage(result: ReplayResult): string {
+  return `Guardada como v${String(result.version.version)}. Se reevaluaron ${openInvoicesText(result.evaluated - result.skipped - result.failed)} y ${result.changed === 1 ? "cambió 1" : `cambiaron ${String(result.changed)}`}.${result.failed > 0 ? ` ${String(result.failed)} no se pudieron reevaluar y siguen como estaban.` : ""}`;
+}
+
 export async function saveAction(_previous: SaveState, form: FormData): Promise<SaveState> {
   const { deps, organization, current, approver } = await context();
   try {
     const candidate = candidateFromYaml(current.content, text(form, "yaml"));
-    const result = await savePolicy(deps, {
+    const result = await submitPolicy(deps, {
       organizationId: organization.id,
       candidate,
       // La versión que el editor tenía cargada: si otra persona guardó antes, no se pisa.
@@ -87,18 +96,72 @@ export async function saveAction(_previous: SaveState, form: FormData): Promise<
       signedBy: approver,
       note: text(form, "nota").trim() || null,
     });
-    for (const path of ["/reglas", "/pendientes", "/facturas"]) revalidatePath(path);
+    revalidatePath("/reglas");
+    if (result.kind === "propuesta") {
+      return {
+        ok: true,
+        message:
+          "Este cambio afloja las reglas, así que quedó como propuesta: entra en vigor cuando otra persona de la lista lo apruebe.",
+        action: "Pídele a otro aprobador que lo revise arriba, en «Cambio de reglas por aprobar».",
+      };
+    }
+    for (const path of ["/pendientes", "/facturas"]) revalidatePath(path);
     // El replay decide de nuevo las abiertas: sus avisos se entregan al responder.
     deliverNotificationsAfterResponse(organization.id);
-    return {
-      ok: true,
-      message: `Guardada como v${String(result.version.version)}. Se reevaluaron ${String(result.evaluated - result.skipped - result.failed)} facturas abiertas y cambiaron ${String(result.changed)}.${result.failed > 0 ? ` ${String(result.failed)} no se pudieron reevaluar y siguen como estaban.` : ""}`,
-      action: null,
-    };
+    return { ok: true, message: savedMessage(result), action: null };
   } catch (error) {
     if (error instanceof PolicyError) {
       return { ok: false, message: error.problems.join(" · "), action: "Corrige el YAML" };
     }
+    if (error instanceof UseCaseError) {
+      return { ok: false, message: error.message, action: error.action };
+    }
+    throw error;
+  }
+}
+
+/** La segunda firma de un cambio que afloja la política. */
+export async function approveProposalAction(
+  _previous: SaveState,
+  form: FormData,
+): Promise<SaveState> {
+  const { deps, organization, approver } = await context();
+  try {
+    const result = await approvePolicyProposal(deps, {
+      organizationId: organization.id,
+      proposalId: text(form, "propuesta"),
+      approver,
+    });
+    for (const path of ["/reglas", "/pendientes", "/facturas"]) revalidatePath(path);
+    deliverNotificationsAfterResponse(organization.id);
+    return { ok: true, message: savedMessage(result), action: null };
+  } catch (error) {
+    if (error instanceof UseCaseError) {
+      return { ok: false, message: error.message, action: error.action };
+    }
+    throw error;
+  }
+}
+
+/** Descarta el cambio propuesto: la política vigente sigue igual. */
+export async function discardProposalAction(
+  _previous: SaveState,
+  form: FormData,
+): Promise<SaveState> {
+  const { deps, organization, approver } = await context();
+  try {
+    await discardPolicyProposal(deps, {
+      organizationId: organization.id,
+      proposalId: text(form, "propuesta"),
+      by: approver,
+    });
+    revalidatePath("/reglas");
+    return {
+      ok: true,
+      message: "Propuesta descartada. La política vigente no cambió.",
+      action: null,
+    };
+  } catch (error) {
     if (error instanceof UseCaseError) {
       return { ok: false, message: error.message, action: error.action };
     }

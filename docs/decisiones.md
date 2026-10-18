@@ -270,3 +270,16 @@ Haiku 5.5 queda como Lector y Sonnet 5.5 como segunda pasada, solo tras verifica
 
 **Consecuencia.** La moneda de una factura que solo dice "$" y no nombra la moneda la confirma una persona. Falta medir con facturas colombianas reales y con fotos de celular: las fotos se envían tal como llegan, dentro del tope de 5 MB.
 
+
+## D29. Cuatro ojos al aflojar la política
+
+**Contexto.** Una sola persona de la lista podía subir el umbral de aprobación, agregar un beneficiario o pasar una regla de frenar a escalar, y al guardar se reevaluaban las facturas abiertas: el mismo cambio que firmaba pagaba escaladas que esperaban a una persona. Es la vía más corta para pagar fuera de las reglas sin que nadie más lo vea.
+
+**Decisión.**
+- Un cambio que afloja la política no entra en vigor con una sola firma. Afloja: subir el límite por pago, el umbral o el presupuesto; cambiar el periodo del presupuesto; agregar beneficiarios permitidos; pasar una regla de frenar a escalar; ampliar una tolerancia o un atraso admitido; acortar una ventana de duplicados o de frecuencia; bajar la confianza mínima o quitar un campo crítico (`policyLoosenings`, en el dominio).
+- Guardar un cambio así deja una propuesta en la bitácora (`policy.proposed`, con lo que afloja en palabras). La política vigente no cambia. Otra persona de la lista la aprueba y entonces se guarda la versión, firmada por quien la propuso, con la segunda firma en la nota y en la bitácora, y se reevalúan las abiertas. Quien la propuso no puede aprobarla. Cualquiera de la lista puede descartarla.
+- Hay a lo sumo una propuesta abierta. Si entra otra versión mientras tanto, la propuesta vence: no se aprueba sobre una política que ya no es la que se miró.
+- `savePolicy` exige la segunda firma él mismo: ninguna ruta guarda un cambio que afloja sin ella.
+- Un cambio igual o más estricto se guarda directo, con una firma.
+
+**Consecuencia.** La propuesta vive en la bitácora, que es append-only: no hace falta tabla nueva, y aprobar o descartar es otro evento. Los interruptores (pagos, modo de prueba, autonomía) siguen con una firma: son de emergencia y apagarlos debe ser inmediato. Encender la autonomía o los pagos con cuatro ojos queda para producción con inicio de sesión.

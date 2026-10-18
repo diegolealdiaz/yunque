@@ -32,7 +32,13 @@ export type UseCaseErrorCode =
   /** Quien firma no está en la lista de aprobadores de la política vigente. */
   | "not_authorized"
   /** La factura tiene una decisión más nueva que la que se estaba mirando. */
-  | "decision_changed";
+  | "decision_changed"
+  /** El cambio afloja la política: entra en vigor solo con la firma de otra persona. */
+  | "second_signature_required"
+  /** Ya hay un cambio que afloja la política esperando la segunda firma. */
+  | "proposal_pending"
+  /** La propuesta ya no está pendiente, o la política cambió desde que se propuso. */
+  | "proposal_closed";
 
 export type Severity = "error" | "warning";
 

@@ -20,6 +20,9 @@ const STATUS: Readonly<Record<UseCaseErrorCode, number>> = {
   policy_changed: 409,
   not_authorized: 403,
   decision_changed: 409,
+  second_signature_required: 409,
+  proposal_pending: 409,
+  proposal_closed: 409,
 };
 
 export type ApiError = {

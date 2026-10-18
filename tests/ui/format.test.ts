@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   auditInstant,
   calendarDate,
+  changeCountText,
   clock,
   dueRelative,
   duration,
   eventData,
   instant,
+  openInvoicesText,
   percent,
   rateText,
   relativeInstant,
@@ -86,5 +88,24 @@ describe("instante relativo en listas", () => {
   it("desde una semana, el instante absoluto; el futuro cuenta como ahora", () => {
     expect(rel(ago(9 * 86_400_000))).toBe(instant(ago(9 * 86_400_000), "America/Bogota"));
     expect(rel(new Date(NOW.getTime() + 60_000).toISOString())).toBe("ahora");
+  });
+});
+
+describe("cuántas facturas abiertas, en una frase que concuerda", () => {
+  it("singular y plural", () => {
+    expect(openInvoicesText(1)).toBe("1 factura abierta");
+    expect(openInvoicesText(3)).toBe("3 facturas abiertas");
+    expect(changeCountText(0, 1, "Si se aprueba")).toBe(
+      "Si se aprueba, la factura abierta no cambia de veredicto.",
+    );
+    expect(changeCountText(0, 4, "Si se aprueba")).toBe(
+      "Si se aprueba, ninguna de las 4 facturas abiertas cambia de veredicto.",
+    );
+    expect(changeCountText(1, 4, "Con este cambio")).toBe(
+      "Con este cambio, 1 de 4 facturas abiertas cambia de veredicto",
+    );
+    expect(changeCountText(2, 4, "Con este cambio")).toBe(
+      "Con este cambio, 2 de 4 facturas abiertas cambian de veredicto",
+    );
   });
 });

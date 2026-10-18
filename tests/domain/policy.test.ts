@@ -10,6 +10,7 @@ import {
   policyEditFromYaml,
   policyEditToYaml,
   policyHash,
+  policyLoosenings,
   type Policy,
 } from "@/src/domain/policy";
 
@@ -217,5 +218,57 @@ describe("política (P-12)", () => {
       >
     )["min_confidence"] = 1.5;
     expect(problemsOf(() => parsePolicy(badConfidence))[0]).toContain("min_confidence");
+  });
+});
+
+describe("lo que una política afloja, para los cuatro ojos (P-153)", () => {
+  const { limits, rules } = base;
+  const usd = (amount: number) => ({ amount, currency: "USD" as const });
+
+  it("la misma política no afloja nada", () => {
+    expect(policyLoosenings(base, base)).toEqual([]);
+  });
+
+  it("endurecer no pide segunda firma", () => {
+    const stricter = parsePolicy({
+      ...base,
+      limits: {
+        ...limits,
+        approval_threshold: usd(limits.approval_threshold.amount - 100_00),
+      },
+      rules: {
+        ...rules,
+        payee_not_allowed: { on_fail: "frenar" },
+        duplicate_invoice: { ...rules.duplicate_invoice, window_days: 180 },
+        field_low_confidence: { ...rules.field_low_confidence, min_confidence: 0.95 },
+      },
+    });
+    expect(policyLoosenings(base, stricter)).toEqual([]);
+  });
+
+  it("cada forma de aflojar aparece en palabras", () => {
+    const looser = parsePolicy({
+      ...base,
+      limits: {
+        per_payment: usd(limits.per_payment.amount + 100_00),
+        approval_threshold: usd(limits.approval_threshold.amount + 100_00),
+        budget: { ...limits.budget, amount: limits.budget.amount + 100_00 },
+      },
+      allowed_payees: [...base.allowed_payees, "01JAZ0000000000000000000AA"],
+      rules: {
+        ...rules,
+        budget_exceeded: { on_fail: "escalar" },
+        vendor_velocity: { ...rules.vendor_velocity, max_invoices: 50 },
+        duplicate_invoice: { ...rules.duplicate_invoice, window_days: 10 },
+        amount_mismatch: { ...rules.amount_mismatch, tolerance_bp: 2000 },
+        due_date_window: { ...rules.due_date_window, max_days_overdue: 90 },
+        field_low_confidence: { ...rules.field_low_confidence, min_confidence: 0.5 },
+      },
+    });
+    const out = policyLoosenings(base, looser);
+    expect(out).toHaveLength(10);
+    expect(out.some((l) => l.startsWith("Sube el umbral de aprobación"))).toBe(true);
+    expect(out).toContain("Agrega un beneficiario a la lista de permitidos");
+    expect(out).toContain("«se pasa del presupuesto» pasa de frenar a escalar");
   });
 });

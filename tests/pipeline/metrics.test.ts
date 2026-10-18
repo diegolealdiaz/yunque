@@ -6,13 +6,14 @@ import { policyEditToYaml, type Policy } from "@/src/domain";
 import { runEvaluation, type EvaluationResult } from "@/src/eval";
 import {
   METRIC_KEYS,
+  approvePolicyProposal,
   businessDateAt,
   candidateFromYaml,
   drillInvoiceIds,
   loadMetrics,
   overallFieldAccuracy,
   processInvoice,
-  savePolicy,
+  submitPolicy,
   type MetricsView,
 } from "@/src/usecases";
 
@@ -82,22 +83,27 @@ describe("Métricas contra la evaluación (P-91)", () => {
         `approval_threshold:\n$1amount: ${String(current.content.limits.per_payment.amount)}`,
       ),
     );
-    const replay = await savePolicy(
-      {
-        db: p.t.db,
-        newId: p.t.newId,
-        now: p.t.now,
-        timeZone: "America/Bogota",
-        businessDate: TODAY,
-      },
-      {
-        organizationId: p.organizationId,
-        candidate: raised,
-        baseVersion: current.version,
-        signedBy: "Diego Leal",
-        note: null,
-      },
-    );
+    const decideDeps = {
+      db: p.t.db,
+      newId: p.t.newId,
+      now: p.t.now,
+      timeZone: "America/Bogota",
+      businessDate: TODAY,
+    };
+    // Subir el umbral afloja la política: lo propone una persona y lo aprueba otra.
+    const submitted = await submitPolicy(decideDeps, {
+      organizationId: p.organizationId,
+      candidate: raised,
+      baseVersion: current.version,
+      signedBy: "Diego Leal",
+      note: null,
+    });
+    if (submitted.kind !== "propuesta") throw new Error("se esperaba una propuesta");
+    const replay = await approvePolicyProposal(decideDeps, {
+      organizationId: p.organizationId,
+      proposalId: submitted.proposal.id,
+      approver: "Ana Torres",
+    });
     expect(replay.changed).toBeGreaterThan(0);
     const after = await metrics();
     expect(after.metrics.autonomy).toEqual(before.metrics.autonomy);

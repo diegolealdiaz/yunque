@@ -176,6 +176,30 @@ export function describeEvent(type: EventType, d: Readonly<Record<string, unknow
         tone: "brand",
       };
     }
+    case "policy.proposed": {
+      const base = num(d["base_version"]);
+      const loosened = Array.isArray(d["loosenings"]) ? d["loosenings"].length : 0;
+      return {
+        title: "Propuso un cambio que afloja las reglas",
+        detail: `${String(loosened)} ${loosened === 1 ? "cambio" : "cambios"} sobre la v${String(base ?? "?")}; entra en vigor con la firma de otra persona`,
+        tone: "escalate",
+      };
+    }
+    case "policy.proposal_closed": {
+      const version = num(d["version"]);
+      const outcome = str(d["outcome"]);
+      return {
+        title:
+          outcome === "aprobada"
+            ? "Dio la segunda firma al cambio de reglas"
+            : "Descartó el cambio de reglas propuesto",
+        detail:
+          outcome === "aprobada" && version !== null
+            ? `Queda en vigor como la v${String(version)}`
+            : null,
+        tone: outcome === "aprobada" ? "brand" : "neutral",
+      };
+    }
     case "policy.replayed": {
       const evaluated = num(d["evaluated"]) ?? 0;
       const changed = num(d["changed"]) ?? 0;

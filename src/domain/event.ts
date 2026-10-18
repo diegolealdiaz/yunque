@@ -20,6 +20,8 @@ export const EventTypeSchema = z.enum([
   "invoice.corrected",
   "invoice.failed",
   "policy.saved",
+  "policy.proposed",
+  "policy.proposal_closed",
   "policy.replayed",
   "controls.changed",
   "vendor.created",

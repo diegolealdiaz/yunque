@@ -6,6 +6,7 @@ import {
   getCurrentPolicy,
   getLatestExtraction,
   getOrganization,
+  listEvents,
   listInvoices,
   listLatestDecisions,
   listVendors,
@@ -15,8 +16,10 @@ import {
   add,
   applyPolicyEdit,
   parsePolicy,
+  parsePolicyEdit,
   periodKey,
   policyEditFromYaml,
+  policyLoosenings,
   toUsd,
   zero,
   type Controls,
@@ -50,6 +53,10 @@ import { UseCaseError } from "./errors";
  *   acumula en memoria lo que cada `pagar` comprometería, así el diff es el que se obtendrá.
  * - Guardar exige un aprobador de la lista, crea la versión v+1 firmada, aplica el límite del
  *   presupuesto del periodo y reevalúa las abiertas; todo queda en la bitácora.
+ * - Cuatro ojos: un cambio que afloja la política (umbral más alto, beneficiario nuevo, una
+ *   regla que pasa de frenar a escalar) no entra en vigor con una sola firma. Queda como
+ *   propuesta en la bitácora hasta que otra persona de la lista la apruebe o alguien la
+ *   descarte. Un cambio igual o más estricto se guarda directo.
  */
 
 export type PolicyChange = {
@@ -218,6 +225,8 @@ export async function savePolicy(
     readonly baseVersion: number;
     readonly signedBy: string | null;
     readonly note: string | null;
+    /** Segunda firma de una propuesta que afloja la política: quién aprueba y cuál. */
+    readonly secondSignature?: { readonly proposalId: Ulid; readonly approvedBy: string };
   },
 ): Promise<ReplayResult> {
   const at = deps.now().toISOString();
@@ -237,6 +246,17 @@ export async function savePolicy(
       protected: current.content.protected,
       controls: current.content.controls,
     });
+    const second = input.secondSignature;
+    if (policyLoosenings(current.content, content).length > 0) {
+      if (!second) {
+        throw new UseCaseError(
+          "second_signature_required",
+          "Este cambio afloja las reglas: entra en vigor con la firma de otra persona",
+          { action: "Guárdalo como propuesta para que otra persona de la lista lo apruebe" },
+        );
+      }
+      await assertSecondSignature(tx, input.organizationId, current, second, signer);
+    }
     const saved = await appendPolicyVersion(
       tx,
       input.organizationId,
@@ -265,10 +285,28 @@ export async function savePolicy(
       actor: { kind: "humano", name: signer },
       invoice_id: null,
       decision_id: null,
-      data: { version: saved.version, content_hash: saved.content_hash, previous: current.version },
+      data: {
+        version: saved.version,
+        content_hash: saved.content_hash,
+        previous: current.version,
+        ...(second ? { approved_by: second.approvedBy, proposal_id: second.proposalId } : {}),
+      },
       trace_id: traceId,
       occurred_at: at,
     });
+    if (second) {
+      await appendEvent(tx, {
+        id: deps.newId(),
+        organization_id: input.organizationId,
+        type: "policy.proposal_closed",
+        actor: { kind: "humano", name: second.approvedBy },
+        invoice_id: null,
+        decision_id: null,
+        data: { proposal_id: second.proposalId, outcome: "aprobada", version: saved.version },
+        trace_id: traceId,
+        occurred_at: at,
+      });
+    }
     return { version: saved, signer };
   });
 
@@ -349,5 +387,268 @@ export async function changeControls(
       occurred_at: at,
     });
     return saved;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cuatro ojos: proponer, aprobar o descartar un cambio que afloja la política.
+// ---------------------------------------------------------------------------
+
+/** Un cambio que afloja la política, a la espera de la firma de otra persona. */
+export type PolicyProposal = {
+  readonly id: Ulid;
+  readonly proposedBy: string;
+  readonly proposedAt: string;
+  /** Versión sobre la que se propuso. Si la vigente ya es otra, la propuesta venció. */
+  readonly baseVersion: number;
+  readonly candidate: Policy;
+  /** Lo que afloja, en frases para quien aprueba. */
+  readonly loosenings: readonly string[];
+  readonly note: string | null;
+  /** La política cambió desde que se propuso: ya no se puede aprobar, solo descartar. */
+  readonly stale: boolean;
+};
+
+/** Cuántos eventos de propuesta se miran: una empresa tiene a lo sumo una abierta. */
+const PROPOSAL_SCAN = 50;
+
+/**
+ * La propuesta abierta, o null: la última `policy.proposed` sin su `policy.proposal_closed`.
+ * Se reconstruye desde la bitácora, que es append-only: aprobar o descartar es otro evento.
+ */
+async function openProposal(
+  exec: Executor,
+  organizationId: Ulid,
+  current: PolicyVersion,
+): Promise<PolicyProposal | null> {
+  const [proposed, closed] = await Promise.all([
+    listEvents(exec, organizationId, { type: "policy.proposed", limit: PROPOSAL_SCAN }),
+    listEvents(exec, organizationId, { type: "policy.proposal_closed", limit: PROPOSAL_SCAN }),
+  ]);
+  const done = new Set(closed.map((e) => e.data["proposal_id"]));
+  const event = proposed.find((e) => !done.has(e.id));
+  if (!event || event.actor.kind !== "humano") return null;
+  const baseVersion = Number(event.data["base_version"]);
+  const loosenings = event.data["loosenings"];
+  const note = event.data["note"];
+  let candidate: Policy;
+  try {
+    candidate = applyPolicyEdit(current.content, parsePolicyEdit(event.data["edit"]));
+  } catch {
+    // Una propuesta que ya no valida contra el esquema no se puede aprobar: no se muestra.
+    return null;
+  }
+  return {
+    id: event.id,
+    proposedBy: event.actor.name,
+    proposedAt: event.occurred_at,
+    baseVersion,
+    candidate,
+    loosenings: Array.isArray(loosenings)
+      ? loosenings.filter((l): l is string => typeof l === "string")
+      : [],
+    note: typeof note === "string" ? note : null,
+    stale: baseVersion !== current.version,
+  };
+}
+
+/** La propuesta abierta de la empresa, para la pantalla de Reglas. */
+export async function loadPolicyProposal(
+  db: Executor,
+  organizationId: Ulid,
+): Promise<PolicyProposal | null> {
+  const current = await getCurrentPolicy(db, organizationId);
+  return current ? openProposal(db, organizationId, current) : null;
+}
+
+/** Dentro de la transacción que guarda: la propuesta sigue abierta, vigente y la firma otro. */
+async function assertSecondSignature(
+  tx: Executor,
+  organizationId: Ulid,
+  current: PolicyVersion,
+  second: { readonly proposalId: Ulid; readonly approvedBy: string },
+  signer: string,
+): Promise<void> {
+  const proposal = await openProposal(tx, organizationId, current);
+  if (!proposal || proposal.id !== second.proposalId || proposal.stale) {
+    throw new UseCaseError(
+      "proposal_closed",
+      "La propuesta ya no está pendiente o la política cambió desde que se propuso",
+      { action: "Recarga la página; si el cambio sigue haciendo falta, propónlo de nuevo" },
+    );
+  }
+  if (!current.content.protected.approvers.includes(second.approvedBy)) {
+    throw new UseCaseError("not_authorized", "Quien aprueba no está en la lista de aprobadores", {
+      action: "Elige un aprobador de la lista",
+    });
+  }
+  // Cuatro ojos: dos personas distintas, quien propuso (y firma la versión) y quien aprueba.
+  if (second.approvedBy === proposal.proposedBy || second.approvedBy === signer) {
+    throw new UseCaseError(
+      "second_signature_required",
+      "Quien propuso el cambio no puede aprobarlo: hace falta otra persona de la lista",
+      { action: "Pide a otro aprobador que lo revise y lo firme" },
+    );
+  }
+}
+
+export type SubmitResult =
+  | ({ readonly kind: "guardada" } & ReplayResult)
+  | { readonly kind: "propuesta"; readonly proposal: PolicyProposal };
+
+/**
+ * Lo que hace el botón Guardar: si el cambio no afloja nada, se guarda y se reevalúan las
+ * abiertas; si afloja, queda como propuesta y la política vigente no cambia.
+ */
+export async function submitPolicy(
+  deps: DecideDeps,
+  input: {
+    readonly organizationId: Ulid;
+    readonly candidate: Policy;
+    readonly baseVersion: number;
+    readonly signedBy: string | null;
+    readonly note: string | null;
+  },
+): Promise<SubmitResult> {
+  const at = deps.now().toISOString();
+  const outcome = await withWriteTransaction(deps.db, async (tx) => {
+    const { current, signer } = await authorize(tx, input.organizationId, input.signedBy);
+    if (current.version !== input.baseVersion) {
+      throw new UseCaseError(
+        "policy_changed",
+        `La política cambió desde que la abriste: ahora es la v${String(current.version)}`,
+        { action: "Recarga la página y vuelve a aplicar tus cambios" },
+      );
+    }
+    const content = parsePolicy({
+      ...input.candidate,
+      protected: current.content.protected,
+      controls: current.content.controls,
+    });
+    const loosenings = policyLoosenings(current.content, content);
+    if (loosenings.length === 0) return null;
+    const open = await openProposal(tx, input.organizationId, current);
+    if (open && !open.stale) {
+      throw new UseCaseError(
+        "proposal_pending",
+        `Ya hay un cambio de ${open.proposedBy} esperando la segunda firma`,
+        { action: "Apruébalo o descártalo antes de proponer otro" },
+      );
+    }
+    const traceId = `tr-${deps.newId()}`;
+    if (open) {
+      // Una propuesta vencida (la política cambió después) se cierra al proponer otra.
+      await appendEvent(tx, {
+        id: deps.newId(),
+        organization_id: input.organizationId,
+        type: "policy.proposal_closed",
+        actor: { kind: "humano", name: signer },
+        invoice_id: null,
+        decision_id: null,
+        data: { proposal_id: open.id, outcome: "vencida" },
+        trace_id: traceId,
+        occurred_at: at,
+      });
+    }
+    const id = deps.newId();
+    const edit = parsePolicyEdit({
+      limits: content.limits,
+      allowed_payees: content.allowed_payees,
+      rules: content.rules,
+    });
+    const note = input.note ? input.note.slice(0, 500) : null;
+    await appendEvent(tx, {
+      id,
+      organization_id: input.organizationId,
+      type: "policy.proposed",
+      actor: { kind: "humano", name: signer },
+      invoice_id: null,
+      decision_id: null,
+      data: { base_version: current.version, edit, loosenings, note },
+      trace_id: traceId,
+      occurred_at: at,
+    });
+    const proposal: PolicyProposal = {
+      id,
+      proposedBy: signer,
+      proposedAt: at,
+      baseVersion: current.version,
+      candidate: content,
+      loosenings,
+      note,
+      stale: false,
+    };
+    return proposal;
+  });
+  if (outcome) return { kind: "propuesta", proposal: outcome };
+  return { kind: "guardada", ...(await savePolicy(deps, input)) };
+}
+
+/**
+ * La segunda firma: otra persona de la lista aprueba la propuesta. Se guarda como versión
+ * nueva firmada por quien la propuso, con la aprobación en la nota y en la bitácora, y se
+ * reevalúan las abiertas como en cualquier guardado.
+ */
+export async function approvePolicyProposal(
+  deps: DecideDeps,
+  input: {
+    readonly organizationId: Ulid;
+    readonly proposalId: Ulid;
+    readonly approver: string | null;
+  },
+): Promise<ReplayResult> {
+  const proposal = await loadPolicyProposal(deps.db, input.organizationId);
+  if (!proposal || proposal.id !== input.proposalId || proposal.stale) {
+    throw new UseCaseError(
+      "proposal_closed",
+      "La propuesta ya no está pendiente o la política cambió desde que se propuso",
+      { action: "Recarga la página; si el cambio sigue haciendo falta, propónlo de nuevo" },
+    );
+  }
+  if (input.approver === null) {
+    throw new UseCaseError("not_authorized", "Elige quién firma para aprobar el cambio", {
+      action: "Elige un aprobador de la lista",
+    });
+  }
+  const note = `Segunda firma: ${input.approver}${proposal.note ? ` · ${proposal.note}` : ""}`;
+  return savePolicy(deps, {
+    organizationId: input.organizationId,
+    candidate: proposal.candidate,
+    baseVersion: proposal.baseVersion,
+    signedBy: proposal.proposedBy,
+    note: note.slice(0, 500),
+    secondSignature: { proposalId: proposal.id, approvedBy: input.approver },
+  });
+}
+
+/** Descarta la propuesta abierta. Cualquiera de la lista puede, también quien la propuso. */
+export async function discardPolicyProposal(
+  deps: DecideDeps,
+  input: {
+    readonly organizationId: Ulid;
+    readonly proposalId: Ulid;
+    readonly by: string | null;
+  },
+): Promise<void> {
+  const at = deps.now().toISOString();
+  await withWriteTransaction(deps.db, async (tx) => {
+    const { current, signer } = await authorize(tx, input.organizationId, input.by);
+    const open = await openProposal(tx, input.organizationId, current);
+    if (!open || open.id !== input.proposalId) {
+      throw new UseCaseError("proposal_closed", "La propuesta ya no está pendiente", {
+        action: "Recarga la página",
+      });
+    }
+    await appendEvent(tx, {
+      id: deps.newId(),
+      organization_id: input.organizationId,
+      type: "policy.proposal_closed",
+      actor: { kind: "humano", name: signer },
+      invoice_id: null,
+      decision_id: null,
+      data: { proposal_id: open.id, outcome: "descartada" },
+      trace_id: `tr-${deps.newId()}`,
+      occurred_at: at,
+    });
   });
 }

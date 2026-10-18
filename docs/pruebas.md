@@ -196,6 +196,8 @@ Cada fila es una prueba o un grupo pequeño con un identificador estable. "Tipo"
 | P-150 | Moneda con "$": vale si el documento la nombra en otra parte (código, "dólares", "pesos colombianos"); a secas es ambigüedad entre las monedas que usan "$" y escala sin segunda pasada; un símbolo de una sola moneda ("US$", "€") vale como cita | unidad |
 | P-151 | Factura con total cero: se registra como documento sin nada que pagar, conserva sus sospechas y no gasta reintentos | unidad |
 | P-152 | Tamaño de las páginas: carta y A4 a 110 dpi; una página enorme baja hasta 1.568 px de lado; un escaneo con ruido se guarda en JPEG | unidad |
+| P-153 | Lo que una política afloja: igual o más estricta no afloja nada; cada forma de aflojar (límites, presupuesto, beneficiario nuevo, de frenar a escalar, tolerancias, ventanas, confianza) aparece en palabras | unidad |
+| P-154 | Cuatro ojos: un cambio que afloja queda propuesto sin tocar la política ni las facturas; ni quien lo propuso ni una firma única lo aplican; otra persona lo aprueba y se reevalúan las abiertas; endurecer se guarda directo; una propuesta se descarta y una vencida ya no se aprueba | integración |
 
 ## 4. Matriz de fronteras por regla (P-20)
 

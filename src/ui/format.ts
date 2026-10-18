@@ -169,3 +169,18 @@ export function rateText(perUsdScaled: number): string {
   const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   return fraction ? `${grouped},${fraction}` : grouped;
 }
+
+/** "1 factura abierta", "3 facturas abiertas". */
+export function openInvoicesText(count: number): string {
+  return `${String(count)} ${count === 1 ? "factura abierta" : "facturas abiertas"}`;
+}
+
+/** Cuántas facturas abiertas cambiarían de veredicto, en una frase que concuerda en número. */
+export function changeCountText(changed: number, evaluated: number, when: string): string {
+  if (changed === 0) {
+    return evaluated === 1
+      ? `${when}, la factura abierta no cambia de veredicto.`
+      : `${when}, ninguna de las ${String(evaluated)} facturas abiertas cambia de veredicto.`;
+  }
+  return `${when}, ${String(changed)} de ${openInvoicesText(evaluated)} ${changed === 1 ? "cambia" : "cambian"} de veredicto`;
+}

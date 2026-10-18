@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { Sha256Schema, jsonHash, type Sha256 } from "./hash";
 import { UlidSchema } from "./ids";
-import { PositiveMoneySchema } from "./money";
+import { PositiveMoneySchema, formatMoney, money } from "./money";
 import { OnFailSchema, RULES, type OnFail, type RuleCode } from "./rules";
 
 /**
@@ -226,6 +226,116 @@ export function onFailOf(policy: Policy, code: RuleCode): OnFail {
 /** Hash del contenido de la política, estable ante el orden de las claves. */
 export function policyHash(policy: Policy): Sha256 {
   return jsonHash(policy);
+}
+
+// ---------------------------------------------------------------------------
+// Cuatro ojos: lo que una política nueva afloja frente a la vigente.
+// ---------------------------------------------------------------------------
+
+/** Nombre de cada regla configurable en las frases de lo que se afloja. */
+const LOOSENED_RULE_NAME: readonly (readonly [ConfigurableRuleCode, string])[] = [
+  ["payee_not_allowed", "beneficiario fuera de la lista"],
+  ["vendor_velocity", "muchas facturas seguidas del mismo beneficiario"],
+  ["budget_exceeded", "se pasa del presupuesto"],
+  ["duplicate_invoice", "factura duplicada"],
+  ["amount_mismatch", "cobra distinto a lo acordado"],
+  ["first_payment_to_vendor", "primer pago a un beneficiario"],
+  ["amount_unusual_for_vendor", "monto fuera de lo habitual"],
+  ["due_date_window", "factura muy vencida"],
+];
+
+const usd = (cents: number) => formatMoney(money(cents, "USD"));
+const pct = (bp: number) => `${String(bp / 100).replace(".", ",")} %`;
+
+/**
+ * Lo que la candidata afloja frente a la vigente, en frases para la persona que aprueba:
+ * un límite o un umbral más alto, un beneficiario nuevo en la lista, una regla que pasa de
+ * frenar a escalar, una tolerancia más amplia o una ventana más corta. Vacía si la candidata
+ * es igual o más estricta. Un cambio así no entra en vigor con una sola firma: pagaría lo que
+ * hoy no se paga solo.
+ */
+export function policyLoosenings(current: Policy, candidate: Policy): string[] {
+  const out: string[] = [];
+  const was = current.limits;
+  const now = candidate.limits;
+  if (now.per_payment.amount > was.per_payment.amount) {
+    out.push(
+      `Sube el límite por pago de ${usd(was.per_payment.amount)} a ${usd(now.per_payment.amount)}`,
+    );
+  }
+  if (now.approval_threshold.amount > was.approval_threshold.amount) {
+    out.push(
+      `Sube el umbral de aprobación de ${usd(was.approval_threshold.amount)} a ${usd(now.approval_threshold.amount)}`,
+    );
+  }
+  if (now.budget.amount > was.budget.amount) {
+    out.push(`Sube el presupuesto de ${usd(was.budget.amount)} a ${usd(now.budget.amount)}`);
+  }
+  if (now.budget.period !== was.budget.period) {
+    out.push("Cambia el periodo del presupuesto, que vuelve a empezar");
+  }
+  const added = candidate.allowed_payees.filter((id) => !current.allowed_payees.includes(id));
+  if (added.length > 0) {
+    out.push(
+      added.length === 1
+        ? "Agrega un beneficiario a la lista de permitidos"
+        : `Agrega ${String(added.length)} beneficiarios a la lista de permitidos`,
+    );
+  }
+  for (const [code, name] of LOOSENED_RULE_NAME) {
+    if (current.rules[code].on_fail === "frenar" && candidate.rules[code].on_fail === "escalar") {
+      out.push(`«${name}» pasa de frenar a escalar`);
+    }
+  }
+  const r = current.rules;
+  const c = candidate.rules;
+  if (c.vendor_velocity.max_invoices > r.vendor_velocity.max_invoices) {
+    out.push(
+      `Admite más facturas seguidas del mismo beneficiario (${String(r.vendor_velocity.max_invoices)} a ${String(c.vendor_velocity.max_invoices)})`,
+    );
+  }
+  if (c.vendor_velocity.window_days < r.vendor_velocity.window_days) {
+    out.push(
+      `Acorta la ventana de facturas seguidas (${String(r.vendor_velocity.window_days)} a ${String(c.vendor_velocity.window_days)} días)`,
+    );
+  }
+  if (c.duplicate_invoice.window_days < r.duplicate_invoice.window_days) {
+    out.push(
+      `Acorta la ventana de duplicados (${String(r.duplicate_invoice.window_days)} a ${String(c.duplicate_invoice.window_days)} días)`,
+    );
+  }
+  if (c.amount_mismatch.tolerance_bp > r.amount_mismatch.tolerance_bp) {
+    out.push(
+      `Amplía la tolerancia frente a lo acordado (${pct(r.amount_mismatch.tolerance_bp)} a ${pct(c.amount_mismatch.tolerance_bp)})`,
+    );
+  }
+  if (c.amount_unusual_for_vendor.deviation_bp > r.amount_unusual_for_vendor.deviation_bp) {
+    out.push(
+      `Amplía la desviación admitida sobre lo habitual (${pct(r.amount_unusual_for_vendor.deviation_bp)} a ${pct(c.amount_unusual_for_vendor.deviation_bp)})`,
+    );
+  }
+  if (c.amount_unusual_for_vendor.min_history > r.amount_unusual_for_vendor.min_history) {
+    out.push(
+      `Pide más pagos previos para vigilar montos atípicos (${String(r.amount_unusual_for_vendor.min_history)} a ${String(c.amount_unusual_for_vendor.min_history)})`,
+    );
+  }
+  if (c.due_date_window.max_days_overdue > r.due_date_window.max_days_overdue) {
+    out.push(
+      `Admite más días de atraso (${String(r.due_date_window.max_days_overdue)} a ${String(c.due_date_window.max_days_overdue)})`,
+    );
+  }
+  if (c.field_low_confidence.min_confidence < r.field_low_confidence.min_confidence) {
+    out.push(
+      `Baja la confianza mínima de lectura (${String(r.field_low_confidence.min_confidence)} a ${String(c.field_low_confidence.min_confidence)})`,
+    );
+  }
+  const dropped = r.field_low_confidence.critical_fields.filter(
+    (f) => !c.field_low_confidence.critical_fields.includes(f),
+  );
+  if (dropped.length > 0) {
+    out.push(`Deja de vigilar la confianza de ${String(dropped.length)} campos críticos`);
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------

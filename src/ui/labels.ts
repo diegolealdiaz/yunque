@@ -186,6 +186,8 @@ export const EVENT_LABEL: Readonly<Record<EventType, string>> = {
   "invoice.corrected": "Corregida a mano",
   "invoice.failed": "Falló el proceso",
   "policy.saved": "Política firmada",
+  "policy.proposed": "Cambio de reglas propuesto",
+  "policy.proposal_closed": "Propuesta resuelta",
   "policy.replayed": "Facturas reevaluadas",
   "controls.changed": "Interruptores cambiados",
   "vendor.created": "Beneficiario creado",
