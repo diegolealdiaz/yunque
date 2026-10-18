@@ -195,6 +195,14 @@ Protecciones, las mismas capas que el correo (D23):
 
 **Por qué Telegram y no WhatsApp.** Telegram es gratis, el bot se crea en minutos y admite botones sin trámite. WhatsApp cobra por conversación y exige aprobación del proveedor y plantillas aprobadas. Es el canal natural de una empresa en la región, y entraría como otro adaptador sobre la misma cola de avisos.
 
+## D25. El historial de ejemplo trae sus documentos, generados una vez y servidos desde el dataset
+
+**Contexto.** Las 24 facturas de julio a septiembre existen para que las reglas de historial (primer pago, monto atípico, duplicados) tengan con qué comparar. Se sembraban sin archivo ni lectura: al abrir una, el detalle no mostraba documento ni campos, y la que se frenó no decía por qué. Para un cliente, una factura frenada sin motivo es justo lo contrario de lo que Yunque promete.
+
+**Decisión.** `npm run dataset` pinta cada factura del historial con la plantilla de su beneficiario (partiendo de su caso del lote: mismo NIT, cuenta y descripción con el mes de la factura) y la pasa una vez por la misma ingesta que una factura real: PNG por página y posición de cada carácter. Escribe todo en `generado/historial/` con un índice (`documentos.json`) que lleva además la lectura ideal. La semilla solo lee ese índice: las facturas apuntan a llaves `muestra/...`, que el almacenamiento sirve de solo lectura desde el dataset que viene con la app, así crear una empresa de ejemplo no renderiza nada ni escribe archivos. Las que no se pagaron declaran en `historial.json` la regla que las decidió, y la semilla escribe su hallazgo con los mismos valores, formato y mensaje que el motor; la aprobación de una persona queda como su propio evento.
+
+**Consecuencia.** El detalle, la bitácora y Pendientes tratan igual al historial y al lote. Como el historial no pasó por el motor, no guarda el registro de los demás controles, y la pantalla lo dice en vez de mostrar "Pasó X de Y". Los PDF del historial entran en la prueba de generación (P-51) y el recorrido completo en P-145. En el despliegue, `data/dataset/generado` debe ir en el paquete de la función (pendiente del paso 29).
+
 **Identidad.** Cada cliente tiene su propia empresa de ejemplo (la cookie de su navegador), y el enlace conecta su chat con esa empresa: el bot identifica a la persona por su chat. Los avisos de una empresa solo van a sus chats; lo que pase en la empresa de otro cliente nunca le llega.
 
 **En producción.** Con inicio de sesión, cada usuario conecta su propio chat y elige qué recibe: solo lo que le toca aprobar según su rol, las frenadas por riesgo, o un resumen diario.

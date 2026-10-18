@@ -159,6 +159,8 @@ Debajo, tres tarjetas con una pregunta cada una, cada una con su título arriba.
 - Si la decisión fue "pagar" o "frenar", la columna 3 muestra el estado, la orden preparada o el motivo del freno, y la opción "Reevaluar con la política actual" cuando hay una versión más nueva.
 - En reevaluación, se muestra la decisión anterior en un bloque colapsado con la diferencia.
 
+**Facturas del historial de ejemplo.** Las 24 facturas de julio a septiembre se ven como las del lote: su documento, pintado con la plantilla de su beneficiario, sus campos con la cita enmarcada y, la que no se pagó, su porqué (la de Stackline se frenó porque trae otra cuenta; la de Andes Hardware escaló por monto y la aprobó Ana Torres, con su evento). Como se decidieron antes de la demo, solo guardan el control que las decidió, y la pantalla lo dice en lugar de "Pasó X de Y controles".
+
 ### 5.3 Facturas
 
 Encabezado con el título y, debajo, cuántas facturas hay ("57 facturas · todas las decisiones del agente y de tu equipo"). A la derecha los botones: en la demo, "Revisar correo de ejemplo (5)" y "Procesar facturas de ejemplo (33)", y "Subir factura", el primario, con su icono, que abre un diálogo. Arriba de la tabla, los veredictos en píldoras con cuántas hay en cada una (Todas, Pagadas, Escaladas, Frenadas, En proceso) y, a la derecha, la búsqueda por beneficiario o referencia (atajo `/`). Si se llega desde Pendientes, una píldora "Decididas hoy" muestra el filtro del día y lo quita con un clic. Estado y canal se aceptan en la dirección aunque la pantalla no los ofrezca.
@@ -197,13 +199,13 @@ Reglas                       Demo sin inicio de sesión · Firmas como [ Ana Tor
 - La pestaña "Tasas de cambio" muestra, de solo lectura, cuánto vale 1 USD en cada moneda y desde qué fecha (D22). No se editan aquí porque cambiarlas cambiaría qué se paga. El detalle de una factura en otra moneda dice con qué tasa se convirtió a USD para los límites.
 - "Ver qué cambiaría" ejecuta el replay sobre el histórico y abre el resultado en un diálogo, desde el que se puede guardar. Es la pantalla que más convence a un cliente y vale la pena pulirla.
 - Como la demo no tiene inicio de sesión, el aprobador que firma se elige en el encabezado. Sin elegirlo, los interruptores y el guardado quedan desactivados.
-- Los interruptores de pagos, modo de prueba y el agente (decide o solo recomienda) están arriba, separados del formulario, porque no son política sino control. Cada uno es un interruptor con perilla que se desliza y un riel con el color de lo que significa su estado: pagos encendidos en verde y apagados en rojo, modo de prueba encendido en ámbar (no se paga de verdad), el agente que decide en el azul de marca; lo apagado sin consecuencia va en gris.
+- Los interruptores de pagos, modo de prueba y el agente (decide o solo recomienda) están arriba, separados del formulario, porque no son política sino control. Cada uno es un interruptor con perilla que se desliza y un riel con el color de lo que significa su estado: pagos encendidos y el agente que decide en el azul de marca, pagos apagados en rojo, modo de prueba encendido en ámbar (no se paga de verdad); lo apagado sin consecuencia va en gris.
 
 ### 5.5 Métricas
 
 Tres bloques, con el estilo de un tablero: cifras en mono, nombres en mayúsculas pequeñas, filas separadas por líneas.
 
-- **Franja del periodo**, sin tarjeta: lo pagado en el periodo en grande, en el verde de pagar, con cuántas facturas. Al lado, en dos columnas: lo frenado y lo escalado (en USD y cuántas facturas), cuántas esperan a una persona (con la más antigua) y lo que queda del presupuesto.
+- **Franja del periodo**, sin tarjeta: lo pagado en el periodo en grande, en el azul de marca, con cuántas facturas. Al lado, en dos columnas: lo frenado y lo escalado (en USD y cuántas facturas), cuántas esperan a una persona (con la más antigua) y lo que queda del presupuesto.
 - **Cómo decide el agente**, en una tarjeta, medido sobre el lote con veredicto esperado: una píldora con cuántas facturas se midieron y los falsos "pagar" (en verde si son cero); cinco cifras en fila (autonomía, falsos "pagar", exactitud por campo, costo por factura, tiempo medio), y una tabla por tipo de caso: normales, trampas y adversariales, con qué prueba cada uno y cuántas acertó. Sin facturas medidas, la tarjeta lo dice y lleva a Facturas para procesar el lote.
 - **Dos gráficos**: presupuesto del periodo (comprometido contra el límite, por moneda) y reglas que más dispararon.
 
@@ -211,7 +213,12 @@ Nada más. Cada número tiene un enlace a las facturas que lo componen, listadas
 
 ### 5.6 Bitácora
 
-Lista cronológica de eventos de dominio con filtro por tipo, factura y persona. Cada evento muestra quién, cuándo, qué, el detalle en palabras (la regla que decidió, el canal, el costo de lectura) y el enlace a la factura. Debajo del detalle, tenues, los datos crudos del evento, completos al pasar el ratón: es la misma tabla de auditoría, sin transformación.
+Con el estilo de tablero de Métricas: arriba, una tarjeta con cuántos eventos hay, cuántos son decisiones del agente y cuántos acciones de personas; debajo, una frase que dice qué es la bitácora (todo queda escrito, en orden, y nadie lo edita ni lo borra), y la tabla en una tarjeta con encabezados en mayúsculas pequeñas.
+
+- Cada evento se dice para el cliente, en una frase y su porqué: "Frenó la factura · La cuenta de pago no es la registrada del beneficiario", "La pasó a una persona · Supera el monto que el agente paga solo", "Ana Torres · Aprobó el pago". Un punto con el color del veredicto (verde, rojo, ámbar; azul para firmas y cambios de reglas) deja ver de un vistazo qué pasó. Nada de códigos a la vista.
+- Columnas: cuándo (hora en mono y fecha debajo), quién (iniciales en un círculo; el agente con el color de marca), qué pasó, y la factura con su beneficiario y su referencia. Clic abre la factura.
+- Por defecto se ven "Decisiones y acciones"; "Todos los pasos" suma los pasos internos de cada factura (llegó, se preparó, se leyó). Filtros por factura, por quién y por tipo; todo en la URL.
+- "Ver datos técnicos" muestra bajo cada evento su tipo y sus datos crudos tal como quedaron escritos: es la misma tabla de auditoría, sin transformación, para quien audita.
 
 ### 5.7 Salud
 
